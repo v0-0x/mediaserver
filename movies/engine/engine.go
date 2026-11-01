@@ -86,6 +86,10 @@ func Start(o Options) (*Engine, error) {
 	return &Engine{app: a, srv: srv}, nil
 }
 
+// Handler is the movies side's API, for the dashboard (see the anime
+// side's SetMovies).
+func (e *Engine) Handler() http.Handler { return e.srv.Handler() }
+
 // Port is where the movies side answers.
 func (e *Engine) Port() int { return e.app.Settings.Get().Server.Port }
 

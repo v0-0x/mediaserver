@@ -38,12 +38,18 @@ packaging/           install.sh, the systemd service, the users' README
   KumoBox to the KumoBox apps (it says it runs on `mediaserver`, so they
   don't offer to share with it or to update it), version
   `movies/engine.ProtocolVersion`.
+- **One dashboard.** The anime side's web UI (`web/anime`, `pages/hub`)
+  is mediaserver's dashboard, with a slider: Anime, Movies, TV. The Movies
+  and TV pages (`pages/hub/media`) ask the movies side through the anime
+  side, at `/api/movies/...` (`anime/internal/api/movies.go`), passed on in
+  the program as the movies side's own computer's, for the signed-in owner
+  only.
 - **Signing in.** The dashboard's sign-in (the anime side's `kumo_session`
-  cookie) also opens the movies side: cookies go to every port of a host, and
-  the movies side asks the anime side whether a request has it
-  (`movies/internal/api`: `Server.Owner`). Without it, its pages send the
-  browser to the dashboard; the KumoBox apps' own requests (`/api/peer/`)
-  are checked by their keys, as always.
+  cookie) also opens KumoBox's own pages on port 43311: cookies go to every
+  port of a host, and the movies side asks the anime side whether a request
+  has it (`movies/internal/api`: `Server.Owner`). Without it, its pages send
+  the browser to the dashboard; the KumoBox apps' own requests
+  (`/api/peer/`) are checked by their keys, as always.
 - **Updates.** The anime side's updater looks for `server-v<version>`
   releases of this repository, downloads
   `mediaserver-<version>-linux-<arch>.tar.gz`, swaps the program and the

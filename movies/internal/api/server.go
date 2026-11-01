@@ -87,6 +87,12 @@ func ListenAddr(cfg config.Settings) string {
 	return fmt.Sprintf("%s:%d", host, cfg.Server.Port)
 }
 
+// Handler is the server's handler, its checks included: mediaserver's
+// dashboard passes its signed-in owner's requests about movies and shows
+// on to it, in the program, as this computer's (see anime/internal/api's
+// moviesRoute).
+func (s *Server) Handler() http.Handler { return s.middleware(s.mux) }
+
 // Start begins serving and rebinds when the network settings change.
 func (s *Server) Start() error {
 	addr := ListenAddr(s.app.Settings.Get())

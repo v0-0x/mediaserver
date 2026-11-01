@@ -34,10 +34,10 @@ import type { HubEvent, HubOverview } from "@/lib/types"
 import { cn, formatBytes } from "@/lib/utils"
 import { Panel } from "./parts"
 
-// The hub's audit log: everything that happened on it (kept 90 days): what
+// The server's audit log: everything that happened on it (kept 90 days): what
 // the devices did through it, every change made from this dashboard and
 // who made it, sign-ins and wrong passwords, downloads, files deleted
-// (Download again gets them back), the hub starting and stopping. And the
+// (Download again gets them back), the server starting and stopping. And the
 // server's own log, every line.
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -136,7 +136,7 @@ function Events({ o }: { o: HubOverview }) {
                             { value: "watching", label: "Watching" },
                             { value: "devices", label: "Devices" },
                             { value: "dashboard", label: "Dashboard" },
-                            { value: "hub", label: "The hub" },
+                            { value: "hub", label: "The server" },
                         ]}
                     />
                 </div>
@@ -156,7 +156,7 @@ function Events({ o }: { o: HubOverview }) {
                 <EmptyState icon={<Activity />} title={q || group ? "Nothing found" : "Nothing yet"}>
                     {q || group
                         ? "Nothing in the audit log matches. It keeps the last 90 days."
-                        : "Everything that happens on the hub shows here: what the devices watch and send it, every change made here and who made it, sign-ins, downloads and deleted files."}
+                        : "Everything that happens on the server shows here: what the devices watch and send it, every change made here and who made it, sign-ins, downloads and deleted files."}
                 </EmptyState>
             ) : (
                 days.map(d => (
@@ -180,12 +180,12 @@ function Events({ o }: { o: HubOverview }) {
     )
 }
 
-// Who did it: a device, you (signed in here), the hub, or someone at an
+// Who did it: a device, you (signed in here), the server, or someone at an
 // address who isn't signed in.
 function who(e: HubEvent) {
     if (e.device) return e.device
     if (e.by === "dashboard") return "You"
-    if (e.by === "hub") return "The hub"
+    if (e.by === "hub") return "The server"
     if (e.ip) return `Someone at ${e.ip}`
     return ""
 }
@@ -249,7 +249,7 @@ function Files({ files }: { files: NonNullable<HubEvent["files"]> }) {
 }
 
 // Files deleted: which, and Download again (subbed or dubbed) for their
-// episodes, onto the hub where the anime's others are.
+// episodes, onto the server where the anime's others are.
 function Deleted({ e }: { e: HubEvent }) {
     const qc = useQueryClient()
     const again = e.again
@@ -259,7 +259,7 @@ function Deleted({ e }: { e: HubEvent }) {
         setBusy(true)
         try {
             const res = await api.post<{ queued: number }>(`/api/hub/audit/${e.id}/again`, { dub: dub === "dub" })
-            toast.success(`Downloading ${res.queued} ${res.queued === 1 ? "episode" : "episodes"} again: see Library › Downloading onto the hub.`)
+            toast.success(`Downloading ${res.queued} ${res.queued === 1 ? "episode" : "episodes"} again: see Library › Downloading onto the server.`)
             await qc.invalidateQueries({ queryKey: ["hub"] })
         } catch (err) {
             toast.error((err as Error).message)
@@ -352,8 +352,8 @@ function ServerLog() {
             </div>
             <p className="text-xs text-subtle">
                 {onDisk
-                    ? "Every line the hub's server writes, kept on its disk (the last 20 MB or so), the newest first."
-                    : "The last 1,000 lines the hub's server wrote, the newest first (this hub doesn't keep its log on disk)."}
+                    ? "Every line the server's server writes, kept on its disk (the last 20 MB or so), the newest first."
+                    : "The last 1,000 lines the server's server wrote, the newest first (this hub doesn't keep its log on disk)."}
             </p>
             <Panel title={`${lines.length.toLocaleString()}${log.hasNextPage ? "+" : ""} lines`}>
                 {log.isLoading ? (

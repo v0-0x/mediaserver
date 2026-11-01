@@ -106,7 +106,8 @@ var auditBodies = map[string]bool{
 // who, and whether it went through.
 func (s *Server) audited(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	_, pattern := s.mux.Handler(r)
-	if pattern == "" || auditSkip[pattern] {
+	// The movies side's file pieces (movies.go) are like this side's.
+	if pattern == "" || auditSkip[pattern] || r.URL.Path == "/api/movies/upload" {
 		next.ServeHTTP(w, r)
 		return
 	}

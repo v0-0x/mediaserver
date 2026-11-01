@@ -17,7 +17,7 @@ export function useHubOverview() {
     })
 }
 
-// The last few minutes of the hub's numbers, for the sparklines: kept
+// The last few minutes of the server's numbers, for the sparklines: kept
 // while the dashboard is open (another tab and back keeps them).
 export type Sample = { at: number; cpu: number; anikoCpu: number; temp: number; rx: number; tx: number; mem: number }
 const KEEP = 90 // 3 minutes, every 2 seconds

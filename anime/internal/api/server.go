@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/v0-0x/mediaserver/anime/internal/app"
@@ -47,8 +48,10 @@ type Server struct {
 	// only the app's own window (the shell token) is its user there.
 	AppOnly bool
 	// MoviesPort is where mediaserver's movies side answers, for the
-	// dashboard's link to it.
+	// dashboard's link to it; movies its API, which the dashboard reaches
+	// at /api/movies/... (movies.go, SetMovies).
 	MoviesPort int
+	movies     atomic.Pointer[http.Handler]
 
 	// Files sent into the library (upload.go).
 	uploadOnce sync.Once

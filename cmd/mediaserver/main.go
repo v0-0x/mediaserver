@@ -92,6 +92,8 @@ func main() {
 		a.Shutdown()
 		log.Fatal(err)
 	}
+	// The dashboard's movies and TV pages ask the movies side through it.
+	a.SetMovies(m.Handler())
 	// One log: each side's Logs page shows all of it.
 	log.SetOutput(teeLog{a.Log(), m.Keep})
 	log.Printf("mediaserver %s ready: anime (Aniko) at port %d, movies and shows (KumoBox) at port %d — data: %s", version, a.Port(), m.Port(), root)

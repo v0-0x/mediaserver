@@ -10,7 +10,7 @@ import type { HubOverview, Settings, Status, TorrentClientConfig } from "@/lib/t
 import { copyText, relativeTime } from "@/lib/utils"
 import { Panel } from "./parts"
 
-// The hub's own settings: its name, the dashboard's password and colors,
+// The server's own settings: its name, the dashboard's password and colors,
 // how it converts videos, its updates.
 
 export default function HubSettings({ o, status }: { o: HubOverview; status: Status }) {
@@ -46,7 +46,7 @@ export default function HubSettings({ o, status }: { o: HubOverview; status: Sta
                 <Downloads settings={settings} />
                 <Panel title="Video conversion">
                     <p className="px-4 py-3.5 text-[12.5px] leading-relaxed text-muted">
-                        Most videos go to the devices as they are, which the hub does with almost no work. One a device can't play (some TVs and phones can't play HEVC or 10-bit
+                        Most videos go to the devices as they are, which the server does with almost no work. One a device can't play (some TVs and phones can't play HEVC or 10-bit
                         video) is converted as it plays, at most 2 at a time.
                     </p>
                     <Row label="Converting with">
@@ -91,7 +91,7 @@ function Name({ settings, current, set }: { settings: Settings; current: string;
                     if (changed) set("sharing", { name: name.trim() })
                 }}
             >
-                <p className="text-[12.5px] text-muted">What the devices call the hub (Settings › Other devices).</p>
+                <p className="text-[12.5px] text-muted">What the devices call the server (Settings › Other devices).</p>
                 <div className="flex gap-2">
                     <Input value={name} maxLength={40} onChange={e => setName(e.target.value)} />
                     <Button type="submit" variant="primary" disabled={!changed}>
@@ -192,8 +192,8 @@ function Updates({ settings, set }: { settings: Settings; set: SetFn }) {
     )
 }
 
-// What devices download onto the hub with: ani-cli (episodes) and a
-// torrent client on the hub (Transmission, say), each optional.
+// What devices download onto the server with: ani-cli (episodes) and a
+// torrent client on the server (Transmission, say), each optional.
 function Downloads({ settings }: { settings: Settings }) {
     const ani = useQuery({ queryKey: ["anicli", "status"], queryFn: () => api.get<{ installed: boolean; version: string }>("/api/anicli/status") })
     const save = useSaveSettings()
@@ -221,11 +221,11 @@ function Downloads({ settings }: { settings: Settings }) {
         value && setConf({ ...value, [k]: k === "port" ? Number(e.target.value) : e.target.value })
     return (
         <Panel title="Downloads">
-            <p className="px-4 pt-3.5 text-[12.5px] leading-relaxed text-muted">The devices you let download here (Devices) send their downloads to the hub, into its first library folder.</p>
-            <Row label="Episodes (ani-cli)" help={ani.data?.installed ? undefined : "Install the hub again (its install script installs ani-cli) for episode downloads."}>
+            <p className="px-4 pt-3.5 text-[12.5px] leading-relaxed text-muted">The devices you let download here (Devices) send their downloads to the server, into its first library folder.</p>
+            <Row label="Episodes (ani-cli)" help={ani.data?.installed ? undefined : "Install the server again (its install script installs ani-cli) for episode downloads."}>
                 {ani.data ? <Badge tone={ani.data.installed ? "green" : "amber"}>{ani.data.installed ? `Installed ${ani.data.version}` : "Not installed"}</Badge> : null}
             </Row>
-            <Row label="Torrents" help="A torrent client on the hub (Transmission: sudo apt install transmission-daemon).">
+            <Row label="Torrents" help="A torrent client on the server (Transmission: sudo apt install transmission-daemon).">
                 <Select
                     className="w-40"
                     value={client}

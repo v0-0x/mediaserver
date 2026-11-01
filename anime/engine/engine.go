@@ -87,6 +87,10 @@ func Start(o Options) (*Engine, error) {
 	return e, nil
 }
 
+// SetMovies gives the dashboard the movies side's API, which its movies
+// and TV pages ask through the anime side.
+func (e *Engine) SetMovies(h http.Handler) { e.srv.SetMovies(h) }
+
 // Port is where the anime side answers.
 func (e *Engine) Port() int { return e.app.Settings.Get().Server.Port }
 

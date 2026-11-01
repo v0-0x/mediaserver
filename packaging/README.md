@@ -4,18 +4,22 @@ mediaserver is the home server for the Aniko and KumoBox apps, for a
 computer that stays on: a Raspberry Pi 4 or 5, or any Linux computer. One
 program, one service, one install and one updater, with a side for each app:
 
-| Side | For | Port | Its pages |
-|---|---|---|---|
-| **Anime** | the Aniko apps | 43211 | the dashboard: `http://<your Pi>.local:43211` |
-| **Movies & TV** | the KumoBox apps | 43311 | KumoBox's own pages: `http://<your Pi>.local:43311` |
+| Side | For | Port |
+|---|---|---|
+| **Anime** | the Aniko apps | 43211 |
+| **Movies & TV** | the KumoBox apps | 43311 |
+
+Both are managed from one dashboard, `http://<your Pi>.local:43211`: the
+slider at its top switches between **Anime**, **Movies** and **TV**.
 
 The two sides are kept apart: each has its own library folders, its own
 devices (an Aniko app only ever sees the anime side, a KumoBox app only the
 movies side), its own logins (AniList for anime, Letterboxd for movies) and
 its own data (`~/.local/share/mediaserver/anime` and `…/movies`). What they
-share is the program, its updates, and the dashboard's password: signed in
-to the dashboard, the same browser may open the movies side's pages (the
-**Anime / Movies & TV** switch at the top of the dashboard goes there).
+share is the program, its updates, and the dashboard. Movies and TV are the
+same side seen apart: their own titles, the same devices, folders and
+settings. (KumoBox's own pages, at port 43311 with the same sign-in, are
+there for what the dashboard doesn't do, like fixing a match.)
 
 The anime side does what Aniko Hub did:
 
@@ -96,21 +100,23 @@ Hub's.
 
 **Movies & TV (the KumoBox apps):**
 
-6. On the dashboard, press **Movies & TV** at the top: KumoBox's pages open
-   (port 43311). In its **Settings › Local library**, add the folders your movies
-   and shows are in, and a TMDB key if it asks for one.
+6. Slide to **Movies** (or **TV**) at the top of the dashboard. In
+   **Settings**, add a TMDB key (free, from themoviedb.org: movies and shows
+   are matched and get their posters with it); in **Library**, add the
+   folders your movies and shows are in. A movies folder added to the anime
+   side by mistake has **Move to Movies & TV** next to it there.
 7. On each computer, TV or phone with KumoBox, turn on **Settings › Other
-   devices › Library sharing**. The device shows up in the movies side's
-   **Settings › Other devices**: turn on **Share my library** for it (and
-   **Let it download here** to let it download onto the server).
+   devices › Library sharing**. The device shows up in **Movies › Devices**:
+   turn on **Share the library** for it (and **Let it download here** to let
+   it download and upload onto the server).
 
 ## Uploading files
 
 From the computer you're on, to the server's library, files or whole
 folders (they keep their names):
 
-- **In a browser:** the dashboard's **Library › Upload** (anime), or the
-  movies side's **Local library › Upload**.
+- **In a browser:** the dashboard's **Library › Upload**, under Anime,
+  Movies or TV.
 - **From the Aniko and KumoBox apps:** **Local library › Upload**, or
   **Upload** by the server in **Settings › Other devices**. The server lets
   that device download there first (the dashboard's **Devices** for Aniko,
@@ -136,8 +142,8 @@ once. **Beta updates** there offers the betas too.
 - **The dashboard doesn't open:** check the service runs
   (`systemctl status mediaserver`) and use the Pi's address instead of its
   name.
-- **The movies side sends you to the dashboard:** sign in there first, with
-  the same address (name or IP) you use for the movies side.
+- **KumoBox's own pages (port 43311) send you to the dashboard:** sign in
+  there first, with the same address (name or IP).
 - **A device doesn't show up:** some routers keep devices from finding each
   other. In the device's settings, **Add by address** with the Pi's address
   and port 43211 (Aniko) or 43311 (KumoBox).

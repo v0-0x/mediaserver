@@ -6,16 +6,11 @@ import { cn, formatDuration, img } from "@/lib/utils"
 import type { HubTab } from "./HubApp"
 import { ago, bits, bytes, levelOf, Meter, OnlineDot, Panel, shortPath, since, Sparkline, StatTile, useSamples } from "./parts"
 
-// The hub at a glance: the computer's numbers, what it's streaming and to
+// The server at a glance: the computer's numbers, what it's streaming and to
 // whom, what's being watched, the devices and the disks.
 
 export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) => void }) {
-    const qc = useQueryClient()
-    const updatedAt = qc.getQueryState(["hub", "overview"])?.dataUpdatedAt ?? 0
-    const samples = useSamples(o, updatedAt)
-    const times = samples.map(s => s.at)
     const s = o.system
-    const temp = tempLevel(s.temp, s.throttled)
     const online = o.devices.filter(d => d.online)
     const waiting = o.devices.filter(d => d.online && !d.allowed)
     return (
@@ -33,30 +28,7 @@ export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) =>
                 </button>
             )}
 
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <StatTile label="CPU" icon={<Cpu />} value={`${Math.round(s.cpu)}%`} sub={`Aniko ${Math.round(s.anikoCpu)}% · load ${s.load.toFixed(2)}`}>
-                    <Sparkline values={samples.map(x => x.cpu)} times={times} max={100} format={v => `${Math.round(v)}%`} label="CPU use" />
-                </StatTile>
-                <StatTile label="Memory" icon={<MemoryStick />} value={bytes(s.memUsed)} sub={`of ${bytes(s.memTotal)} · Aniko ${bytes(s.anikoMem)}`}>
-                    <Meter value={s.memUsed} max={s.memTotal} label="Memory in use" className="mt-auto mb-1" />
-                </StatTile>
-                <StatTile
-                    label="Temperature"
-                    icon={<Thermometer />}
-                    value={s.temp ? `${Math.round(s.temp)}°C` : "—"}
-                    sub={
-                        <span className={cn("inline-flex items-center gap-1", temp.className)}>
-                            {temp.icon}
-                            {temp.label}
-                        </span>
-                    }
-                >
-                    {s.temp > 0 && <Sparkline values={samples.map(x => x.temp)} times={times} max={85} format={v => `${v.toFixed(1)}°C`} label="Temperature" />}
-                </StatTile>
-                <StatTile label="Network" icon={<ArrowDownUp />} value={bits(s.netTx)} sub={`sent · ${bits(s.netRx)} received`}>
-                    <Sparkline values={samples.map(x => x.tx)} times={times} format={bits} label="Sent on the network" />
-                </StatTile>
-            </div>
+            <SystemTiles o={o} />
 
             <div className="grid gap-5 lg:grid-cols-3">
                 <div className="flex min-w-0 flex-col gap-5 lg:col-span-2">
@@ -67,10 +39,10 @@ export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) =>
                                 {o.streams.length > 0 && <Badge tone="green">{o.streams.length}</Badge>}
                             </span>
                         }
-                        action={<span className="text-xs text-muted">{bytes(o.sent)} sent since the hub started</span>}
+                        action={<span className="text-xs text-muted">{bytes(o.sent)} sent since the server started</span>}
                     >
                         {o.streams.length === 0 ? (
-                            <p className="px-4 py-8 text-center text-sm text-muted">Nothing is streaming. When a device plays an episode from the hub, it shows here, with how fast it goes.</p>
+                            <p className="px-4 py-8 text-center text-sm text-muted">Nothing is streaming. When a device plays an episode from the server, it shows here, with how fast it goes.</p>
                         ) : (
                             <ul className="divide-y divide-line">
                                 {o.streams.map(st => (
@@ -82,7 +54,7 @@ export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) =>
 
                     <Panel title="Watching now">
                         {o.playing.length === 0 ? (
-                            <p className="px-4 py-8 text-center text-sm text-muted">No one is watching. The episodes the devices play (from the hub or their own files) show here.</p>
+                            <p className="px-4 py-8 text-center text-sm text-muted">No one is watching. The episodes the devices play (from the server or their own files) show here.</p>
                         ) : (
                             <ul className="grid gap-3 p-3 sm:grid-cols-2">
                                 {o.playing.map(p => {
@@ -123,7 +95,7 @@ export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) =>
                                 {o.activity.slice(0, 6).map(e => (
                                     <li key={e.id} className="flex items-baseline gap-3 px-4 py-2.5 text-sm">
                                         <span className="min-w-0 flex-1 truncate">
-                                            {(e.device || e.by) && <span className="font-medium">{e.device || (e.by === "dashboard" ? "You" : "The hub")} </span>}
+                                            {(e.device || e.by) && <span className="font-medium">{e.device || (e.by === "dashboard" ? "You" : "The server")} </span>}
                                             <span className="text-muted">{e.text}</span>
                                             {e.title && <span> {e.title}</span>}
                                             {e.episode ? <span className="text-muted"> · Episode {e.episode}</span> : null}
@@ -162,7 +134,7 @@ export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) =>
                         </dl>
                         {(o.library.scanning || o.downloads > 0 || o.library.unmatched > 0) && (
                             <p className="border-t border-line px-4 py-2.5 text-[12.5px] text-muted">
-                                {[o.library.scanning && "Scanning…", o.downloads > 0 && `${o.downloads} downloading onto the hub`, o.library.unmatched > 0 && `${o.library.unmatched} not matched`].filter(Boolean).join(" · ")}
+                                {[o.library.scanning && "Scanning…", o.downloads > 0 && `${o.downloads} downloading onto the server`, o.library.unmatched > 0 && `${o.library.unmatched} not matched`].filter(Boolean).join(" · ")}
                             </p>
                         )}
                     </Panel>
@@ -280,5 +252,42 @@ function NewDevicesIcon() {
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand/20 text-brand-strong">
             <Monitor className="size-4" />
         </span>
+    )
+}
+
+// The computer's numbers: CPU, memory, temperature, network (every side's
+// overview shows them: one computer).
+export function SystemTiles({ o }: { o: HubOverview }) {
+    const qc = useQueryClient()
+    const updatedAt = qc.getQueryState(["hub", "overview"])?.dataUpdatedAt ?? 0
+    const samples = useSamples(o, updatedAt)
+    const times = samples.map(s => s.at)
+    const s = o.system
+    const temp = tempLevel(s.temp, s.throttled)
+    return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="CPU" icon={<Cpu />} value={`${Math.round(s.cpu)}%`} sub={`mediaserver ${Math.round(s.anikoCpu)}% · load ${s.load.toFixed(2)}`}>
+            <Sparkline values={samples.map(x => x.cpu)} times={times} max={100} format={v => `${Math.round(v)}%`} label="CPU use" />
+        </StatTile>
+        <StatTile label="Memory" icon={<MemoryStick />} value={bytes(s.memUsed)} sub={`of ${bytes(s.memTotal)} · mediaserver ${bytes(s.anikoMem)}`}>
+            <Meter value={s.memUsed} max={s.memTotal} label="Memory in use" className="mt-auto mb-1" />
+        </StatTile>
+        <StatTile
+            label="Temperature"
+            icon={<Thermometer />}
+            value={s.temp ? `${Math.round(s.temp)}°C` : "—"}
+            sub={
+                <span className={cn("inline-flex items-center gap-1", temp.className)}>
+                    {temp.icon}
+                    {temp.label}
+                </span>
+            }
+        >
+            {s.temp > 0 && <Sparkline values={samples.map(x => x.temp)} times={times} max={85} format={v => `${v.toFixed(1)}°C`} label="Temperature" />}
+        </StatTile>
+        <StatTile label="Network" icon={<ArrowDownUp />} value={bits(s.netTx)} sub={`sent · ${bits(s.netRx)} received`}>
+            <Sparkline values={samples.map(x => x.tx)} times={times} format={bits} label="Sent on the network" />
+        </StatTile>
+    </div>
     )
 }

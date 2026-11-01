@@ -10,7 +10,7 @@ import { cn, compareVersions, img } from "@/lib/utils"
 import { DeviceIcon } from "./Overview"
 import { ago, OnlineDot } from "./parts"
 
-// The Aniko apps around the hub: which get its library, which AniList login
+// The Aniko apps around the server: which get its library, which AniList login
 // each is given, which may download onto it.
 
 type Change = { allowed?: boolean; account?: boolean; downloads?: boolean; accountUser?: number }
@@ -31,7 +31,7 @@ export default function Devices({ o }: { o: HubOverview }) {
     return (
         <div className="flex flex-col gap-6">
             <p className="max-w-3xl text-sm leading-relaxed text-muted">
-                A device shows up here when Aniko is open on it with <span className="text-fg">Settings › Other devices</span> on. Share the library with it, and it plays the hub's episodes and
+                A device shows up here when Aniko is open on it with <span className="text-fg">Settings › Other devices</span> on. Share the library with it, and it plays the server's episodes and
                 keeps its progress, AniList list and theme in step with the other devices on the same AniList account, as they change.
             </p>
             {o.devices.length === 0 && (
@@ -88,7 +88,7 @@ function DeviceCard({ d, o, change }: { d: HubDevice; o: HubOverview; change: (d
                 )}
             </div>
             <div className="divide-y divide-line border-t border-line">
-                <Setting label="Share the library" help="It plays the hub's episodes, and its progress and list stay in step through the hub.">
+                <Setting label="Share the library" help="It plays the server's episodes, and its progress and list stay in step through the server.">
                     <Switch label={`Share the library with ${d.name}`} checked={d.allowed} onChange={v => change(d, { allowed: v })} />
                 </Setting>
                 {d.allowed && (
@@ -97,13 +97,13 @@ function DeviceCard({ d, o, change }: { d: HubDevice; o: HubOverview; change: (d
                             label="Give it an AniList login"
                             help={
                                 d.account && given
-                                    ? `It uses ${given.name}'s login, from the hub.`
+                                    ? `It uses ${given.name}'s login, from the server.`
                                     : o.accounts.length === 0
-                                      ? "Give the hub an AniList login first (from a device that's logged in: Settings › Other devices › this hub)."
+                                      ? "Give the server an AniList login first (from a device that's logged in: Settings › Other devices › this server)."
                                       : on
                                         ? `It's logged in to ${on.name}'s account itself.`
                                         : d.user
-                                          ? "It's logged in to an AniList account the hub has no login for."
+                                          ? "It's logged in to an AniList account the server has no login for."
                                           : "It's not logged in to AniList: with this, it uses the login you pick, without logging in on it."
                             }
                         >
@@ -125,7 +125,7 @@ function DeviceCard({ d, o, change }: { d: HubDevice; o: HubOverview; change: (d
                                 <Switch label={`Give ${d.name} an AniList login`} checked={d.account} disabled={o.accounts.length === 0} onChange={v => change(d, { account: v })} />
                             </div>
                         </Setting>
-                        <Setting label="Let it download here" help="Its downloads and torrents go onto the hub, into its library, and it can upload files and folders into it.">
+                        <Setting label="Let it download here" help="Its downloads and torrents go onto the server, into its library, and it can upload files and folders into it.">
                             <Switch label={`Let ${d.name} download here`} checked={d.downloads} onChange={v => change(d, { downloads: v })} />
                         </Setting>
                         <ParentalSetting d={d} />
@@ -146,7 +146,7 @@ function ParentalSetting({ d }: { d: HubDevice }) {
                     {d.parental ? "Change" : "Set up"}
                 </Button>
             </div>
-            <ParentalDialog device={d} host="the hub" open={open} onOpenChange={setOpen} />
+            <ParentalDialog device={d} host="the server" open={open} onOpenChange={setOpen} />
         </Setting>
     )
 }

@@ -10,7 +10,7 @@ import type { EntryView, EpisodeView, LocalFile, Media } from "@/lib/types"
 import { cleanDescription, cover, formatBytes, formatLabel, img, title } from "@/lib/utils"
 import { Panel } from "./parts"
 
-// Everything in the hub's library, with its artwork and details: the hub
+// Everything in the server's library, with its artwork and details: the server
 // downloads them for every anime it has and keeps them (app/prefetch.go),
 // so this is its own copy, also without the internet.
 
@@ -131,7 +131,7 @@ export function LibraryBrowse() {
     )
 }
 
-// An anime as the hub has it: its details, and the episodes on its disks,
+// An anime as the server has it: its details, and the episodes on its disks,
 // which can be deleted: for good (no trash), noted in the audit log, from
 // where they can be downloaded again.
 function AnimeDetails({ media, files, onClose }: { media: Media; files: LocalFile[]; onClose: () => void }) {
@@ -187,17 +187,17 @@ function AnimeDetails({ media, files, onClose }: { media: Media; files: LocalFil
                 </div>
                 <div>
                     <div className="mb-2 flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium">On the hub · {eps.length}</p>
+                        <p className="text-sm font-medium">On the server · {eps.length}</p>
                         {files.length > 0 && asking !== "all" && (
                             <Button size="sm" variant="danger" icon={<Trash2 className="size-4" />} onClick={() => setAsking("all")}>
-                                Delete from the hub
+                                Delete from the server
                             </Button>
                         )}
                     </div>
                     {asking === "all" && (
                         <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-rose-500/30 bg-rose-500/[0.07] px-3 py-2.5 text-sm">
                             <span className="min-w-0 flex-1">
-                                Delete its {files.length} {files.length === 1 ? "file" : "files"} ({formatBytes(size)}) from the hub? They're gone at once; the Audit log can download the episodes
+                                Delete its {files.length} {files.length === 1 ? "file" : "files"} ({formatBytes(size)}) from the server? They're gone at once; the Audit log can download the episodes
                                 again.
                             </span>
                             <Button size="sm" variant="danger" loading={busy} onClick={() => remove(files.map(f => f.path))}>
@@ -260,7 +260,7 @@ function Episode({ e, asking, busy, onAsk, onCancel, onDelete }: { e: EpisodeVie
                     </Button>
                 </div>
             ) : (
-                <IconButton size="sm" label="Delete this episode from the hub" onClick={onAsk}>
+                <IconButton size="sm" label="Delete this episode from the server" onClick={onAsk}>
                     <Trash2 className="size-4" />
                 </IconButton>
             )}

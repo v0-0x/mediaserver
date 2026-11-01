@@ -7,7 +7,7 @@ import { toast } from "@/lib/toast"
 import type { HubAccount, HubOverview } from "@/lib/types"
 import { img } from "@/lib/utils"
 
-// The AniList logins given to the hub: each account's progress is kept
+// The AniList logins given to the server: each account's progress is kept
 // apart, and the devices on it are kept in step with each other.
 
 export default function Accounts({ o }: { o: HubOverview }) {
@@ -17,23 +17,23 @@ export default function Accounts({ o }: { o: HubOverview }) {
         mutationFn: (user: number) => api.del(`/api/hub/accounts/${user}`),
         onSuccess: () => {
             setRemoving(null)
-            toast.success("The login was removed from the hub")
+            toast.success("The login was removed from the server")
             qc.invalidateQueries({ queryKey: ["hub", "overview"] })
         },
         onError: (e: Error) => toast.error(e.message),
     })
     // The devices on each account (as they last said), logged in on them or
-    // with the login the hub gives them.
+    // with the login the server gives them.
     const devicesOf = (user: number) => o.devices.filter(d => d.user === user || (d.account && d.accountUser === user))
     return (
         <div className="flex flex-col gap-6">
             <p className="max-w-3xl text-sm leading-relaxed text-muted">
-                The hub keeps each AniList account's progress apart, and the devices on the same account in step: an episode watched on the TV goes on where it was left on the
-                computer, the list and the theme too. A login given to the hub lets it give that account to devices that aren't logged in (Devices › Give it an AniList login).
+                The server keeps each AniList account's progress apart, and the devices on the same account in step: an episode watched on the TV goes on where it was left on the
+                computer, the list and the theme too. A login given to the server lets it give that account to devices that aren't logged in (Devices › Give it an AniList login).
             </p>
             {o.accounts.length === 0 ? (
-                <EmptyState icon={<Users />} title="No AniList login given to the hub">
-                    On a device logged in to AniList, open Settings › Other devices and, on this hub, choose Give the hub my AniList login. Devices logged in on their own are kept in step
+                <EmptyState icon={<Users />} title="No AniList login given to the server">
+                    On a device logged in to AniList, open Settings › Other devices and, on this hub, choose Give the server my AniList login. Devices logged in on their own are kept in step
                     without it.
                 </EmptyState>
             ) : (
@@ -79,7 +79,7 @@ export default function Accounts({ o }: { o: HubOverview }) {
                 }
             >
                 <p className="text-sm leading-relaxed text-muted">
-                    Devices given this login by the hub are logged out of it. The progress the hub kept for the account stays, and devices logged in to it on their own stay in step.
+                    Devices given this login by the server are logged out of it. The progress the server kept for the account stays, and devices logged in to it on their own stay in step.
                 </p>
             </Dialog>
         </div>

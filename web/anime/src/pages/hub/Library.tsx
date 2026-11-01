@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Download, Folder, FolderPlus, RefreshCw, Trash2, Upload } from "lucide-react"
+import { ArrowRightLeft, Download, Folder, FolderPlus, RefreshCw, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { DirPicker } from "@/components/DirPicker"
 import { AllFiles, Ignored, Unmatched } from "@/components/library/LibraryTools"
@@ -11,9 +11,10 @@ import { toast } from "@/lib/toast"
 import type { DownloadItem, HubOverview, Status } from "@/lib/types"
 import { img } from "@/lib/utils"
 import { LibraryBrowse } from "./LibraryBrowse"
+import { M, type MSettings } from "./media/data"
 import { bytes, Panel, shortPath } from "./parts"
 
-// The hub's library: the folders it shares (on its disks: a USB drive on a
+// The server's library: the folders it shares (on its disks: a USB drive on a
 // Pi), scanning them, what devices are downloading onto it, and putting
 // its files right (matching, ignoring, episode numbers).
 
@@ -33,8 +34,26 @@ export default function Library({ o, status }: { o: HubOverview; status: Status 
         },
         onError: (e: Error) => toast.error(e.message),
     })
-    // A folder added is scanned by the hub at once.
+    // A folder added is scanned by the server at once.
     const setFolders = (next: string[]) => saveSettings.mutate({ ...settings, library: { ...settings.library, dir: next[0] ?? "", extraDirs: next.slice(1) } })
+    // A folder of movies or shows: to the movies side's library (Movies and
+    // TV), out of this one.
+    const toMovies = useMutation({
+        mutationFn: async (f: string) => {
+            const m = await api.get<MSettings>(`${M}/settings`)
+            const have = [m.library.dir, ...(m.library.extraDirs ?? [])].filter(Boolean)
+            if (!have.includes(f)) {
+                const next = [...have, f]
+                await api.put(`${M}/settings`, { ...m, library: { ...m.library, dir: next[0], extraDirs: next.slice(1) } })
+            }
+            setFolders(folders.filter(x => x !== f))
+        },
+        onSuccess: () => {
+            toast.success("Moved to Movies & TV: its movies and shows show there once scanned")
+            qc.invalidateQueries({ queryKey: ["movies"] })
+        },
+        onError: (e: Error) => toast.error(e.message),
+    })
     const downloads = useQuery({
         queryKey: ["hub", "downloads"],
         queryFn: () => api.get<DownloadItem[] | null>("/api/downloads"),
@@ -82,6 +101,11 @@ export default function Library({ o, status }: { o: HubOverview; status: Status 
                                         <span className="min-w-0 flex-1 truncate font-mono text-[13px]" title={f}>
                                             {shortPath(f)}
                                         </span>
+                                        {o.moviesPort && looksLikeMovies(f) && (
+                                            <Button size="sm" variant="ghost" icon={<ArrowRightLeft className="size-4" />} loading={toMovies.isPending && toMovies.variables === f} onClick={() => toMovies.mutate(f)}>
+                                                <span className="max-sm:hidden">Move to Movies & TV</span>
+                                            </Button>
+                                        )}
                                         <IconButton size="sm" label="Stop sharing this folder" onClick={() => setFolders(folders.filter(x => x !== f))}>
                                             <Trash2 className="size-4" />
                                         </IconButton>
@@ -91,10 +115,10 @@ export default function Library({ o, status }: { o: HubOverview; status: Status 
                         )}
                     </Panel>
 
-                    <Panel title="Downloading onto the hub">
+                    <Panel title="Downloading onto the server">
                         {active.length === 0 && done.length === 0 ? (
                             <p className="px-4 py-8 text-center text-sm text-muted">
-                                Nothing. Devices you let download here (Devices › Let it download here) send their downloads and uploads to the hub: they land in its library.
+                                Nothing. Devices you let download here (Devices › Let it download here) send their downloads and uploads to the server: they land in its library.
                             </p>
                         ) : (
                             <ul className="divide-y divide-line">
@@ -156,7 +180,7 @@ export default function Library({ o, status }: { o: HubOverview; status: Status 
                         </div>
                     </Panel>
                     {settings.library.autoRefresh && (
-                        <p className="px-1 text-[12.5px] leading-relaxed text-muted">The hub watches its folders: episodes added or removed show on the devices by themselves.</p>
+                        <p className="px-1 text-[12.5px] leading-relaxed text-muted">The server watches its folders: episodes added or removed show on the devices by themselves.</p>
                     )}
                 </div>
 
@@ -169,7 +193,7 @@ export default function Library({ o, status }: { o: HubOverview; status: Status 
                 <Panel title="Put the library right">
                     <div className="p-4">
                         <p className="mb-4 text-[13px] text-muted">
-                            Match the files the hub couldn't place, ignore what isn't an episode, and fix episode numbers or wrong matches. The devices see the changes at once.
+                            Match the files the server couldn't place, ignore what isn't an episode, and fix episode numbers or wrong matches. The devices see the changes at once.
                         </p>
                         <Tabs
                             className="mb-5"
@@ -206,4 +230,11 @@ function Line({ label, value, onClick }: { label: string; value: string; onClick
             </dd>
         </div>
     )
+}
+
+// A folder named like one of movies or shows (Movies, Films, TV, Shows,
+// Series): they belong on the movies side, not here.
+function looksLikeMovies(path: string) {
+    const name = path.split(/[\\/]/).filter(Boolean).pop() ?? ""
+    return /^(movies?|films?|tv( shows)?|shows|series)$/i.test(name.trim())
 }

@@ -40,17 +40,31 @@ function query(target: Target, folder: number, extra: Record<string, string | nu
     return q.toString()
 }
 
-export function useUploadTargets(enabled = true) {
+// base: the API the files go through: this side's (/api), or on
+// mediaserver's dashboard its movies side's (/api/movies).
+export function useUploadTargets(enabled = true, base = "/api") {
     return useQuery({
-        queryKey: ["upload", "targets"],
-        queryFn: () => api.get<Target[]>("/api/upload/targets"),
+        queryKey: ["upload", "targets", base],
+        queryFn: () => api.get<Target[]>(`${base}/upload/targets`),
         enabled,
         staleTime: 15_000,
     })
 }
 
-export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boolean; onOpenChange: (v: boolean) => void; target?: string }) {
-    const targets = useUploadTargets(open)
+export function UploadDialog({
+    open,
+    onOpenChange,
+    target: wanted,
+    base = "/api",
+    description,
+}: {
+    open: boolean
+    onOpenChange: (v: boolean) => void
+    target?: string
+    base?: string
+    description?: string
+}) {
+    const targets = useUploadTargets(open, base)
     const list = targets.data ?? []
     const [targetId, setTargetId] = useState<string>("")
     const target = list.find(t => (t.here ? "here" : t.id) === targetId) ?? list[0]
@@ -60,8 +74,8 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
         setTargetId(prev => (prev && list.some(t => (t.here ? "here" : t.id) === prev) ? prev : pick ? pick.id : list[0].here ? "here" : list[0].id))
     }, [list, wanted])
     const folders = useQuery({
-        queryKey: ["upload", "folders", target?.here ? "" : target?.id],
-        queryFn: () => api.get<Folders>(`/api/upload?${target!.here ? "" : `target=${encodeURIComponent(target!.id)}`}`),
+        queryKey: ["upload", "folders", base, target?.here ? "" : target?.id],
+        queryFn: () => api.get<Folders>(`${base}/upload?${target!.here ? "" : `target=${encodeURIComponent(target!.id)}`}`),
         enabled: open && !!target,
     })
     const [folder, setFolder] = useState(0)
@@ -98,7 +112,7 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
     const sendOne = async (t: Target, f: number, chunk: number, it: Item) => {
         update(it.key, { state: "sending", error: undefined })
         const size = it.file.size
-        const where = async () => (await api.get<Answer>(`/api/upload?${query(t, f, { path: it.path, total: size })}`)).have
+        const where = async () => (await api.get<Answer>(`${base}/upload?${query(t, f, { path: it.path, total: size })}`)).have
         const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
         let at = await where()
         let tries = 0
@@ -116,7 +130,7 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
             let res: Response
             sending = true
             try {
-                res = await fetch(`/api/upload?${query(t, f, { path: it.path, offset: at, total: size })}`, {
+                res = await fetch(`${base}/upload?${query(t, f, { path: it.path, offset: at, total: size })}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/octet-stream" },
                     body: it.file.slice(at, end),
@@ -194,7 +208,7 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
             open={open}
             onOpenChange={close}
             title="Upload to a server"
-            description="Anime episodes and their subtitles from this computer, into the server's library. Folders keep their names and what's in them."
+            description={description ?? "Anime episodes and their subtitles from this computer, into the server's library. Folders keep their names and what's in them."}
             className="w-[min(94vw,640px)]"
             footer={
                 <>
