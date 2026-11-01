@@ -18,6 +18,7 @@ import (
 	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/v0-0x/mediaserver/movies/internal/stream"
+	"github.com/v0-0x/mediaserver/movies/internal/torrentstream"
 )
 
 // A torrent being played is read by ffprobe (and ffmpeg) through the stream
@@ -32,6 +33,7 @@ func TestTorrentThroughTheRelay(t *testing.T) {
 		t.Skip("no ffprobe")
 	}
 	s := newTestServer(t)
+	useTorrentCache(t, s)
 	dir := seedDir(t)
 	name := "Test.Movie.2020.mkv"
 	video := filepath.Join(dir, name)
@@ -90,6 +92,7 @@ func TestTorrentThroughTheRelay(t *testing.T) {
 // the "remote:" path to convert it.
 func TestTorrentStreamPlay(t *testing.T) {
 	s := newProvidersServer(t)
+	useTorrentCache(t, s)
 	dir := seedDir(t)
 	name := "The.Dark.Knight.2008.1080p.mp4"
 	data := make([]byte, 700<<10)
@@ -171,4 +174,13 @@ func seedDir(t *testing.T) string {
 		}
 	})
 	return dir
+}
+
+// useTorrentCache gives the app's torrent engine a cache the test removes
+// as well as it can (on Windows the BitTorrent library may keep a file
+// open until the program ends: in t.TempDir that would fail the test).
+func useTorrentCache(t *testing.T, s *Server) {
+	t.Helper()
+	s.app.TorrentStream = torrentstream.New(filepath.Join(seedDir(t), "cache"))
+	t.Cleanup(s.app.TorrentStream.Close)
 }

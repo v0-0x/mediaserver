@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -139,8 +140,10 @@ func TestStreamFromAPeer(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("served after Stop: %d", resp.StatusCode)
 	}
-	// Removed (on Windows once the client has let go of them).
-	for i := 0; ; i++ {
+	// Removed. (Not checked on Windows: the BitTorrent library may keep a
+	// file open there until the program ends, and New empties the cache
+	// when the app starts again.)
+	for i := 0; runtime.GOOS != "windows"; i++ {
 		entries, _ := os.ReadDir(e.dir)
 		if len(entries) == 0 {
 			break

@@ -499,14 +499,10 @@ func TestDownloadsToHost(t *testing.T) {
 		Items []json.RawMessage `json:"items"`
 		Error string            `json:"error"`
 	}
-	// By its name now: another test KumoBox with the same computer name
-	// (other, above) has the host's name show its ID too.
-	for _, l := range guest.app.Share.Libraries() {
-		if l.Host.ID == hid {
-			hostName = l.Host.Name
-		}
-	}
-	if w := do(guest, "GET", "/api/downloads/host", local, "", nil); w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &dl) != nil || dl.Host != hostName || dl.Error != "" {
+	// By its computer's name: other test KumoBoxes with the same computer
+	// name (other, above; other tests') come and go, and while they're
+	// around the host's name shows its ID too.
+	if w := do(guest, "GET", "/api/downloads/host", local, "", nil); w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &dl) != nil || computerOf(dl.Host) != computerOf(hostName) || dl.Error != "" {
 		t.Fatalf("host downloads: %d %s", w.Code, w.Body)
 	}
 	if w := do(guest, "POST", "/api/downloads/host/nope/cancel", local, "{}", nil); w.Code != http.StatusOK {
@@ -863,4 +859,11 @@ func TestAutoSyncWhenBack(t *testing.T) {
 	if e := host.app.History.Get(21, 10); e != nil {
 		t.Errorf("synced again at once: %+v", e)
 	}
+}
+
+// computerOf is a KumoBox's name without the ID shown with it when another
+// one has the same name (share.Service.shownName).
+func computerOf(name string) string {
+	base, _, _ := strings.Cut(name, " (")
+	return base
 }
