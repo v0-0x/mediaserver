@@ -499,6 +499,13 @@ func TestDownloadsToHost(t *testing.T) {
 		Items []json.RawMessage `json:"items"`
 		Error string            `json:"error"`
 	}
+	// By its name now: another test KumoBox with the same computer name
+	// (other, above) has the host's name show its ID too.
+	for _, l := range guest.app.Share.Libraries() {
+		if l.Host.ID == hid {
+			hostName = l.Host.Name
+		}
+	}
 	if w := do(guest, "GET", "/api/downloads/host", local, "", nil); w.Code != http.StatusOK || json.Unmarshal(w.Body.Bytes(), &dl) != nil || dl.Host != hostName || dl.Error != "" {
 		t.Fatalf("host downloads: %d %s", w.Code, w.Body)
 	}
