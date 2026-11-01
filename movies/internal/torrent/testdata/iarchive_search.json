@@ -1,0 +1,43 @@
+{
+  "responseHeader": {
+    "status": 0,
+    "QTime": 41,
+    "params": {
+      "query": "title:(night AND of AND the AND living AND dead) AND mediatype:(movies)",
+      "qin": "title:(night AND of AND the AND living AND dead) AND mediatype:(movies)",
+      "fields": "identifier,title,year,downloads,btih,item_size",
+      "wt": "json",
+      "sort": "downloads desc",
+      "rows": "50",
+      "start": 0
+    }
+  },
+  "response": {
+    "numFound": 3,
+    "start": 0,
+    "docs": [
+      {
+        "identifier": "night_of_the_living_dead",
+        "title": "Night of the Living Dead",
+        "year": "1968",
+        "downloads": 2534211,
+        "btih": "9c5d2e1d63e8de4f6c3a5f1a1a3c1b0d6f8e9a10",
+        "item_size": 3456789012
+      },
+      {
+        "identifier": "NightOfTheLivingDead1990",
+        "title": ["Night of the Living Dead (1990 remake trailer)"],
+        "year": 1990,
+        "downloads": 1200,
+        "item_size": 23456789
+      },
+      {
+        "identifier": "night-living-dead-colorized",
+        "title": "Night of the Living Dead - colorized",
+        "downloads": 54321,
+        "btih": "ad5d2e1d63e8de4f6c3a5f1a1a3c1b0d6f8e9a11",
+        "item_size": "1234567890"
+      }
+    ]
+  }
+}

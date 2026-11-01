@@ -1,0 +1,55 @@
+{
+  "status": "ok",
+  "status_message": "Query was successful",
+  "data": {
+    "movie_count": 2,
+    "limit": 50,
+    "page_number": 1,
+    "movies": [
+      {
+        "id": 35000,
+        "url": "https://yts.mx/movies/dune-2021",
+        "imdb_code": "tt1160419",
+        "title": "Dune",
+        "title_long": "Dune (2021)",
+        "year": 2021,
+        "torrents": [
+          {
+            "url": "https://yts.mx/torrent/download/4D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A05",
+            "hash": "4D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A05",
+            "quality": "1080p",
+            "type": "web",
+            "video_codec": "x264",
+            "seeds": 900,
+            "peers": 120,
+            "size": "2.32 GB",
+            "size_bytes": 2491081032,
+            "date_uploaded_unix": 1634800000
+          }
+        ]
+      },
+      {
+        "id": 1500,
+        "url": "https://yts.mx/movies/dune-1984",
+        "imdb_code": "tt0087182",
+        "title": "Dune",
+        "title_long": "Dune (1984)",
+        "year": 1984,
+        "torrents": [
+          {
+            "url": "https://yts.mx/torrent/download/5D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A06",
+            "hash": "5D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A06",
+            "quality": "1080p",
+            "type": "bluray",
+            "video_codec": "x264",
+            "seeds": 140,
+            "peers": 12,
+            "size": "2.21 GB",
+            "size_bytes": 2372962713,
+            "date_uploaded_unix": 1420000000
+          }
+        ]
+      }
+    ]
+  }
+}

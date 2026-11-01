@@ -1,0 +1,26 @@
+{
+  "created": 1700000000,
+  "d1": "ia800100.us.archive.org",
+  "dir": "/1/items/night_of_the_living_dead",
+  "files": [
+    {"name": "night_of_the_living_dead.mpeg", "source": "original", "format": "MPEG2", "size": "3876032512", "length": "5747.80", "height": "480", "width": "640"},
+    {"name": "night_of_the_living_dead_512kb.mp4", "source": "derivative", "format": "512Kb MPEG4", "original": "night_of_the_living_dead.mpeg", "size": "393102336", "length": "5747.80"},
+    {"name": "night_of_the_living_dead.ia.mp4", "source": "derivative", "format": "h.264 IA", "original": "night_of_the_living_dead.mpeg", "size": "1006632960", "length": "5747.80", "height": "480", "width": "640"},
+    {"name": "night_of_the_living_dead.ogv", "source": "derivative", "format": "Ogg Video", "original": "night_of_the_living_dead.mpeg", "size": "500000000"},
+    {"name": "HD/Night of the Living Dead #1.mkv", "source": "original", "format": "Matroska", "size": "4000000000", "height": "1080", "width": "1440"},
+    {"name": "night_of_the_living_dead_trailer.mp4", "source": "original", "format": "MPEG4", "size": "10000000"},
+    {"name": "night_of_the_living_dead.en.srt", "source": "original", "format": "SubRip", "size": "90000"},
+    {"name": "night_of_the_living_dead_fre.vtt", "source": "original", "format": "Web Video Text Tracks", "size": "90000"},
+    {"name": "night_of_the_living_dead_archive.torrent", "source": "metadata", "format": "Archive BitTorrent", "btih": "C8295CE630F2064F08440DB1534E4992CFE4862A"},
+    {"name": "night_of_the_living_dead_meta.xml", "source": "original", "format": "Metadata"}
+  ],
+  "metadata": {
+    "identifier": "night_of_the_living_dead",
+    "title": "Night of the Living Dead",
+    "mediatype": "movies",
+    "collection": ["feature_films", "moviesandfilms"],
+    "year": "1968",
+    "licenseurl": "http://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  "server": "ia800100.us.archive.org"
+}

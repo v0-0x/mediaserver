@@ -1,0 +1,15 @@
+{
+  "responseHeader": {"status": 0, "QTime": 12, "params": {"query": "title:(\"Night of the Living Dead\") AND mediatype:(movies)", "fields": "identifier,title,year,date,downloads,collection", "wt": "json", "rows": "20", "start": 0}},
+  "response": {
+    "numFound": 6,
+    "start": 0,
+    "docs": [
+      {"identifier": "night_of_the_living_dead_trailer", "title": "Night of the Living Dead (1968) - Trailer", "year": "1968", "downloads": 90210, "collection": ["movie_trailers"]},
+      {"identifier": "NightOfTheLivingDeadRemake", "title": "Night of the Living Dead", "year": 1990, "downloads": 5000, "collection": "opensource_movies"},
+      {"identifier": "random_upload_notld", "title": "Night Of The Living Dead", "date": "1968-10-01T00:00:00Z", "downloads": "1200", "collection": ["opensource_movies"]},
+      {"identifier": "night_of_the_living_dead", "title": "Night of the Living Dead", "year": "1968", "downloads": 2500000, "collection": ["feature_films", "moviesandfilms"]},
+      {"identifier": "dawn_of_the_dead_parody", "title": "Dawn of the Living Bread", "year": "2004", "downloads": 300, "collection": ["opensource_movies"]},
+      {"identifier": "no_year_notld", "title": ["Night of the Living Dead"], "downloads": 10}
+    ]
+  }
+}

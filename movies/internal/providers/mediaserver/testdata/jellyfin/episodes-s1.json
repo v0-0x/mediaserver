@@ -1,0 +1,18 @@
+{
+  "Items": [
+    {
+      "Id": "e1", "Name": "Pilot", "Type": "Episode", "IndexNumber": 1, "ParentIndexNumber": 1,
+      "MediaSources": [
+        {"Id": "e1s", "Path": "/media/tv/Breaking Bad/Season 01/Breaking.Bad.S01E01.720p.WEB-DL.mkv", "Container": "mkv", "Size": 1200000000,
+         "MediaStreams": [{"Type": "Video", "Codec": "h264", "Width": 1280, "Height": 720}, {"Type": "Audio", "Codec": "ac3", "Channels": 6}]}
+      ]
+    },
+    {
+      "Id": "e2", "Name": "Cat's in the Bag... / ...And the Bag's in the River", "Type": "Episode", "IndexNumber": 2, "IndexNumberEnd": 3, "ParentIndexNumber": 1,
+      "MediaSources": [
+        {"Id": "e2s", "Path": "/media/tv/Breaking Bad/Season 01/Breaking.Bad.S01E02E03.1080p.mp4", "Container": "mp4", "Size": 2400000000,
+         "MediaStreams": [{"Type": "Video", "Codec": "h264", "Width": 1920, "Height": 1080}, {"Type": "Audio", "Codec": "aac", "Channels": 2}]}
+      ]
+    }
+  ]
+}

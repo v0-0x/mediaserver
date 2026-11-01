@@ -1,0 +1,49 @@
+[
+  {
+    "transportUrl": "https://v3-cinemeta.strem.io/manifest.json",
+    "transportName": "http",
+    "manifest": {
+      "id": "com.linvo.cinemeta",
+      "version": "3.0.13",
+      "name": "Cinemeta",
+      "description": "The official addon for movie and series catalogs",
+      "resources": ["catalog", "meta", "addon_catalog"],
+      "types": ["movie", "series"],
+      "idPrefixes": ["tt"],
+      "catalogs": [{"type": "movie", "id": "top", "name": "Popular", "extra": [{"name": "search"}]}]
+    },
+    "flags": {"official": true, "protected": true}
+  },
+  {
+    "transportUrl": "http://addons.test/manifest.json",
+    "transportName": "http",
+    "manifest": {
+      "id": "org.test.streams",
+      "version": "1.0.0",
+      "name": "Test Streams",
+      "description": "Streams for tests",
+      "resources": ["stream"],
+      "types": ["movie", "series"],
+      "idPrefixes": ["tt"],
+      "catalogs": []
+    },
+    "flags": {}
+  },
+  {
+    "transportUrl": "stremio://opensubtitles.test/manifest.json",
+    "transportName": "http",
+    "manifest": {
+      "id": "org.test.subs",
+      "version": "1.0.0",
+      "name": "Test Subtitles",
+      "description": "Subtitles",
+      "resources": [{"name": "subtitles", "types": ["movie", "series"], "idPrefixes": ["tt"]}],
+      "types": ["movie", "series"],
+      "catalogs": []
+    },
+    "flags": {"official": true}
+  },
+  {"transportUrl": "ftp://nope/manifest.json", "manifest": {"id": "x", "name": "x", "resources": ["stream"]}},
+  {"transportUrl": "https://broken.test/manifest.json", "manifest": {"name": "no id"}},
+  42
+]

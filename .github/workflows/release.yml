@@ -1,0 +1,268 @@
+# Builds mediaserver (cmd/mediaserver: the anime side for the Aniko apps and
+# the movies side for the KumoBox apps, in one program) and publishes it as
+# the GitHub Release "mediaserver <version>", tagged server-v<version> on
+# the commit it built: one archive per processor,
+# mediaserver-<version>-linux-<arm64|arm|amd64>.tar.gz, each a folder with
+# the mediaserver program, its service, install script and README
+# (packaging/).
+#
+# The program is static (pure Go, SQLite included), so one build runs on any
+# Linux with that processor: arm64 for a 64-bit Raspberry Pi OS (or any
+# 64-bit kernel), arm for a 32-bit one (ARMv7: Pi 2 and newer). The version
+# is 1.0.<number of commits>; installed servers look for the server-v
+# release with the highest version and update from their dashboard (the
+# anime side's updater, anime/internal/update). Aniko Hub's last version
+# looks for them too, and installs mediaserver in its place.
+#
+# Tests run on every push and pull request. Pushes to the default branch
+# (except those that only change docs) publish: a beta (a pre-release)
+# unless the pushed commit's message says [stable] or it's run by hand as
+# stable. The newest 10 stable releases and the newest 10 betas are kept.
+
+name: Release
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the build as the GitHub Release server-v<version> (otherwise it's only kept as a workflow artifact)
+        type: boolean
+        default: true
+      channel:
+        description: "beta: a pre-release, offered to servers with Beta updates on; stable: a release for everyone"
+        type: choice
+        options: [beta, stable]
+        default: beta
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test, build and package (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      # The whole history: the version counts its commits.
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # The token stays out of .git/config, where the build's
+          # dependencies (npm scripts…) could read it: only the release
+          # steps get it.
+          persist-credentials: false
+
+      - name: Pick the channel
+        id: channel
+        env:
+          INPUT: ${{ inputs.channel }}
+        run: |
+          if [ "$INPUT" = stable ] || git log -1 --format=%B | grep -qF '[stable]'; then
+            echo "channel=stable" >> "$GITHUB_OUTPUT"
+            echo "A stable release"
+          else
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+            echo "A beta (pre-release)"
+          fi
+
+      - name: Read the version
+        id: version
+        run: |
+          version="1.0.$(git rev-list --count HEAD)"
+          {
+            echo "version=$version"
+            echo "tag=server-v$version"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building mediaserver $version"
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: |
+            web/anime/package-lock.json
+            web/movies/package-lock.json
+
+      # Each side's pages: the dashboard (Aniko's web UI, which shows it on
+      # a server) and KumoBox's.
+      - name: Build the pages
+        run: |
+          for side in anime movies; do
+            (cd "web/$side" && npm ci --no-audit --no-fund && npm run build)
+          done
+
+      # Same as the Makefile's "embed" target.
+      - name: Embed the pages into the program
+        run: |
+          for side in anime movies; do
+            dist="$side/internal/webui/dist"
+            rm -rf "$dist"
+            mkdir -p "$dist"
+            cp -R "web/$side/dist/." "$dist/"
+            touch "$dist/.keep"
+          done
+
+      - name: Test
+        run: go test ./...
+
+      # Without cgo: the program stands alone (no C library needed).
+      - name: Build for each processor
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          out=dist/server
+          mkdir -p "$out"
+          build() {
+            local arch=$1 goarm=${2:-}
+            local dir="$out/mediaserver-$VERSION-linux-$arch"
+            mkdir -p "$dir"
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch GOARM=$goarm \
+              go build -trimpath -ldflags "-s -w -X main.version=$VERSION -X main.commit=$GITHUB_SHA" -o "$dir/mediaserver" ./cmd/mediaserver
+            cp packaging/install.sh packaging/mediaserver.service packaging/README.md "$dir/"
+            chmod 755 "$dir/mediaserver" "$dir/install.sh"
+            tar -czf "$out/mediaserver-$VERSION-linux-$arch.tar.gz" -C "$out" "mediaserver-$VERSION-linux-$arch"
+          }
+          build arm64
+          build arm 7
+          build amd64
+          file "$out"/*/mediaserver
+          ls -la "$out"
+
+      # The amd64 one runs here: both sides answer, each as itself, and the
+      # program also starts as Aniko Hub's service starts it (the program
+      # its last update installs), with Aniko Hub's data, which it moves.
+      - name: Check it starts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bin="$PWD/dist/server/mediaserver-$VERSION-linux-amd64/mediaserver"
+          "$bin" --version | grep -qF "$VERSION"
+          home="$RUNNER_TEMP/home"
+          mkdir -p "$home"
+          wait_for() {
+            for _ in $(seq 30); do
+              curl -fsS "$1" > "$2" 2> /dev/null && return 0
+              sleep 1
+            done
+            return 1
+          }
+          run_and_check() {
+            HOME="$home" "$bin" "$@" > "$RUNNER_TEMP/server.log" 2>&1 &
+            pid=$!
+            ok=1
+            wait_for http://127.0.0.1:43211/api/status "$RUNNER_TEMP/anime.json" || ok=0
+            wait_for http://127.0.0.1:43311/api/status "$RUNNER_TEMP/movies.json" || ok=0
+            cat "$RUNNER_TEMP/server.log"
+            kill "$pid"
+            wait "$pid" || true
+            [ "$ok" = 1 ] || { echo "::error::a side didn't answer"; exit 1; }
+            grep -q '"hub"' "$RUNNER_TEMP/anime.json" || { echo "::error::the anime side didn't answer as a server"; cat "$RUNNER_TEMP/anime.json"; exit 1; }
+            grep -q '"dashboardPort":43211' "$RUNNER_TEMP/movies.json" || { echo "::error::the movies side didn't answer as mediaserver's"; cat "$RUNNER_TEMP/movies.json"; exit 1; }
+          }
+          run_and_check
+          HOME="$home" "$bin" --setup-code | grep -qE '^Setup code: [0-9]{4}-[0-9]{4}$'
+          # As Aniko Hub's service runs it, with Aniko Hub's data.
+          share="$home/.local/share"
+          mv "$share/mediaserver/anime" "$share/aniko-hub"
+          rm -rf "$share/mediaserver"
+          run_and_check --hub --data-dir "$share/aniko-hub"
+          [ -L "$share/aniko-hub" ] && [ -f "$share/mediaserver/anime/aniko.db" ] || { echo "::error::Aniko Hub's data wasn't moved"; ls -la "$share" "$share/mediaserver"; exit 1; }
+
+      - name: Upload the archives (workflow artifact)
+        uses: actions/upload-artifact@v7
+        with:
+          name: mediaserver-${{ steps.version.outputs.version }}
+          path: dist/server/*.tar.gz
+          overwrite: true
+          if-no-files-found: error
+
+      # Creates the release (and its tag, on this commit, when it doesn't
+      # exist yet), or updates it.
+      - name: Publish the GitHub Release
+        if: (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        env:
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          repo="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          notes="$RUNNER_TEMP/release-notes.md"
+          beta=""
+          [ "$CHANNEL" = beta ] && beta=" --beta"
+          cat > "$notes" <<EOF
+          **mediaserver $VERSION**: the home server for the Aniko and KumoBox apps, for a Raspberry Pi (Pi 4 or 5) or any Linux computer that stays on. Its anime side shares its library with the Aniko apps on your network and keeps each AniList account's progress, list and theme in step on all of them; its movies side shares movies and shows with the KumoBox apps. Each side has its own library, devices and logins. The dashboard, in a browser, shows what it's streaming to whom, the devices and the Pi's CPU, memory, temperature and disks.
+
+          **Install** (on the Pi, as your usual user, with Raspberry Pi OS 64-bit best):
+
+          \`\`\`
+          curl -fsSL https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$GITHUB_SHA/packaging/install.sh | bash -s --$beta
+          \`\`\`
+
+          It installs mediaserver for your Pi's processor and ffmpeg, starts it as a service (replacing Aniko Hub's, whose data it keeps), and prints the dashboard's address (\`http://<your Pi>.local:43211\`) and a setup code to set its password.
+
+          | File | For |
+          |---|---|
+          | \`mediaserver-$VERSION-linux-arm64.tar.gz\` | 64-bit Raspberry Pi OS (Pi 3, 4, 5), any 64-bit ARM Linux |
+          | \`mediaserver-$VERSION-linux-arm.tar.gz\` | 32-bit Raspberry Pi OS (Pi 2 and newer) |
+          | \`mediaserver-$VERSION-linux-amd64.tar.gz\` | A Linux PC (x86-64) |
+
+          Or unpack one and run its \`./install.sh\`. mediaserver updates itself from its dashboard. More: [packaging/README.md]($repo/blob/$GITHUB_SHA/packaging/README.md).
+
+          Built from $GITHUB_SHA by [workflow run $GITHUB_RUN_NUMBER]($repo/actions/runs/$GITHUB_RUN_ID).
+          EOF
+          if [ "$CHANNEL" = beta ]; then
+            pre=true title="mediaserver $VERSION beta"
+            { printf '%s\n\n' "> **Beta.** This version is a pre-release: servers are offered it only with **Beta updates** on (the install command above turns it on). It may have rough edges; the stable releases are the ones without this note."; cat "$notes"; } > "$notes.new" && mv "$notes.new" "$notes"
+          else
+            pre=false title="mediaserver $VERSION"
+          fi
+          files=(dist/server/*.tar.gz)
+          if gh release view "$TAG" --json tagName > /dev/null 2>&1; then
+            echo "Updating the release $TAG"
+            gh release edit "$TAG" --title "$title" --notes-file "$notes" --prerelease="$pre"
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            echo "Creating the release $TAG"
+            gh release create "$TAG" "${files[@]}" --target "$GITHUB_SHA" --title "$title" --notes-file "$notes" --prerelease="$pre"
+          fi
+
+      # Keep the newest 10 stable releases and the newest 10 betas, by
+      # version (numbers compared as numbers), and delete the older ones with
+      # their tags: betas never push out the stable releases.
+      - name: Delete old releases
+        if: (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          list=$(gh release list --limit 1000 --json tagName,isPrerelease --jq '.[] | "\(.isPrerelease) \(.tagName)"')
+          old=$(for pre in true false; do
+            printf '%s\n' "$list" | awk -v pre="$pre" '$1 == pre { print $2 }' |
+              { grep -E '^server-v[0-9]+(\.[0-9]+)*$' || true; } | sort -V -r | tail -n +11
+          done)
+          if [ -z "$old" ]; then
+            echo "No old releases to delete"
+            exit 0
+          fi
+          for tag in $old; do
+            echo "Deleting the release $tag and its tag"
+            gh release delete "$tag" --cleanup-tag --yes
+          done

@@ -1,0 +1,104 @@
+{
+  "status": "ok",
+  "status_message": "Query was successful",
+  "data": {
+    "movie_count": 1,
+    "limit": 50,
+    "page_number": 1,
+    "movies": [
+      {
+        "id": 1234,
+        "url": "https://yts.mx/movies/the-matrix-1999",
+        "imdb_code": "tt0133093",
+        "title": "The Matrix",
+        "title_english": "The Matrix",
+        "title_long": "The Matrix (1999)",
+        "slug": "the-matrix-1999",
+        "year": 1999,
+        "rating": 8.7,
+        "runtime": 136,
+        "genres": ["Action", "Sci-Fi"],
+        "summary": "Thomas A. Anderson is a man living two lives.",
+        "language": "en",
+        "mpa_rating": "R",
+        "background_image": "https://yts.mx/assets/images/movies/the_matrix_1999/background.jpg",
+        "small_cover_image": "https://yts.mx/assets/images/movies/the_matrix_1999/small-cover.jpg",
+        "state": "ok",
+        "torrents": [
+          {
+            "url": "https://yts.mx/torrent/download/0D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A01",
+            "hash": "0D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A01",
+            "quality": "720p",
+            "type": "bluray",
+            "is_repack": "0",
+            "video_codec": "x264",
+            "bit_depth": "8",
+            "audio_channels": "2.0",
+            "seeds": 210,
+            "peers": 31,
+            "size": "850.06 MB",
+            "size_bytes": 891355945,
+            "date_uploaded": "2015-10-31 21:47:51",
+            "date_uploaded_unix": 1446320871
+          },
+          {
+            "url": "https://yts.mx/torrent/download/1D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A02",
+            "hash": "1D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A02",
+            "quality": "1080p",
+            "type": "bluray",
+            "is_repack": "0",
+            "video_codec": "x264",
+            "bit_depth": "8",
+            "audio_channels": "5.1",
+            "seeds": 650,
+            "peers": 74,
+            "size": "2.07 GB",
+            "size_bytes": 2222611251,
+            "date_uploaded": "2015-10-31 21:47:55",
+            "date_uploaded_unix": 1446320875
+          },
+          {
+            "url": "https://yts.mx/torrent/download/2D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A03",
+            "hash": "2D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A03",
+            "quality": "1080p",
+            "type": "bluray",
+            "is_repack": "0",
+            "video_codec": "x265",
+            "bit_depth": "10",
+            "audio_channels": "5.1",
+            "seeds": "120",
+            "peers": "9",
+            "size": "1.98 GB",
+            "size_bytes": "2126008811",
+            "date_uploaded": "2021-11-20 12:00:00",
+            "date_uploaded_unix": 1637409600
+          },
+          {
+            "url": "https://yts.mx/torrent/download/3D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A04",
+            "hash": "3D5B2E1D63E8DE4F6C3A5F1A1A3C1B0D6F8E9A04",
+            "quality": "2160p",
+            "type": "web",
+            "is_repack": "0",
+            "video_codec": "x265",
+            "bit_depth": "10",
+            "audio_channels": "5.1",
+            "seeds": 300,
+            "peers": 40,
+            "size": "5.46 GB",
+            "size_bytes": 5862630523,
+            "date_uploaded": "2021-12-01 08:00:00",
+            "date_uploaded_unix": 1638345600
+          }
+        ],
+        "date_uploaded": "2015-10-31 21:47:51",
+        "date_uploaded_unix": 1446320871
+      }
+    ]
+  },
+  "@meta": {
+    "server_time": 1728470000,
+    "server_timezone": "CET",
+    "api_version": 2,
+    "execution_time": "0 ms"
+  }
+}

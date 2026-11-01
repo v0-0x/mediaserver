@@ -1,0 +1,6 @@
+{
+  "Items": [
+    {"Id": "s1", "Name": "Breaking Bad", "Type": "Series", "ProductionYear": 2008, "ProviderIds": {"Tmdb": "1396", "Imdb": "tt0903747", "Tvdb": "81189"}},
+    {"Id": "s2", "Name": "Other Show", "Type": "Series", "ProviderIds": {"Tmdb": "1"}}
+  ]
+}

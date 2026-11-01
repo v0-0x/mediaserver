@@ -1,0 +1,251 @@
+import type { QueryClient } from "@tanstack/react-query"
+import { api } from "@/lib/api"
+import { toast } from "@/lib/toast"
+import { showAlert, type Alert } from "./alerts"
+import { playbackStore, pluginStore, scanStore, torrentCountStore, trayOpenStore } from "./store"
+import { installIfWanted } from "./tv"
+import type { DownloadItem, LetterboxdStatus, PluginState, Status, UpdateStatus } from "./types"
+import { safeUrl } from "./utils"
+
+type ServerEvent = { type: string; payload: any }
+
+let navigateFn: ((to: string) => void) | null = null
+export function setNavigate(fn: (to: string) => void) {
+    navigateFn = fn
+}
+
+// Connects to /api/events and keeps caches & stores in sync.
+export function connectEvents(qc: QueryClient) {
+    let es: EventSource | null = null
+    let closed = false
+    let retry: ReturnType<typeof setTimeout> | null = null
+
+    const handle = (ev: ServerEvent) => {
+        const p = ev.payload
+        switch (ev.type) {
+            case "toast": {
+                const fn = { success: toast.success, error: toast.error, warning: toast.warning, info: toast.info }[p.level as string] ?? toast
+                fn(p.message)
+                break
+            }
+            case "scan-progress":
+                scanStore.set({ running: true, stage: p.stage, done: p.done, total: p.total, message: p.message })
+                break
+            case "scan-done":
+                scanStore.set({ running: false, stage: "", done: 0, total: 0, message: "" })
+                if (p?.error) toast.error(`Library scan failed: ${p.error}`)
+                qc.invalidateQueries({ queryKey: ["collection"] })
+                qc.invalidateQueries({ queryKey: ["library"] })
+                qc.invalidateQueries({ queryKey: ["entry"] })
+                break
+            case "library-updated":
+                qc.invalidateQueries({ queryKey: ["collection"] })
+                qc.invalidateQueries({ queryKey: ["library"] })
+                qc.invalidateQueries({ queryKey: ["entry"] })
+                qc.invalidateQueries({ queryKey: ["sharing", "libraries"] })
+                break
+            case "sharing-updated":
+                qc.invalidateQueries({ queryKey: ["sharing"] })
+                // Home's asleep computers and questions (status).
+                qc.invalidateQueries({ queryKey: ["status"] })
+                break
+            case "history-updated":
+                // Watched on another KumoBox sharing its library: Continue
+                // watching, the episodes' positions and what's unwatched in
+                // the Local library.
+                qc.invalidateQueries({ queryKey: ["collection"] })
+                qc.invalidateQueries({ queryKey: ["entry"] })
+                qc.invalidateQueries({ queryKey: ["library", "titles"] })
+                break
+            case "collection-updated":
+                // The list changed (here, on another device, a Letterboxd
+                // sync): everything that shows list entries.
+                qc.invalidateQueries({ queryKey: ["collection"] })
+                qc.invalidateQueries({ queryKey: ["entry"] })
+                qc.invalidateQueries({ queryKey: ["list"] })
+                qc.invalidateQueries({ queryKey: ["library", "titles"] })
+                // The calendar has the shows on the list.
+                qc.invalidateQueries({ queryKey: ["schedule"] })
+                break
+            case "diary-updated":
+                // A viewing logged (a movie watched to the end), imported,
+                // rated, sent to Letterboxd or deleted: the diaries, and the
+                // count of entries to send.
+                qc.invalidateQueries({ queryKey: ["letterboxd"] })
+                break
+            case "letterboxd-status": {
+                // A sync ended (automatic, or from another device), the
+                // account was connected or disconnected, the API signed in.
+                const prev = qc.getQueryData<LetterboxdStatus>(["letterboxd", "status"])
+                qc.setQueryData<LetterboxdStatus>(["letterboxd", "status"], p)
+                // /api/status has the member (name, avatar).
+                if (!prev || prev.connected !== p?.connected || prev.username !== p?.username || prev.displayName !== p?.displayName || prev.apiConnected !== p?.apiConnected)
+                    qc.invalidateQueries({ queryKey: ["status"] })
+                break
+            }
+            case "settings-updated":
+                qc.invalidateQueries({ queryKey: ["status"] })
+                // The Internet Archive turned on or off, the default provider,
+                // the torrent sources...
+                qc.invalidateQueries({ queryKey: ["providers"] })
+                qc.invalidateQueries({ queryKey: ["torrent-providers"] })
+                break
+            case "playback-status":
+                playbackStore.set(p)
+                break
+            case "playback-ended":
+                playbackStore.set(null)
+                qc.invalidateQueries({ queryKey: ["collection"] })
+                qc.invalidateQueries({ queryKey: p?.mediaId ? ["entry", p.mediaId] : ["entry"] })
+                qc.invalidateQueries({ queryKey: ["library", "titles"] })
+                break
+            case "download-progress": {
+                qc.setQueryData<DownloadItem[]>(["downloads"], old => {
+                    if (!old) return old
+                    if (p.removed) return old.filter(d => d.id !== p.id)
+                    if (p.cleared) return old.filter(d => !["completed", "failed", "canceled"].includes(d.status))
+                    const idx = old.findIndex(d => d.id === p.id)
+                    if (idx === -1) return [p, ...old]
+                    const next = old.slice()
+                    next[idx] = p
+                    return next
+                })
+                break
+            }
+            case "torrent-count":
+                torrentCountStore.set(p)
+                break
+            case "extensions-updated":
+                qc.invalidateQueries({ queryKey: ["extensions"] })
+                qc.invalidateQueries({ queryKey: ["marketplace"] })
+                qc.invalidateQueries({ queryKey: ["plugins-ui"] })
+                qc.invalidateQueries({ queryKey: ["providers"] })
+                break
+            case "providers-updated":
+                qc.invalidateQueries({ queryKey: ["providers"] })
+                qc.invalidateQueries({ queryKey: ["stremio-addons"] })
+                qc.invalidateQueries({ queryKey: ["stremio-catalog"] })
+                qc.invalidateQueries({ queryKey: ["provider-streams"] })
+                break
+            case "plugin-ui":
+                handlePluginEvent(p)
+                break
+            case "notify":
+                showAlert(qc, p as Alert, navigateFn)
+                break
+            case "update-status": {
+                // Only this computer installs updates (GET /api/update says
+                // so to devices on the network too).
+                const lan = qc.getQueryData<Status>(["status"])?.client === "lan"
+                qc.setQueryData<UpdateStatus>(["update"], lan ? { ...p, canApply: false, applyNote: "", manualCommand: "" } : p)
+                if (!lan) installIfWanted(p)
+                break
+            }
+        }
+    }
+
+    // The server's version when this page loaded: back after a restart as
+    // another version (an update installed while it ran), the page loads
+    // again, as that version's.
+    let version: string | null = null
+
+    const connect = () => {
+        if (closed) return
+        es = new EventSource("/api/events")
+        // Events sent while disconnected are lost: re-sync the scan state so
+        // a missed "scan-done" can't leave the scan indicator spinning, and
+        // the update's.
+        es.onopen = () => {
+            qc.invalidateQueries({ queryKey: ["update"] })
+            // The library too: the files other devices share can come in
+            // before this page listens, and their "library-updated" is lost;
+            // it then showed only part of the shared library.
+            qc.invalidateQueries({ queryKey: ["collection"] })
+            qc.invalidateQueries({ queryKey: ["library"] })
+            qc.invalidateQueries({ queryKey: ["sharing", "libraries"] })
+            fetch("/api/status", { credentials: "same-origin" })
+                .then(r => (r.ok ? r.json() : null))
+                .then(st => {
+                    if (st?.version && version && st.version !== version) window.location.reload()
+                    if (st?.version) version = st.version
+                    if (st && !st.scanning) scanStore.set({ running: false, stage: "", done: 0, total: 0, message: "" })
+                })
+                .catch(() => {})
+        }
+        es.onmessage = msg => {
+            try {
+                handle(JSON.parse(msg.data))
+            } catch {
+                /* ignore */
+            }
+        }
+        es.onerror = () => {
+            es?.close()
+            if (!closed) retry = setTimeout(connect, 3000)
+        }
+    }
+    connect()
+
+    // The app shown again (a TV's, back from its home screen; a tab): watch
+    // history synced with the paired KumoBoxes, if that's on (the server skips
+    // those synced a moment ago). Only this computer's app asks.
+    const resumed = () => {
+        if (qc.getQueryData<Status>(["status"])?.client === "lan") return
+        api.post("/api/sharing/autosync").catch(() => {})
+    }
+    const onVisible = () => document.visibilityState === "visible" && resumed()
+    document.addEventListener("visibilitychange", onVisible)
+    window.kumoboxResumed = resumed // the Android app's onResume
+    return () => {
+        closed = true
+        if (retry) clearTimeout(retry)
+        es?.close()
+        document.removeEventListener("visibilitychange", onVisible)
+        delete window.kumoboxResumed
+    }
+}
+
+function handlePluginEvent(p: { pluginId: string; type: string; payload: any }) {
+    switch (p.type) {
+        case "state":
+            pluginStore.set(prev => ({
+                ...prev,
+                [p.pluginId]: { ...(prev[p.pluginId] ?? { id: p.pluginId, name: p.pluginId, icon: "" }), state: p.payload } as PluginState,
+            }))
+            break
+        case "removed":
+            pluginStore.set(prev => {
+                const next = { ...prev }
+                delete next[p.pluginId]
+                return next
+            })
+            break
+        case "navigate": {
+            const path = String(p.payload?.path || "/")
+            const params = new URLSearchParams(p.payload?.searchParams || {}).toString()
+            navigateFn?.(params ? `${path}?${params}` : path)
+            break
+        }
+        case "reload":
+            window.location.reload()
+            break
+        case "tray-open":
+            trayOpenStore.set({ pluginId: p.pluginId, trayId: p.payload?.trayId })
+            break
+        case "tray-close":
+            trayOpenStore.set(null)
+            break
+        case "open-url": {
+            // The URL comes from a plugin: only open real web links.
+            const url = safeUrl(p.payload?.url)
+            if (url) window.open(url, "_blank", "noopener")
+            break
+        }
+        case "clipboard":
+            navigator.clipboard?.writeText(p.payload?.text ?? "").catch(() => {})
+            break
+        case "webview-message":
+            window.dispatchEvent(new CustomEvent("kumobox-webview-message", { detail: { pluginId: p.pluginId, ...p.payload } }))
+            break
+    }
+}

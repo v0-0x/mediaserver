@@ -1,0 +1,39 @@
+[
+  {
+    "id": "fixture",
+    "name": "Fixture Provider",
+    "description": "Scrapes the test site with cheerio, fetch and axios.",
+    "version": "1.0.0",
+    "author": "KumoBox tests",
+    "supportedTypes": ["movie", "tv"],
+    "filename": "providers/fixture.js",
+    "enabled": true,
+    "logo": "http://nuvio.test/logo.png",
+    "contentLanguage": ["en"],
+    "formats": ["mp4", "m3u8"],
+    "limited": false,
+    "disabledPlatforms": [],
+    "supportsExternalPlayer": true
+  },
+  {
+    "id": "built",
+    "name": "Built Provider",
+    "description": "Bundled and transpiled by Nuvio's build script (generators instead of async/await).",
+    "version": 2,
+    "supportedTypes": ["movie"],
+    "filename": "providers/built.js"
+  },
+  {
+    "id": "esm",
+    "name": "ESM Provider",
+    "version": "0.1.0",
+    "supportedTypes": "movie",
+    "filename": "/providers/esm.js",
+    "enabled": false
+  },
+  {
+    "id": "no-code",
+    "name": "Entry without a file"
+  },
+  "not an entry"
+]

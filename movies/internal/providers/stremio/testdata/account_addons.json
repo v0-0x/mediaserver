@@ -1,0 +1,21 @@
+[
+  {"transportUrl": "http://addons.test/manifest.json", "transportName": "http", "flags": {},
+   "manifest": {"id": "org.test.streams", "version": "1.0.0", "name": "Test Streams", "resources": ["stream"], "types": ["movie", "series"], "idPrefixes": ["tt"], "catalogs": []}},
+  {"transportUrl": "http://addons.test/subs/manifest.json", "transportName": "http",
+   "manifest": {"id": "org.test.subs", "version": "1", "name": "Test Subtitles", "resources": [{"name": "subtitles", "types": ["movie", "series"], "idPrefixes": ["tt"]}], "types": ["movie", "series"]}},
+  {"transportUrl": "http://addons.test/catalogonly/manifest.json", "transportName": "http", "flags": {"official": true, "protected": true},
+   "manifest": {"id": "org.test.catalog", "version": "1", "name": "Catalog", "resources": ["catalog", "meta"], "types": ["movie"]}},
+  {"transportUrl": "http://127.0.0.1:11470/local-addon/manifest.json", "transportName": "http", "flags": {"official": true, "protected": true},
+   "manifest": {"id": "org.stremio.local", "version": "1.10.0", "name": "Local Files", "resources": ["catalog", "meta", "stream"], "types": ["movie", "series", "other"], "idPrefixes": ["local:", "bt:"]}},
+  {"transportUrl": "http://addons.test/adult/manifest.json", "transportName": "http",
+   "manifest": {"id": "org.test.adult", "version": "1.0.0", "name": "Adult", "resources": ["stream"], "types": ["movie"], "behaviorHints": {"adult": true}}},
+  {"transportUrl": "http://needscfg.test/manifest.json", "transportName": "http",
+   "manifest": {"id": "org.test.cfg", "version": "1.0.0", "name": "Needs Config", "resources": ["stream"], "types": ["movie", "series"], "idPrefixes": ["tt"]}},
+  {"transportUrl": "http://addons.test/cfg=1080p/manifest.json", "transportName": "http",
+   "manifest": {"id": "org.test.streams", "version": "1.0.0", "name": "Test Streams (1080p)", "resources": ["stream"], "types": ["movie", "series"], "idPrefixes": ["tt"]}},
+  {"transportUrl": "http://addons.test/tmdbonly/manifest.json", "transportName": "http",
+   "manifest": {"id": "org.test.tmdb", "version": "1", "name": "TMDB Only", "resources": [{"name": "stream", "types": ["movie", "series"], "idPrefixes": ["tmdb:"]}], "types": ["movie"]}},
+  {"transportUrl": "http://addons.test/missing/manifest.json", "transportName": "http",
+   "manifest": {"id": "org.test.gone", "version": "1", "name": "Gone", "resources": ["stream"], "types": ["movie"]}},
+  {"transportUrl": "not a url", "manifest": {"id": "x", "version": "1", "name": "Broken", "resources": ["stream"], "types": ["movie"]}}
+]

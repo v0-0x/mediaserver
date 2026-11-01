@@ -1,0 +1,124 @@
+{
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "profile": "High",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080,
+            "pix_fmt": "yuv420p",
+            "disposition": { "default": 1, "forced": 0, "attached_pic": 0 },
+            "tags": { "DURATION": "00:47:03.021000000" }
+        },
+        {
+            "index": 1,
+            "codec_name": "eac3",
+            "codec_type": "audio",
+            "channels": 6,
+            "disposition": { "default": 1, "forced": 0 },
+            "tags": { "language": "eng", "title": "English 5.1" }
+        },
+        {
+            "index": 2,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "channels": 2,
+            "disposition": { "default": 0, "forced": 0 },
+            "tags": { "language": "fre", "title": "Français" }
+        },
+        {
+            "index": 3,
+            "codec_name": "subrip",
+            "codec_type": "subtitle",
+            "disposition": { "default": 0, "forced": 1 },
+            "tags": { "language": "eng", "title": "Forced" }
+        },
+        {
+            "index": 4,
+            "codec_name": "subrip",
+            "codec_type": "subtitle",
+            "disposition": { "default": 0, "forced": 0 },
+            "tags": { "language": "eng", "title": "SDH" }
+        },
+        {
+            "index": 5,
+            "codec_name": "hdmv_pgs_subtitle",
+            "codec_type": "subtitle",
+            "disposition": { "default": 0, "forced": 0 },
+            "tags": { "language": "fre" }
+        },
+        {
+            "index": 6,
+            "codec_name": "mjpeg",
+            "codec_type": "video",
+            "width": 600,
+            "height": 900,
+            "disposition": { "default": 0, "forced": 0, "attached_pic": 1 },
+            "tags": { "filename": "cover.jpg", "mimetype": "image/jpeg" }
+        }
+    ],
+    "chapters": [
+        {
+            "id": 1,
+            "time_base": "1/1000000000",
+            "start": 0,
+            "start_time": "0.000000",
+            "end": 52386000000,
+            "end_time": "52.386000",
+            "tags": { "title": "Previously On" }
+        },
+        {
+            "id": 2,
+            "time_base": "1/1000000000",
+            "start": 52386000000,
+            "start_time": "52.386000",
+            "end": 112446000000,
+            "end_time": "112.446000",
+            "tags": { "title": "Opening Credits" }
+        },
+        {
+            "id": 3,
+            "time_base": "1/1000000000",
+            "start": 112446000000,
+            "start_time": "112.446000",
+            "end": 2731020000000,
+            "end_time": "2731.020000",
+            "tags": { "title": "Episode" }
+        },
+        {
+            "id": 4,
+            "time_base": "1/1000000000",
+            "start": 2731020000000,
+            "start_time": "2731.020000",
+            "end": 2790000000000,
+            "end_time": "2790.000000",
+            "tags": { "title": "End Credits" }
+        },
+        {
+            "id": 5,
+            "time_base": "1/1000000000",
+            "start": 2790000000000,
+            "start_time": "2790.000000",
+            "end": 2823021000000,
+            "end_time": "2823.021000",
+            "tags": { "TITLE": "Next Episode" }
+        },
+        {
+            "id": 6,
+            "time_base": "1/1000",
+            "start": 2823021,
+            "start_time": "2823.021000",
+            "end": 2823021,
+            "end_time": "2823.021000"
+        }
+    ],
+    "format": {
+        "filename": "Show - S01E02.mkv",
+        "nb_streams": 7,
+        "format_name": "matroska,webm",
+        "start_time": "0.000000",
+        "duration": "2823.021000",
+        "size": "1834213922"
+    }
+}

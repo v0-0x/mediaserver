@@ -1,0 +1,31 @@
+{
+  "MediaContainer": {
+    "size": 3,
+    "Metadata": [
+      {
+        "ratingKey": "10", "title": "The Matrix", "year": 1999,
+        "Guid": [{"id": "imdb://tt0133093"}, {"id": "tmdb://603"}, {"id": "tvdb://169"}],
+        "Media": [
+          {
+            "videoResolution": "4k", "width": 3840, "height": 2076, "videoCodec": "hevc", "audioCodec": "eac3", "audioChannels": 6,
+            "container": "mkv", "videoDynamicRange": "HDR",
+            "Part": [{"key": "/library/parts/1001/1600000000/file.mkv", "file": "/data/movies/The Matrix (1999)/The.Matrix.1999.2160p.WEB-DL.mkv", "size": 20000000000, "container": "mkv"}]
+          },
+          {
+            "videoResolution": "720", "videoCodec": "h264", "audioCodec": "aac", "audioChannels": 2, "container": "mp4",
+            "Part": [{"key": "/library/parts/1002/1600000001/file.mp4", "file": "/data/movies/The Matrix (1999)/The Matrix (1999) 720p.mp4", "size": 900000000, "container": "mp4"}]
+          }
+        ]
+      },
+      {
+        "ratingKey": "11", "title": "Night of the Living Dead", "year": 1968,
+        "Guid": [{"id": "imdb://tt0063350"}],
+        "Media": [
+          {"videoResolution": "sd", "videoCodec": "mpeg4", "audioCodec": "mp3", "audioChannels": 1, "container": "avi",
+           "Part": [{"key": "/library/parts/1100/1600000002/file.avi", "file": "/data/movies/Night of the Living Dead (1968).avi", "size": 734003200}]}
+        ]
+      },
+      {"ratingKey": "12", "title": "Something Else", "year": 2001, "Guid": [{"id": "tmdb://999"}]}
+    ]
+  }
+}

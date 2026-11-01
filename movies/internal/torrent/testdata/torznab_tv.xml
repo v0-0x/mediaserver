@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+  <channel>
+    <atom:link href="{{HOST}}/api/v2.0/indexers/eztv/results/torznab/api" rel="self" type="application/rss+xml" />
+    <title>EZTV</title>
+    <description>EZTV is a TV torrent site.</description>
+    <link>https://eztvx.to/</link>
+    <language>en-US</language>
+    <category>search</category>
+    <item>
+      <title>Breaking.Bad.S01E02.720p.BluRay.x264-DEMAND</title>
+      <guid>https://eztvx.to/ep/100/breaking-bad-s01e02-720p-bluray-x264-demand/</guid>
+      <jackettindexer id="eztv">EZTV</jackettindexer>
+      <type>public</type>
+      <comments>https://eztvx.to/ep/100/breaking-bad-s01e02-720p-bluray-x264-demand/</comments>
+      <pubDate>Wed, 09 Oct 2024 10:01:02 +0200</pubDate>
+      <size>1288490189</size>
+      <description />
+      <link>{{HOST}}/dl/eztv/?jackett_apikey=secret&amp;path=x&amp;file=Breaking.Bad.S01E02</link>
+      <category>5000</category>
+      <category>5040</category>
+      <enclosure url="{{HOST}}/dl/eztv/?jackett_apikey=secret&amp;path=x&amp;file=Breaking.Bad.S01E02" length="1288490189" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5000" />
+      <torznab:attr name="category" value="5040" />
+      <torznab:attr name="tvdbid" value="81189" />
+      <torznab:attr name="imdbid" value="0903747" />
+      <torznab:attr name="seeders" value="41" />
+      <torznab:attr name="peers" value="43" />
+      <torznab:attr name="infohash" value="d1b2c3d4e5f60718293a4b5c6d7e8f9012345678" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:d1b2c3d4e5f60718293a4b5c6d7e8f9012345678&amp;dn=Breaking.Bad.S01E02.720p.BluRay.x264-DEMAND" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>Breaking Bad Season 1 Complete 1080p BluRay x265 10bit-GRP</title>
+      <guid>https://eztvx.to/ep/101/</guid>
+      <pubDate>Wed, 09 Oct 2024 11:00:00 +0200</pubDate>
+      <size>9988776655</size>
+      <link>{{HOST}}/dl/eztv/?jackett_apikey=secret&amp;path=y</link>
+      <enclosure url="{{HOST}}/dl/eztv/?jackett_apikey=secret&amp;path=y" length="9988776655" type="application/x-bittorrent" />
+      <torznab:attr name="seeders" value="99" />
+      <torznab:attr name="peers" value="120" />
+      <torznab:attr name="infohash" value="e1b2c3d4e5f60718293a4b5c6d7e8f9012345678" />
+    </item>
+    <item>
+      <title>Breaking.Bad.S01E03.720p.BluRay.x264-DEMAND</title>
+      <guid>https://eztvx.to/ep/102/</guid>
+      <pubDate>Wed, 09 Oct 2024 12:00:00 +0200</pubDate>
+      <size>1288490000</size>
+      <link>{{HOST}}/dl/eztv/?jackett_apikey=secret&amp;path=z</link>
+      <torznab:attr name="seeders" value="30" />
+      <torznab:attr name="peers" value="31" />
+      <torznab:attr name="infohash" value="f1b2c3d4e5f60718293a4b5c6d7e8f9012345678" />
+    </item>
+  </channel>
+</rss>

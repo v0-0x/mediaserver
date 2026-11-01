@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+  <channel>
+    <atom:link href="{{HOST}}/api" rel="self" type="application/rss+xml" />
+    <title>Prowlarr</title>
+    <description>Prowlarr Feed</description>
+    <link>http://prowlarr.com/</link>
+    <language>en-us</language>
+    <category>search</category>
+    <item>
+      <title>The.Matrix.1999.1080p.BluRay.x264-SPARKS</title>
+      <guid>https://1337x.example/torrent/1111/The-Matrix-1999-1080p/</guid>
+      <prowlarrindexer id="3" type="public">1337x</prowlarrindexer>
+      <comments>https://1337x.example/torrent/1111/The-Matrix-1999-1080p/</comments>
+      <pubDate>Sat, 14 Mar 2015 09:26:53 +0000</pubDate>
+      <size>10234567890</size>
+      <grabs>4242</grabs>
+      <description />
+      <link>{{HOST}}/3/download?apikey=secret&amp;link=abc&amp;file=The.Matrix.1999.1080p</link>
+      <category>2000</category>
+      <category>2040</category>
+      <enclosure url="{{HOST}}/3/download?apikey=secret&amp;link=abc&amp;file=The.Matrix.1999.1080p" length="10234567890" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="imdbid" value="0133093" />
+      <torznab:attr name="seeders" value="150" />
+      <torznab:attr name="peers" value="170" />
+      <torznab:attr name="infohash" value="A1B2C3D4E5F60718293A4B5C6D7E8F9012345678" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:A1B2C3D4E5F60718293A4B5C6D7E8F9012345678&amp;dn=The.Matrix.1999.1080p.BluRay.x264-SPARKS" />
+      <torznab:attr name="downloadvolumefactor" value="1" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The Matrix 1999 2160p UHD BluRay x265-TERMINAL</title>
+      <guid>https://private.example.net/torrents.php?id=987</guid>
+      <prowlarrindexer id="7" type="private">PrivateHD</prowlarrindexer>
+      <comments>https://private.example.net/torrents.php?id=987</comments>
+      <pubDate>Mon, 01 Jun 2020 18:00:00 +0000</pubDate>
+      <size>60123456789</size>
+      <link>{{HOST}}/7/download?apikey=secret&amp;link=priv&amp;file=The.Matrix.1999.2160p</link>
+      <enclosure url="{{HOST}}/7/download?apikey=secret&amp;link=priv&amp;file=The.Matrix.1999.2160p" length="60123456789" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="imdbid" value="tt0133093" />
+      <torznab:attr name="seeders" value="35" />
+      <torznab:attr name="peers" value="36" />
+      <torznab:attr name="downloadvolumefactor" value="0" />
+      <torznab:attr name="uploadvolumefactor" value="1" />
+    </item>
+    <item>
+      <title>The.Matrix.Reloaded.2003.1080p.BluRay.x264-SPARKS</title>
+      <guid>https://1337x.example/torrent/2222/</guid>
+      <comments>https://1337x.example/torrent/2222/</comments>
+      <pubDate>Sat, 14 Mar 2015 09:30:00 +0000</pubDate>
+      <size>11234567890</size>
+      <link>{{HOST}}/3/download?apikey=secret&amp;link=def</link>
+      <enclosure url="{{HOST}}/3/download?apikey=secret&amp;link=def" length="11234567890" type="application/x-bittorrent" />
+      <torznab:attr name="imdbid" value="0234215" />
+      <torznab:attr name="seeders" value="400" />
+      <torznab:attr name="peers" value="420" />
+      <torznab:attr name="infohash" value="b1b2c3d4e5f60718293a4b5c6d7e8f9012345678" />
+    </item>
+    <item>
+      <title>The Matrix (1999) 720p BrRip x264 - YIFY</title>
+      <guid>https://tpb.example/description.php?id=5555</guid>
+      <pubDate>Tue, 03 Jan 2012 10:00:00 GMT</pubDate>
+      <link>magnet:?xt=urn:btih:C1B2C3D4E5F60718293A4B5C6D7E8F9012345678&amp;dn=The+Matrix+(1999)+720p</link>
+      <enclosure url="magnet:?xt=urn:btih:C1B2C3D4E5F60718293A4B5C6D7E8F9012345678&amp;dn=The+Matrix+(1999)+720p" length="0" type="application/x-bittorrent;x-scheme-handler/magnet" />
+      <torznab:attr name="size" value="733000000" />
+      <torznab:attr name="seeders" value="80" />
+      <torznab:attr name="peers" value="95" />
+    </item>
+  </channel>
+</rss>

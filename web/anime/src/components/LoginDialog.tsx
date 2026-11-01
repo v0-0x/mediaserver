@@ -1,0 +1,99 @@
+import { useQueryClient } from "@tanstack/react-query"
+import { ExternalLink, KeyRound } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "@/lib/toast"
+import { api, desktop } from "@/lib/api"
+import { loginStarted } from "@/lib/login"
+import { useStatus } from "@/lib/queries"
+import { androidApp, tv } from "@/lib/tv"
+import { Button, Dialog, Field, Input } from "./ui"
+
+// AniList login. The client id (13985) uses AniList's PIN page as redirect,
+// so the token is either captured automatically by the desktop window or
+// pasted by the user.
+export function LoginDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+    const { data: status } = useStatus()
+    const [token, setToken] = useState("")
+    const [busy, setBusy] = useState(false)
+    // On a TV, logging in here (a browser, a token to type) is hidden behind
+    // a button: the computer sharing its login is the way.
+    const [manual, setManual] = useState(!tv)
+    const qc = useQueryClient()
+    // Don't keep a typed token around once the dialog is closed.
+    useEffect(() => {
+        if (!open) setToken("")
+    }, [open])
+    const url = status?.anilistAuthUrl ?? "https://anilist.co/api/v2/oauth/authorize?client_id=13985&response_type=token"
+
+    const submit = async (t: string) => {
+        if (!t.trim()) return
+        setBusy(true)
+        try {
+            const v = await api.post<{ name: string }>("/api/auth/anilist", { token: t })
+            toast.success(`Welcome, ${v.name}!`)
+            setToken("")
+            onOpenChange(false)
+            qc.invalidateQueries()
+        } catch (e: any) {
+            toast.error(e.message)
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    const openAnilist = async () => {
+        const d = desktop()
+        if (d) {
+            const t = await d.anilistLogin(url)
+            if (t) await submit(t)
+            return
+        }
+        loginStarted()
+        window.open(url, "_blank", "noopener")
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange} title="Log in with AniList" description="Sync your lists, progress and scores with your AniList account.">
+            <div className="flex flex-col gap-5">
+                {/* A TV has no easy way to copy a token: the computer can share its login. */}
+                {androidApp && (
+                    <p className="rounded-lg border border-brand/30 bg-brand-soft p-4 text-sm text-fg/90">
+                        Easiest on a TV: on your computer's Aniko, open Settings › Other devices and turn on “Share my AniList account” next to this device. It logs in here by
+                        itself.
+                    </p>
+                )}
+                {!manual && (
+                    <Button variant="subtle" onClick={() => setManual(true)}>
+                        Log in on this TV instead
+                    </Button>
+                )}
+                {manual && (
+                    <>
+                        <div className="rounded-lg bg-white/[0.03] p-5">
+                            <p className="text-sm text-muted">
+                                {desktop()
+                                    ? "A login window will open. After you authorize Aniko, the token is captured automatically."
+                                    : "Authorize Aniko on AniList, then copy the token shown on the page and paste it below."}
+                            </p>
+                            <Button variant="primary" className="mt-4 w-full" icon={<ExternalLink className="size-4" />} onClick={openAnilist}>
+                                Open AniList
+                            </Button>
+                        </div>
+                        <Field label="Access token" help="You can also paste the whole URL you were redirected to.">
+                            <Input
+                                icon={<KeyRound className="size-4" />}
+                                placeholder="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9…"
+                                value={token}
+                                onChange={e => setToken(e.target.value)}
+                                onKeyDown={e => e.key === "Enter" && submit(token)}
+                            />
+                        </Field>
+                        <Button variant="white" loading={busy} disabled={!token.trim()} onClick={() => submit(token)}>
+                            Log in
+                        </Button>
+                    </>
+                )}
+            </div>
+        </Dialog>
+    )
+}

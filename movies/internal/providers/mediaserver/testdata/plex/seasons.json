@@ -1,0 +1,9 @@
+{
+  "MediaContainer": {
+    "Metadata": [
+      {"ratingKey": "110", "title": "Specials", "index": 0},
+      {"ratingKey": "101", "title": "Season 1", "index": 1},
+      {"ratingKey": "102", "title": "Season 2", "index": 2}
+    ]
+  }
+}

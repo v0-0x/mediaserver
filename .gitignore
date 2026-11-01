@@ -1,0 +1,14 @@
+# build output
+/dist/
+/dev-data/
+/anime/internal/webui/dist/*
+!/anime/internal/webui/dist/.keep
+/movies/internal/webui/dist/*
+!/movies/internal/webui/dist/.keep
+/web/*/node_modules/
+/web/*/dist/
+*.log
+.DS_Store
+
+# Claude Code agent worktrees
+/.claude/worktrees/

@@ -1,0 +1,42 @@
+{
+  "adult": false,
+  "backdrop_path": "/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg",
+  "belongs_to_collection": null,
+  "budget": 160000000,
+  "genres": [
+    { "id": 28, "name": "Action" },
+    { "id": 878, "name": "Science Fiction" },
+    { "id": 12, "name": "Adventure" }
+  ],
+  "homepage": "https://www.warnerbros.com/movies/inception",
+  "id": 27205,
+  "imdb_id": "tt1375666",
+  "origin_country": ["US"],
+  "original_language": "en",
+  "original_title": "Inception",
+  "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets, is offered a chance to regain his old life as payment for a task considered to be impossible.",
+  "popularity": 98.4,
+  "poster_path": "/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
+  "production_companies": [
+    { "id": 923, "logo_path": "/8M99Dkt23MjQMTTWukq4m5XsEuo.png", "name": "Legendary Pictures", "origin_country": "US" }
+  ],
+  "production_countries": [{ "iso_3166_1": "US", "name": "United States of America" }],
+  "release_date": "2010-07-15",
+  "revenue": 839030630,
+  "runtime": 148,
+  "status": "Released",
+  "tagline": "Your mind is the scene of the crime.",
+  "title": "Inception",
+  "video": false,
+  "vote_average": 8.369,
+  "vote_count": 36800,
+  "credits": { "cast": [], "crew": [] },
+  "videos": { "results": [] },
+  "recommendations": { "page": 1, "results": [], "total_pages": 0, "total_results": 0 },
+  "similar": { "page": 1, "results": [], "total_pages": 0, "total_results": 0 },
+  "external_ids": { "imdb_id": "tt1375666" },
+  "keywords": { "keywords": [] },
+  "release_dates": { "results": [] },
+  "watch/providers": { "results": {} },
+  "alternative_titles": { "titles": [] }
+}

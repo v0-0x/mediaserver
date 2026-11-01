@@ -1,0 +1,16 @@
+{
+  "MediaContainer": {
+    "Metadata": [
+      {
+        "ratingKey": "1011", "title": "Pilot", "index": 1, "parentIndex": 1,
+        "Media": [{"videoResolution": "1080", "width": 1920, "height": 1080, "videoCodec": "h264", "audioCodec": "aac", "audioChannels": 2, "container": "mp4",
+                   "Part": [{"key": "/library/parts/2001/1600000100/file.mp4", "file": "/data/tv/Breaking Bad/Season 01/Breaking Bad - S01E01 - Pilot.mp4", "size": 1500000000, "container": "mp4"}]}]
+      },
+      {
+        "ratingKey": "1012", "title": "Cat's in the Bag...", "index": 2, "parentIndex": 1,
+        "Media": [{"videoResolution": "720", "videoCodec": "hevc", "audioCodec": "ac3", "audioChannels": 6, "container": "mkv",
+                   "Part": [{"key": "/library/parts/2002/1600000101/file.mkv", "file": "/data/tv/Breaking Bad/Season 01/Breaking.Bad.S01E02.720p.x265.mkv", "size": 400000000, "container": "mkv"}]}]
+      }
+    ]
+  }
+}

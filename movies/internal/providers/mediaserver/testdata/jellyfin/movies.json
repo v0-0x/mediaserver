@@ -1,0 +1,9 @@
+{
+  "Items": [
+    {"Id": "m1", "Name": "The Matrix", "Type": "Movie", "ProductionYear": 1999, "ProviderIds": {"Tmdb": "603", "Imdb": "tt0133093"}},
+    {"Id": "m2", "Name": "Night of the Living Dead", "Type": "Movie", "ProductionYear": 1968, "ProviderIds": {"imdb": "tt0063350"}},
+    {"Id": "m3", "Name": "Something Else", "Type": "Movie", "ProductionYear": 2001, "ProviderIds": {"Tmdb": "999"}},
+    {"Id": "m4", "Name": "No Ids", "Type": "Movie"}
+  ],
+  "TotalRecordCount": 4
+}

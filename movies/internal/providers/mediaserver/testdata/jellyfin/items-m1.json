@@ -1,0 +1,26 @@
+{
+  "Items": [
+    {
+      "Id": "m1", "Name": "The Matrix", "Type": "Movie", "ProviderIds": {"Tmdb": "603", "Imdb": "tt0133093"},
+      "MediaSources": [
+        {
+          "Id": "ms4k", "Name": "2160p", "Path": "/media/movies/The Matrix (1999)/The.Matrix.1999.2160p.UHD.BluRay.x265-GRP.mkv",
+          "Container": "mkv", "Size": 40000000000, "Bitrate": 60000000,
+          "MediaStreams": [
+            {"Type": "Video", "Codec": "hevc", "Width": 3840, "Height": 1600, "VideoRange": "HDR"},
+            {"Type": "Audio", "Codec": "truehd", "Channels": 8, "Language": "eng"},
+            {"Type": "Subtitle", "Codec": "subrip", "Language": "eng"}
+          ]
+        },
+        {
+          "Id": "ms1080", "Name": "1080p", "Path": "D:\\Movies\\The Matrix (1999)\\The Matrix (1999) - 1080p.mp4",
+          "Container": "mov,mp4,m4a,3gp,3g2,mj2", "Size": 2500000000,
+          "MediaStreams": [
+            {"Type": "Video", "Codec": "h264", "Width": 1920, "Height": 800},
+            {"Type": "Audio", "Codec": "aac", "Channels": 2}
+          ]
+        }
+      ]
+    }
+  ]
+}

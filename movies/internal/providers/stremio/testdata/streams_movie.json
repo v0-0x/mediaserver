@@ -1,0 +1,60 @@
+{
+  "streams": [
+    {
+      "name": "TestAddon\n4k HDR",
+      "title": "The.Matrix.1999.2160p.UHD.BluRay.x265-GROUP\nThe.Matrix.1999.2160p.UHD.BluRay.x265-GROUP.mkv\n👤 152 💾 18.5 GB ⚙️ ThePirateBay",
+      "infoHash": "DD8255ECDC7CA55FB0BBF81323D87062DB1F6D1C",
+      "fileIdx": 0,
+      "sources": ["tracker:udp://tracker.example.org:1337/announce", "dht:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c"],
+      "behaviorHints": {"bingeGroup": "testaddon|2160p"}
+    },
+    {
+      "name": "TestAddon\n1080p",
+      "description": "The Matrix 1999 1080p WEB\n👤 12 💾 2.1 GB",
+      "url": "https://cdn.example.org/files/The.Matrix.1999.1080p.mp4",
+      "subtitles": [
+        {"id": "1", "url": "https://subs.example.org/en.srt", "lang": "eng"},
+        {"id": "2", "url": "ftp://subs.example.org/fr.srt", "lang": "fre"}
+      ],
+      "behaviorHints": {
+        "notWebReady": true,
+        "filename": "The.Matrix.1999.1080p.mp4",
+        "videoSize": 2254857830,
+        "proxyHeaders": {"request": {"Referer": "https://example.org/", "User-Agent": "Stremio", "X-Num": 5}}
+      }
+    },
+    {
+      "name": "TestAddon 720p",
+      "title": "hls",
+      "url": "https://cdn.example.org/hls/master.m3u8?token=abc"
+    },
+    {
+      "name": "Trailer",
+      "ytId": "vKQi3bBA1y8"
+    },
+    {
+      "name": "Netflix",
+      "externalUrl": "https://www.netflix.com/title/20557937"
+    },
+    {
+      "name": "Usenet",
+      "nzbUrl": "https://example.org/file.nzb"
+    },
+    {
+      "name": "Magnet",
+      "title": "magnet link",
+      "url": "magnet:?xt=urn:btih:aa8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Matrix"
+    },
+    {
+      "name": "Lenient 480p",
+      "infoHash": "bb8255ecdc7ca55fb0bbf81323d87062db1f6d1c",
+      "fileIdx": "3",
+      "behaviorHints": {"videoSize": "734003200"}
+    },
+    "not an object",
+    {
+      "name": "Broken",
+      "url": 42
+    }
+  ]
+}

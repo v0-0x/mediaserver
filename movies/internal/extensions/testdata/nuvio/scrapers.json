@@ -1,0 +1,18 @@
+{
+  "name": "Test Scrapers",
+  "version": "3.2.1",
+  "scrapers": [
+    {
+      "id": "Fixture Two!",
+      "name": "Fixture Two",
+      "version": "1.0.0",
+      "supportedTypes": ["tv", "series"],
+      "filename": "https://cdn.nuvio.test/other/fixture.js",
+      "contentLanguage": "hi"
+    },
+    {
+      "name": "Named after its file",
+      "filename": "providers/built.js"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "Items": [
+    {
+      "Id": "m2", "Name": "Night of the Living Dead", "Type": "Movie", "ProviderIds": {"imdb": "tt0063350"},
+      "MediaSources": [
+        {
+          "Id": "notld", "Path": "/media/movies/Night of the Living Dead (1968).avi", "Container": "avi", "Size": 734003200,
+          "MediaStreams": [{"Type": "Video", "Codec": "mpeg4", "Width": 640, "Height": 480}, {"Type": "Audio", "Codec": "mp3", "Channels": 1}]
+        }
+      ]
+    }
+  ]
+}

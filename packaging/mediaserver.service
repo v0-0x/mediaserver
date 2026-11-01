@@ -1,0 +1,23 @@
+# mediaserver as a system service: it starts when the computer does (a
+# Raspberry Pi), before anyone logs in, and again if it stops. install.sh
+# fills in the user it runs as and where its program is.
+[Unit]
+Description=mediaserver (anime for the Aniko apps, movies and shows for the KumoBox apps)
+After=network-online.target local-fs.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+ExecStart=@BIN@ --data-dir @DATA@
+# The programs it uses (ffmpeg, ani-cli in ~/.local/bin).
+Environment=PATH=@PATH@
+# mediaserver updates itself in place (same process); a stop for any other
+# reason starts it again.
+Restart=always
+RestartSec=5
+# The Pi's video encoder (/dev/video11) is the video group's.
+SupplementaryGroups=video
+
+[Install]
+WantedBy=multi-user.target

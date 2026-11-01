@@ -1,0 +1,8 @@
+{
+  "MediaContainer": {
+    "Metadata": [
+      {"ratingKey": "100", "title": "Breaking Bad", "year": 2008, "Guid": [{"id": "imdb://tt0903747"}, {"id": "tmdb://1396"}, {"id": "tvdb://81189"}]},
+      {"ratingKey": "200", "title": "Other Show", "Guid": [{"id": "tmdb://1"}]}
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "adult": false,
+  "backdrop_path": "/qNfL7ZnRqkqMNbBHgQVDsUmZtCS.jpg",
+  "belongs_to_collection": null,
+  "genres": [{"id": 27, "name": "Horror"}, {"id": 53, "name": "Thriller"}],
+  "id": 10331,
+  "imdb_id": "tt0063350",
+  "origin_country": ["US"],
+  "original_language": "en",
+  "original_title": "Night of the Living Dead",
+  "overview": "A group of strangers trapped in a farmhouse fight off the living dead.",
+  "poster_path": "/inNUOa9WZGdyRXQlt7eqmHtCttl.jpg",
+  "release_date": "1968-10-04",
+  "runtime": 96,
+  "status": "Released",
+  "title": "Night of the Living Dead",
+  "vote_average": 7.5,
+  "vote_count": 2700,
+  "watch/providers": {
+    "results": {
+      "US": {
+        "link": "https://www.themoviedb.org/movie/10331-night-of-the-living-dead/watch?locale=US",
+        "flatrate": [
+          {"logo_path": "/shudder.jpg", "provider_id": 99, "provider_name": "Shudder", "display_priority": 30}
+        ],
+        "free": [
+          {"logo_path": "/kanopy.jpg", "provider_id": 191, "provider_name": "Kanopy", "display_priority": 40},
+          {"logo_path": "/hoopla.jpg", "provider_id": 212, "provider_name": "Hoopla", "display_priority": 20}
+        ],
+        "ads": [
+          {"logo_path": "/tubi.jpg", "provider_id": 73, "provider_name": "Tubi TV", "display_priority": 5},
+          {"logo_path": "/pluto.jpg", "provider_id": 300, "provider_name": "Pluto TV", "display_priority": 9},
+          {"logo_path": "/roku.jpg", "provider_id": 207, "provider_name": "The Roku Channel", "display_priority": 7}
+        ],
+        "buy": [
+          {"logo_path": "/apple.jpg", "provider_id": 2, "provider_name": "Apple TV", "display_priority": 4}
+        ]
+      },
+      "GB": {
+        "link": "https://www.themoviedb.org/movie/10331-night-of-the-living-dead/watch?locale=GB",
+        "ads": [
+          {"logo_path": "/tubi.jpg", "provider_id": 73, "provider_name": "Tubi TV", "display_priority": 3}
+        ]
+      },
+      "DE": {
+        "link": "https://www.themoviedb.org/movie/10331-night-of-the-living-dead/watch?locale=DE",
+        "free": [
+          {"logo_path": "/arte.jpg", "provider_id": 234, "provider_name": "Arte", "display_priority": 1}
+        ]
+      }
+    }
+  }
+}
