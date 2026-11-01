@@ -94,6 +94,10 @@ func TestMemoryWatchdogStopsHugeAllocations(t *testing.T) {
 				t.Errorf("stopped after %s", d)
 			}
 			if rt != nil {
+				// Closed as the call is told to stop, or a moment after.
+				for i := 0; i < 100 && !rt.closed.Load(); i++ {
+					time.Sleep(10 * time.Millisecond)
+				}
 				if !rt.closed.Load() {
 					t.Error("the runtime wasn't closed")
 				}

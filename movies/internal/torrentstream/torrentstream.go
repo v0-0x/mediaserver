@@ -275,19 +275,57 @@ func (e *Engine) dropLocked(s *session) {
 		}
 	}
 	s.t.drop()
-	removeDir(filepath.Join(e.dir, s.t.infoHash()))
 	log.Printf("torrent stream: done with %s", s.name)
+	// The last one: no client (nor its port, nor seeding), which lets go
+	// of the files it had open (on Windows those can't be removed before).
+	if len(e.sessions) == 0 {
+		e.closeClientLocked()
+		return
+	}
+	hash := s.t.infoHash()
+	removeDir(filepath.Join(e.dir, hash), func() bool {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		for _, o := range e.sessions {
+			if o.t.infoHash() == hash {
+				return false // played again meanwhile
+			}
+		}
+		return true
+	})
+}
+
+// closeClientLocked stops the client and its janitor, and removes what's
+// in the cache: nothing is played any more.
+func (e *Engine) closeClientLocked() {
+	if e.stop != nil {
+		close(e.stop)
+		e.stop = nil
+	}
+	if e.client != nil {
+		e.client.close()
+		e.client = nil
+	}
+	removeDir(e.dir, func() bool {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		return e.client == nil // nothing played again meanwhile
+	})
 }
 
 // removeDir removes a dropped torrent's files: again for a while when they
-// can't be yet (on Windows, a file the client hasn't closed yet can't be).
-func removeDir(dir string) {
+// can't be yet (on Windows, a file the client hasn't closed yet can't be),
+// as long as unused says they still are.
+func removeDir(dir string, unused func() bool) {
 	if os.RemoveAll(dir) == nil {
 		return
 	}
 	go func() {
 		for range 30 {
 			time.Sleep(time.Second)
+			if !unused() {
+				return
+			}
 			if os.RemoveAll(dir) == nil {
 				return
 			}
@@ -424,15 +462,7 @@ func (e *Engine) Close() {
 		s.t.drop()
 	}
 	e.sessions = map[string]*session{}
-	if e.stop != nil {
-		close(e.stop)
-		e.stop = nil
-	}
-	if e.client != nil {
-		e.client.close()
-		e.client = nil
-	}
-	_ = os.RemoveAll(e.dir)
+	e.closeClientLocked()
 }
 
 // start starts the client once, and its janitor, which drops the torrents
@@ -472,16 +502,12 @@ func (e *Engine) janitor(stop chan struct{}) {
 				e.dropLocked(s)
 			}
 		}
-		// Nothing played: no client (nor its port, nor seeding).
-		if len(e.sessions) == 0 && e.client != nil {
-			e.client.close()
-			e.client = nil
-			close(e.stop)
-			e.stop = nil
-			e.mu.Unlock()
+		// Nothing played (the last one dropped closed the client).
+		done := e.client == nil
+		e.mu.Unlock()
+		if done {
 			return
 		}
-		e.mu.Unlock()
 	}
 }
 

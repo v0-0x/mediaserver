@@ -22,7 +22,7 @@ import (
 
 // ProtocolVersion is the KumoBox version this side's code comes from: what it
 // tells the KumoBox apps it is, not mediaserver's version.
-const ProtocolVersion = "2.0.6"
+const ProtocolVersion = "2.0.7"
 
 // DefaultPort is where the KumoBox apps and the movies pages reach this side
 // (KumoBox's own port).
