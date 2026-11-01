@@ -200,10 +200,11 @@ type hubOverview struct {
 	// is ("" none: ffmpeg isn't there).
 	Encoder   string `json:"encoder"`
 	Downloads int    `json:"downloads"` // being downloaded onto the hub
-	// Server: mediaserver's version, and where its movies side's pages are
-	// (0: none).
+	// Server: mediaserver's version, where its movies side's pages are
+	// and where its music side answers (0: none).
 	Server     string `json:"server,omitempty"`
 	MoviesPort int    `json:"moviesPort,omitempty"`
+	MusicPort  int    `json:"musicPort,omitempty"`
 }
 
 type hubPlaying struct {
@@ -288,7 +289,7 @@ func (s *Server) hubOverview(r *http.Request) (any, error) {
 		Streams: s.app.Streams.Live(), Recent: s.app.Streams.Recent(), Sent: s.app.Streams.Sent(),
 		Devices: s.app.Share.HubDevices(), Activity: hs.Activity(), Library: lib,
 		Encoder: s.app.Local.Encoder(), Playing: []hubPlaying{}, Accounts: []hubAccount{},
-		Server: s.app.Update.Version, MoviesPort: s.MoviesPort,
+		Server: s.app.Update.Version, MoviesPort: s.MoviesPort, MusicPort: s.MusicPort,
 	}
 	for _, it := range s.app.Downloads.List() {
 		if it.Status == "downloading" || it.Status == "queued" {

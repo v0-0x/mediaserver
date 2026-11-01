@@ -7,11 +7,12 @@ computer that stays on. It is one program with a side for each app:
 |---|---|---|---|---|
 | **Anime** | the Aniko apps | 43211 (discovery 43212/udp) | `anime/` | Aniko's server, as Aniko Hub |
 | **Movies & TV** | the KumoBox apps | 43311 (discovery 43312/udp) | `movies/` | KumoBox's server |
+| **Music** | the Utako apps | 43411 (discovery 43412/udp) | `music/` | written here, for Utako |
 
 The sides are separate: each has its own library, devices, logins and data
-folder (`~/.local/share/mediaserver/anime` and `…/movies`), and each app
-only finds and talks to its own side. They share the program, its service,
-its updates (one release for both) and the dashboard's password.
+folder (`~/.local/share/mediaserver/anime`, `…/movies` and `…/music`), and
+each app only finds and talks to its own side. They share the program, its
+service, its updates (one release for all) and the dashboard's password.
 
 **Using it:** [packaging/README.md](packaging/README.md) (install, moving
 from Aniko Hub, setting up each side, updates, troubleshooting).
@@ -19,7 +20,7 @@ from Aniko Hub, setting up each side, updates, troubleshooting).
 ## How it fits together
 
 ```
-cmd/mediaserver      the program: starts both sides, one log, data folders,
+cmd/mediaserver      the program: starts the sides, one log, data folders,
                      moves Aniko Hub's data, restarts after an update
 anime/engine         starts the anime side (Aniko's app as a hub: no player,
                      the dashboard, mediaserver's updater)
@@ -27,6 +28,11 @@ anime/internal/...   Aniko's server packages
 movies/engine        starts the movies side (KumoBox's app: no player,
                      sharing always on, updated with mediaserver)
 movies/internal/...  KumoBox's server packages
+music/engine         starts the music side (Utako's server: no player, a
+                     library, devices, uploads, settings kept for them)
+music/internal/...   its packages: peer (keys, signed requests, beacon),
+                     library (scan, tags, ffprobe lengths, covers), api
+                     (the devices' port; the dashboard's Handler), upload
 web/anime            Aniko's web UI: on a server it shows the dashboard
 web/movies           KumoBox's web UI: the movies side's pages
 packaging/           install.sh, the systemd service, the users' README
@@ -37,13 +43,18 @@ packaging/           install.sh, the systemd service, the users' README
   tells them it's Aniko `anime/engine.ProtocolVersion`. The movies side is a
   KumoBox to the KumoBox apps (it says it runs on `mediaserver`, so they
   don't offer to share with it or to update it), version
-  `movies/engine.ProtocolVersion`.
+  `movies/engine.ProtocolVersion`. The music side speaks the same peer
+  protocol (`music/internal/peer`, checked against the vectors Utako's own
+  copy is checked against) and answers what Utako asks: Utako's
+  `docs/media-server.md`.
 - **One dashboard.** The anime side's web UI (`web/anime`, `pages/hub`)
-  is mediaserver's dashboard, with a slider: Anime, Movies, TV. The Movies
-  and TV pages (`pages/hub/media`) ask the movies side through the anime
-  side, at `/api/movies/...` (`anime/internal/api/movies.go`), passed on in
-  the program as the movies side's own computer's, for the signed-in owner
-  only.
+  is mediaserver's dashboard, with a slider: Anime, Movies, TV, Music. The
+  Movies and TV pages (`pages/hub/media`) ask the movies side through the
+  anime side, at `/api/movies/...`, and the Music pages (`pages/hub/music`)
+  the music side, at `/api/music/...` (`anime/internal/api/sides.go`),
+  passed on in the program as from the side's own computer, for the
+  signed-in owner only. The music side's dashboard API is only ever there,
+  never on its own port.
 - **Signing in.** The dashboard's sign-in (the anime side's `kumo_session`
   cookie) also opens KumoBox's own pages on port 43311: cookies go to every
   port of a host, and the movies side asks the anime side whether a request
@@ -54,10 +65,10 @@ packaging/           install.sh, the systemd service, the users' README
   releases of this repository, downloads
   `mediaserver-<version>-linux-<arch>.tar.gz`, swaps the program and the
   process starts itself again. The movies side's updater is off
-  (`update.Checker.Managed`).
-- **Uploads.** Both sides take files and folders a piece at a time
-  (`*/internal/upload`): from their own pages (`POST /api/upload`, for the
-  signed-in browser) and from the apps they let download there
+  (`update.Checker.Managed`); the music side has none.
+- **Uploads.** Every side takes files and folders a piece at a time
+  (`*/internal/upload`): from the dashboard (`POST /api/upload`, for the
+  signed-in browser) and from the apps they let download or upload there
   (`/api/peer/upload`, signed like every request between them).
 
 ## Building
@@ -70,12 +81,22 @@ make run        # runs it with its data in ./dev-data
 
 Go (see `go.mod`) and Node.js are needed. The program is static
 (`CGO_ENABLED=0`), so `GOOS=linux GOARCH=arm64 make server` builds the Pi's.
+The music side's song lengths come from ffprobe (with ffmpeg) when it's on
+the PATH; its tests that need it skip without it.
 
 ## Releases
 
 `.github/workflows/release.yml` tests every push, and on the default branch
 publishes the GitHub Release `server-v1.0.<commits>`: a beta, unless the
 commit's message says `[stable]`.
+
+## The music side
+
+`music/` isn't a copy of an app's server: Utako plays everything itself, so
+its server side was written here. When Utako asks something new of it,
+change both together; `docs/media-server.md` in Utako's repository says
+what they say to each other, and Utako's opt-in `real_server` test runs it
+all against a running mediaserver.
 
 ## Bringing in a newer Aniko or KumoBox
 

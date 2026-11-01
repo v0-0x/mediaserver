@@ -49,9 +49,12 @@ type Server struct {
 	AppOnly bool
 	// MoviesPort is where mediaserver's movies side answers, for the
 	// dashboard's link to it; movies its API, which the dashboard reaches
-	// at /api/movies/... (movies.go, SetMovies).
+	// at /api/movies/... (sides.go, SetMovies). MusicPort and music: the
+	// music side's, at /api/music/... (SetMusic).
 	MoviesPort int
 	movies     atomic.Pointer[http.Handler]
+	MusicPort  int
+	music      atomic.Pointer[http.Handler]
 
 	// Files sent into the library (upload.go).
 	uploadOnce sync.Once

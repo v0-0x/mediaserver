@@ -1,8 +1,9 @@
 // Command mediaserver is the home server for v0-0x's apps: one program with a
 // side for each. The anime side is Aniko's server, for the Aniko apps (port
 // 43211, with the dashboard); the movies side is KumoBox's, for the KumoBox
-// apps (port 43311). Each keeps its own data, library, devices and logins:
-// they share the program, its updates, and the dashboard's sign-in.
+// apps (port 43311); the music side is Utako's, for the Utako apps (port
+// 43411). Each keeps its own data, library, devices and logins: they share
+// the program, its updates, and the dashboard's sign-in.
 package main
 
 import (
@@ -19,6 +20,7 @@ import (
 
 	anime "github.com/v0-0x/mediaserver/anime/engine"
 	movies "github.com/v0-0x/mediaserver/movies/engine"
+	music "github.com/v0-0x/mediaserver/music/engine"
 )
 
 // Set when building (-ldflags "-X main.version=… -X main.commit=…"):
@@ -34,7 +36,7 @@ const codeRestart = 75
 
 func main() {
 	var (
-		dataDir       = flag.String("data-dir", defaultDataDir(), "where mediaserver keeps its data (anime/ and movies/ in it)")
+		dataDir       = flag.String("data-dir", defaultDataDir(), "where mediaserver keeps its data (anime/, movies/ and music/ in it)")
 		showVersion   = flag.Bool("version", false, "print the version")
 		setupCode     = flag.Bool("setup-code", false, "print the setup code (to set the dashboard's password) and stop")
 		resetPassword = flag.Bool("reset-password", false, "remove the dashboard's password (set a new one with the setup code) and stop")
@@ -55,6 +57,7 @@ func main() {
 	}
 	animeDir := moveOldHub(root, old)
 	moviesDir := filepath.Join(root, "movies")
+	musicDir := filepath.Join(root, "music")
 	switch {
 	case *setupCode:
 		code, err := anime.SetupCode(animeDir)
@@ -83,7 +86,7 @@ func main() {
 	}
 	limitMemory()
 
-	a, err := anime.Start(anime.Options{DataDir: animeDir, Version: version, Commit: commit, MoviesPort: movies.DefaultPort})
+	a, err := anime.Start(anime.Options{DataDir: animeDir, Version: version, Commit: commit, MoviesPort: movies.DefaultPort, MusicPort: music.DefaultPort})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,7 +99,15 @@ func main() {
 	a.SetMovies(m.Handler())
 	// One log: each side's Logs page shows all of it.
 	log.SetOutput(teeLog{a.Log(), m.Keep})
-	log.Printf("mediaserver %s ready: anime (Aniko) at port %d, movies and shows (KumoBox) at port %d — data: %s", version, a.Port(), m.Port(), root)
+	u, err := music.Start(music.Options{DataDir: musicDir, Version: version, DashboardPort: a.Port()})
+	if err != nil {
+		m.Shutdown()
+		a.Shutdown()
+		log.Fatal(err)
+	}
+	// And its Music pages the music side.
+	a.SetMusic(u.Handler())
+	log.Printf("mediaserver %s ready: anime (Aniko) at port %d, movies and shows (KumoBox) at port %d, music (Utako) at port %d — data: %s", version, a.Port(), m.Port(), u.Port(), root)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -108,6 +119,7 @@ func main() {
 		exit = anime.Exit{Restart: x.Restart, Code: x.Code, Before: x.Before}
 	}
 	log.Printf("shutting down…")
+	u.Shutdown()
 	m.Shutdown()
 	a.Shutdown()
 	end(exit)

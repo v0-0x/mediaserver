@@ -38,8 +38,9 @@ type Options struct {
 	// Version and Commit are mediaserver's: its updater compares them with
 	// mediaserver's releases.
 	Version, Commit string
-	// MoviesPort is where the movies side answers, for the dashboard.
-	MoviesPort int
+	// MoviesPort and MusicPort are where the movies and music sides
+	// answer, for the dashboard.
+	MoviesPort, MusicPort int
 }
 
 // Engine is the running anime side.
@@ -72,7 +73,7 @@ func Start(o Options) (*Engine, error) {
 	a.Update.Version, a.Update.Commit = o.Version, o.Commit
 	srv := api.New(a, webui.FS())
 	srv.ForceWebUI = true
-	srv.MoviesPort = o.MoviesPort
+	srv.MoviesPort, srv.MusicPort = o.MoviesPort, o.MusicPort
 	if err := srv.Start(); err != nil {
 		a.Shutdown()
 		return nil, fmt.Errorf("could not start the anime side: %v (is mediaserver, or Aniko Hub, already running?)", err)
@@ -90,6 +91,10 @@ func Start(o Options) (*Engine, error) {
 // SetMovies gives the dashboard the movies side's API, which its movies
 // and TV pages ask through the anime side.
 func (e *Engine) SetMovies(h http.Handler) { e.srv.SetMovies(h) }
+
+// SetMusic gives the dashboard the music side's API, which its Music pages
+// ask through the anime side.
+func (e *Engine) SetMusic(h http.Handler) { e.srv.SetMusic(h) }
 
 // Port is where the anime side answers.
 func (e *Engine) Port() int { return e.app.Settings.Get().Server.Port }

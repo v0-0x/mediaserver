@@ -28,7 +28,7 @@ func (s *Server) routes() {
 	s.peerRoutes()
 	s.uploadRoutes()
 	s.hubRoutes()
-	s.moviesRoute()
+	s.sideRoutes()
 	s.parentalRoutes()
 	s.noteRoutes()
 	s.cleanupRoutes()

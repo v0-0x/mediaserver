@@ -235,6 +235,7 @@ echo
 say "mediaserver $version is installed."
 echo "  Dashboard:   http://$host:43211  (or this computer's address, port 43211)"
 echo "  Movies & TV: http://$host:43311  (after signing in to the dashboard)"
+echo "  Music:       on the dashboard (the Utako apps find it at port 43411)"
 code=$("$bin" --data-dir "$data" --setup-code || true)
 if [[ $code == "Setup code: "* ]]; then
   echo "  ${code}  (to set the dashboard's password; ~/.local/bin/mediaserver --setup-code shows it again)"

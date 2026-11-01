@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { Clapperboard, Gauge, KeyRound, Library, LogOut, ScrollText, Settings as SettingsIcon, Sparkles, Tv, Users, Wifi } from "lucide-react"
+import { Clapperboard, Gauge, KeyRound, Library, LogOut, Music2, ScrollText, Settings as SettingsIcon, Sparkles, Tv, Users, Wifi } from "lucide-react"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { Toaster } from "sonner"
 import { AnikoLogo } from "@/components/Sidebar"
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils"
 import type { Status } from "@/lib/types"
 import { useMSharing } from "./media/data"
 import type { MediaTab } from "./media/MediaPages"
+import { useUDevices } from "./music/data"
+import type { MusicTab } from "./music/MusicPages"
 import { span, useHubOverview } from "./parts"
 import Overview from "./Overview"
 
@@ -18,7 +20,8 @@ import Overview from "./Overview"
 // top picks what it's about: Anime (the anime side, Aniko's server: what it
 // streams to whom, its devices and AniList logins, its library, the
 // computer it runs on), Movies or TV (the movies side, KumoBox's server,
-// asked through this one: media/).
+// asked through this one: media/), Music (the music side, Utako's server,
+// asked through this one too: music/).
 
 const Devices = lazy(() => import("./Devices"))
 const LibraryPage = lazy(() => import("./Library"))
@@ -29,14 +32,18 @@ const MediaOverview = lazy(() => import("./media/MediaPages").then(m => ({ defau
 const MediaDevices = lazy(() => import("./media/MediaPages").then(m => ({ default: m.MediaDevices })))
 const MediaLibrary = lazy(() => import("./media/MediaPages").then(m => ({ default: m.MediaLibrary })))
 const MediaSettings = lazy(() => import("./media/MediaPages").then(m => ({ default: m.MediaSettings })))
+const MusicOverview = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicOverview })))
+const MusicDevices = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicDevices })))
+const MusicLibrary = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicLibrary })))
 
 export type HubTab = "overview" | "devices" | "library" | "accounts" | "activity" | "settings"
 const TABS: HubTab[] = ["overview", "devices", "library", "accounts", "activity", "settings"]
 const MEDIA_TABS: MediaTab[] = ["overview", "devices", "library", "settings"]
+const MUSIC_TABS: MusicTab[] = ["overview", "devices", "library"]
 
-// What the dashboard is about: the anime side, or the movies side's movies
-// or shows.
-export type Side = "anime" | "movies" | "tv"
+// What the dashboard is about: the anime side, the movies side's movies or
+// shows, or the music side.
+export type Side = "anime" | "movies" | "tv" | "music"
 type Route = { side: Side; tab: string }
 
 // The side and tab in the address (#movies/library; the anime side's tabs
@@ -44,6 +51,7 @@ type Route = { side: Side; tab: string }
 function routeFromHash(): Route {
     const [a, b] = window.location.hash.slice(1).split("/")
     if (a === "movies" || a === "tv") return { side: a, tab: MEDIA_TABS.includes(b as MediaTab) ? b : "overview" }
+    if (a === "music") return { side: a, tab: MUSIC_TABS.includes(b as MusicTab) ? b : "overview" }
     if (a === "anime") return { side: "anime", tab: TABS.includes(b as HubTab) ? b : "overview" }
     return { side: "anime", tab: TABS.includes(a as HubTab) ? a : "overview" }
 }
@@ -92,17 +100,20 @@ function Dashboard({ status }: { status: Status }) {
     const { side, tab } = route
     const go = (t: HubTab) => show({ side: "anime", tab: t })
     const goMedia = (t: MediaTab) => show({ side, tab: t })
+    const goMusic = (t: MusicTab) => show({ side: "music", tab: t })
     // Another side: the same tab when it has one.
     const pickSide = (next: Side) => {
         if (next === side) return
-        const keep = next === "anime" ? TABS.includes(tab as HubTab) : MEDIA_TABS.includes(tab as MediaTab)
-        show({ side: next, tab: keep ? tab : "overview" })
+        const tabs: string[] = next === "anime" ? TABS : next === "music" ? MUSIC_TABS : MEDIA_TABS
+        show({ side: next, tab: tabs.includes(tab) ? tab : "overview" })
     }
     const { data: o, error } = useHubOverview()
     const { data: sharing } = useMSharing()
     const waiting = o?.devices.filter(d => d.online && !d.allowed).length ?? 0
     const mPeers = sharing?.peers ?? []
     const mWaiting = mPeers.filter(p => p.online && !p.allowed && !p.declined).length
+    const { data: uDevices } = useUDevices()
+    const uWaiting = uDevices?.filter(d => d.online && !d.allowed).length ?? 0
     const sys = o?.system
     // Signed out from the server (its password changed elsewhere): the
     // overview's 401 brings back the sign-in (lib/api).
@@ -124,7 +135,7 @@ function Dashboard({ status }: { status: Status }) {
                         {side === "anime" ? (
                             <AnikoLogo className="size-9 shrink-0" />
                         ) : (
-                            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-white/[0.06] text-fg [&>svg]:size-5">{side === "tv" ? <Tv /> : <Clapperboard />}</span>
+                            <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-white/[0.06] text-fg [&>svg]:size-5">{side === "tv" ? <Tv /> : side === "music" ? <Music2 /> : <Clapperboard />}</span>
                         )}
                         <div className="min-w-0 flex-1">
                             <h1 className="flex items-center gap-2 text-[17px] leading-tight font-semibold">
@@ -156,6 +167,18 @@ function Dashboard({ status }: { status: Status }) {
                                     { value: "accounts", label: "AniList", icon: <Users />, count: o?.accounts.length },
                                     { value: "activity", label: "Audit log", icon: <ScrollText /> },
                                     { value: "settings", label: "Settings", icon: <SettingsIcon /> },
+                                ]}
+                            />
+                        ) : side === "music" ? (
+                            <Tabs
+                                variant="underline"
+                                className="mt-3 border-b-0"
+                                value={tab as MusicTab}
+                                onChange={goMusic}
+                                tabs={[
+                                    { value: "overview", label: "Overview", icon: <Gauge /> },
+                                    { value: "devices", label: "Devices", icon: <Wifi />, count: uWaiting ? `${uWaiting} new` : uDevices ? uDevices.filter(d => d.allowed).length : undefined },
+                                    { value: "library", label: "Library", icon: <Library /> },
                                 ]}
                             />
                         ) : (
@@ -200,6 +223,12 @@ function Dashboard({ status }: { status: Status }) {
                                         {tab === "accounts" && <Accounts o={o} />}
                                         {tab === "activity" && <AuditLogPage o={o} />}
                                         {tab === "settings" && <HubSettings o={o} status={status} />}
+                                    </>
+                                ) : side === "music" ? (
+                                    <>
+                                        {tab === "overview" && <MusicOverview go={goMusic} />}
+                                        {tab === "devices" && <MusicDevices />}
+                                        {tab === "library" && <MusicLibrary />}
                                     </>
                                 ) : (
                                     <>
@@ -284,22 +313,24 @@ function Setup() {
 }
 
 // What the dashboard is about, a slider: Anime (the anime side, for the
-// Aniko apps), Movies or TV (the movies side, for the KumoBox apps).
+// Aniko apps), Movies or TV (the movies side, for the KumoBox apps), Music
+// (the music side, for the Utako apps).
 const SIDES: { value: Side; label: string; icon: React.ReactNode }[] = [
     { value: "anime", label: "Anime", icon: <Sparkles /> },
     { value: "movies", label: "Movies", icon: <Clapperboard /> },
     { value: "tv", label: "TV", icon: <Tv /> },
+    { value: "music", label: "Music", icon: <Music2 /> },
 ]
 
 function SideSlider({ side, onPick }: { side: Side; onPick: (s: Side) => void }) {
     const at = SIDES.findIndex(s => s.value === side)
     return (
-        <div role="tablist" aria-label="What the dashboard shows" className="relative grid shrink-0 grid-cols-3 rounded-[10px] bg-white/[0.05] p-0.5 ring-1 ring-white/[0.06]">
+        <div role="tablist" aria-label="What the dashboard shows" className="relative grid shrink-0 grid-cols-4 rounded-[10px] bg-white/[0.05] p-0.5 ring-1 ring-white/[0.06]">
             {/* The thumb, sliding under the side shown. */}
             <span
                 aria-hidden
                 className="absolute inset-y-0.5 left-0.5 rounded-lg bg-white/[0.1] shadow-[0_1px_0_rgb(255_255_255/0.06)_inset] transition-transform duration-200 ease-out"
-                style={{ width: "calc((100% - 4px) / 3)", transform: `translateX(${at * 100}%)` }}
+                style={{ width: `calc((100% - 4px) / ${SIDES.length})`, transform: `translateX(${at * 100}%)` }}
             />
             {SIDES.map(s => (
                 <button
