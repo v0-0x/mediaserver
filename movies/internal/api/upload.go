@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -161,7 +162,16 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 	}
 	var st fileup.Result
 	if r.Method == http.MethodPost {
-		st, err = s.receiver().Receive(dirs[i], q.Get("path"), offset, total, r.Body)
+		// The whole piece first, whatever the answer: one refused unread
+		// (it doesn't follow on, say) breaks the connection, and the
+		// browser only sees a network error, not where to carry on from.
+		var piece []byte
+		piece, err = io.ReadAll(io.LimitReader(r.Body, fileup.Chunk+1))
+		if err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "the piece didn't arrive whole: " + err.Error()})
+			return
+		}
+		st, err = s.receiver().Receive(dirs[i], q.Get("path"), offset, total, bytes.NewReader(piece))
 		if err == nil && st.Done {
 			who := from
 			if who == "" {

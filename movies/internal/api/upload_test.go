@@ -3,13 +3,16 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/v0-0x/mediaserver/movies/internal/share"
+	fileup "github.com/v0-0x/mediaserver/movies/internal/upload"
 )
 
 // A KumoBox sends files to one that takes its downloads, a piece at a time,
@@ -123,4 +126,62 @@ func TestUploadHere(t *testing.T) {
 	if b, err := os.ReadFile(filepath.Join(lib, "Show", "S01E01.mkv")); err != nil || string(b) != "hello" {
 		t.Fatalf("the file: %q %v", b, err)
 	}
+}
+
+// A piece sent again (its answer was lost) is answered with where the file
+// stands, over the same kind of connection a browser uses: refused unread,
+// the browser saw only a network error and couldn't carry on.
+func TestUploadPieceSentAgain(t *testing.T) {
+	s := newTestServer(t)
+	lib := t.TempDir()
+	cfg := s.app.Settings.Get()
+	cfg.Library.Dir = lib
+	if _, err := s.app.Settings.Save(cfg); err != nil {
+		t.Fatal(err)
+	}
+	s.Owner = func(*http.Request) bool { return false }
+	srv := httptest.NewServer(s.middleware(s.mux))
+	defer srv.Close()
+	data := bytes.Repeat([]byte("x"), fileup.Chunk+1000)
+	post := func(offset, end int) (int, map[string]any) {
+		body := &countingReader{r: bytes.NewReader(data[offset:end])}
+		req, _ := http.NewRequest("POST", srv.URL+"/api/upload?"+uploadQuery("", 0, "Film/Film.mkv", int64(offset), int64(len(data))), body)
+		req.ContentLength = int64(end - offset)
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.Header.Set("Sec-Fetch-Site", "same-origin")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("the connection broke: %v", err)
+		}
+		defer resp.Body.Close()
+		var out map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&out)
+		// Answered after the whole piece was taken (a browser gives up on
+		// an answer that comes before).
+		if body.n != int64(end-offset) {
+			t.Fatalf("answered %d after %d of %d bytes", resp.StatusCode, body.n, end-offset)
+		}
+		return resp.StatusCode, out
+	}
+	if code, out := post(0, fileup.Chunk); code != http.StatusOK {
+		t.Fatalf("first piece: %d %v", code, out)
+	}
+	code, out := post(0, fileup.Chunk)
+	if code != http.StatusConflict || out["have"] != float64(fileup.Chunk) {
+		t.Fatalf("the piece again: %d %v", code, out)
+	}
+	if code, out := post(fileup.Chunk, len(data)); code != http.StatusOK || out["done"] != true {
+		t.Fatalf("the rest: %d %v", code, out)
+	}
+}
+
+type countingReader struct {
+	r io.Reader
+	n int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.n += int64(n)
+	return n, err
 }

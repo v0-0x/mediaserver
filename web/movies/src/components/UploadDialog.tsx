@@ -93,23 +93,28 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
     const failed = items.filter(x => x.state === "failed").length
 
     // One file: where it stands on the server, then the rest, a piece at a
-    // time. Network trouble: the piece again, a few times.
+    // time. Network trouble: where it stands again (the piece may have
+    // arrived, its answer not), then on from there, a few times.
     const sendOne = async (t: Target, f: number, chunk: number, it: Item) => {
         update(it.key, { state: "sending", error: undefined })
         const size = it.file.size
-        let at = (await api.get<Answer>(`/api/upload?${query(t, f, { path: it.path, total: size })}`)).have
-        if (at >= size && size > 0) {
-            update(it.key, { state: "there", sent: size })
-            return
-        }
+        const where = async () => (await api.get<Answer>(`/api/upload?${query(t, f, { path: it.path, total: size })}`)).have
+        const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
+        let at = await where()
         let tries = 0
+        let sending = false // a piece went out: it's not one that was there already
         for (;;) {
+            if (at >= size && size > 0) {
+                update(it.key, { state: sending ? "done" : "there", sent: size })
+                return
+            }
             if (stop.current) {
                 update(it.key, { state: "waiting", sent: at })
                 return
             }
             const end = Math.min(at + chunk, size)
             let res: Response
+            sending = true
             try {
                 res = await fetch(`/api/upload?${query(t, f, { path: it.path, offset: at, total: size })}`, {
                     method: "POST",
@@ -118,8 +123,10 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
                     credentials: "same-origin",
                 })
             } catch (e) {
-                if (++tries > 4) throw e
-                await new Promise(r => setTimeout(r, 1500 * tries))
+                if (++tries > 6) throw e
+                await wait(1500 * tries)
+                at = await where().catch(() => at)
+                update(it.key, { sent: at })
                 continue
             }
             const data = await res.json().catch(() => null)
@@ -138,8 +145,11 @@ export function UploadDialog({ open, onOpenChange, target: wanted }: { open: boo
                 at = data.have
                 continue
             }
-            if ((res.status >= 500 && res.status !== 507) && ++tries <= 4) {
-                await new Promise(r => setTimeout(r, 1500 * tries))
+            // The server still writing the last piece (it's being sent
+            // already), or trouble on its side: a moment, then again.
+            if ((res.status === 409 || (res.status >= 500 && res.status !== 507)) && ++tries <= 6) {
+                await wait(2000 * tries)
+                at = await where().catch(() => at)
                 continue
             }
             throw new ApiError(data?.error || res.statusText, res.status, data)
