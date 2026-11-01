@@ -25,6 +25,7 @@ import {
     PictureInPicture2,
     X,
 } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 import { forwardRef, memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "@/lib/toast"
 import { api, ApiError, qs } from "@/lib/api"
@@ -35,9 +36,9 @@ import { useSettings, useStatus } from "@/lib/queries"
 import { skipAt, skipName, skipOn, skipRun, isSkippable } from "@/lib/skips"
 import { playerStore, useStore, type PlayerRequest } from "@/lib/store"
 import { formatDelay, setSubDelay, subDelay, subLine, subStyleStore, subStyleVars } from "@/lib/subtitles"
-import type { EntryView, EpisodeView, PlayResult, Probe, Settings, SkipInterval, StreamSource, StreamSubtitle, TrackPrefs } from "@/lib/types"
+import type { EntryView, EpisodeView, PlayResult, Probe, Settings, SkipInterval, StreamSource, StreamSubtitle, TorrentStreamStatus, TrackPrefs } from "@/lib/types"
 import { android, androidApp, move, tv } from "@/lib/tv"
-import { cn, copyText, formatDuration, img, readLocal } from "@/lib/utils"
+import { cn, copyText, formatBytes, formatDuration, img, readLocal } from "@/lib/utils"
 import { parseVTT, type Cue } from "@/lib/vtt"
 import { Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparator, DropdownTrigger } from "../ui"
 
@@ -1643,7 +1644,10 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
 
             {(loading || buffering || !started) && !error && (
                 <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <Loader2 className={cn("animate-spin text-white/80", mini ? "size-8" : "size-12")} />
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className={cn("animate-spin text-white/80", mini ? "size-8" : "size-12")} />
+                        {!mini && req.kind === "stream" && sources[sourceIdx]?.torrent && <TorrentProgress id={sources[sourceIdx].torrent!} />}
+                    </div>
                 </div>
             )}
             {error && (
@@ -2345,4 +2349,22 @@ function redactLinks(text: string) {
         })
         .replace(/(\/api\/[^\s?#"'<>]*)[?#][^\s"'<>]*/g, "$1")
         .replace(/\bremote:[\da-f]{8,}/gi, "remote:…")
+}
+
+// A torrent playing as it downloads, while the player waits for it: its
+// peers, how fast it comes and how much of the file is here.
+function TorrentProgress({ id }: { id: string }) {
+    const { data } = useQuery({
+        queryKey: ["torrentstream", id],
+        queryFn: () => api.get<TorrentStreamStatus>(`/api/torrentstream/${encodeURIComponent(id)}`),
+        refetchInterval: 1500,
+        retry: false,
+    })
+    if (!data) return <p className="text-sm text-white/70">Connecting to the torrent's peers…</p>
+    const pct = data.size ? Math.floor((data.done / data.size) * 100) : 0
+    return (
+        <p className="rounded-full bg-black/50 px-3 py-1 text-[13px] text-white/85 tabular-nums">
+            Torrent · {data.peers} {data.peers === 1 ? "peer" : "peers"} · {formatBytes(data.speed)}/s · {pct}% here
+        </p>
+    )
 }

@@ -654,7 +654,12 @@ export type StreamSource = {
     remote?: string
     // The video's file name, when the provider gives it.
     filename?: string
+    // A torrent playing as it downloads (/api/torrentstream/<id>).
+    torrent?: string
 }
+
+// How a torrent playing as it downloads is doing (GET /api/torrentstream/{id}).
+export type TorrentStreamStatus = { id: string; name: string; size: number; done: number; peers: number; seeds: number; speed: number }
 
 // A subtitle file of a stream, as WebVTT through the proxy (url) and as
 // the provider links to it (original). addon: from a subtitle addon (GET

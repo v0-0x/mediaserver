@@ -6,6 +6,16 @@ export type Release = { id: number; title: string; changes: Change[] }
 
 export const RELEASES: Release[] = [
     {
+        id: 4,
+        title: "Stream torrents",
+        changes: [
+            {
+                title: "Play a torrent as it downloads",
+                text: "A torrent among a movie's or an episode's sources, or a result of its Torrents tab, now has Stream: it plays in a few seconds, the part being watched first, and seeking works. Movies and shows browsers can't play as they are (Matroska, HEVC...) are converted as they play, and mpv plays them too. What it downloads is only kept while it's played. Download still sends a torrent to your torrent client, into the library.",
+            },
+        ],
+    },
+    {
         id: 3,
         title: "Upload to your server",
         changes: [

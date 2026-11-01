@@ -4,6 +4,7 @@ import { api, desktop } from "./api"
 import { isShow } from "./ids"
 import { useStatus } from "./queries"
 import { playerStore } from "./store"
+import { tv } from "./tv"
 import type { PlayResult, ProviderStream } from "./types"
 import { safeUrl } from "./utils"
 
@@ -65,9 +66,10 @@ export function usePlay() {
         }
     }
 
-    // Plays a provider's stream: a direct link in the in-app player or mpv,
-    // a torrent goes to the torrent client, a YouTube video or a web page
-    // opens in the browser. Without a stream, the best direct link of
+    // Plays a provider's stream: a direct link, or a torrent as it
+    // downloads (on a TV, which can't: it goes to the torrent client), in
+    // the in-app player or mpv; a YouTube video or a web page opens in the
+    // browser. Without a stream, the best direct link of
     // provider ("" for any) plays.
     const playStream = async (mediaId: number, episode: number, opts: { stream?: ProviderStream; provider?: string; player?: "mpv" | "builtin"; start?: number } = {}) => {
         const s = opts.stream
@@ -77,7 +79,7 @@ export function usePlay() {
             openExternal(streamPage(s))
             return
         }
-        if (s?.kind === "torrent") return sendTorrent(mediaId, episode, s)
+        if (s?.kind === "torrent" && tv) return sendTorrent(mediaId, episode, s)
         if (streamPlayer(opts.player) === "builtin") {
             playerStore.set({ kind: "stream", mediaId, episode, provider, streamId: s?.id, stream: s, start: opts.start })
             return
@@ -95,7 +97,7 @@ export function usePlay() {
     const sendTorrent = async (mediaId: number, episode: number, s: ProviderStream) => {
         const t = toast.loading("Sending to the torrent client…")
         try {
-            const res = await api.post<PlayResult>("/api/providers/play", { mediaId, episode, streamId: s.id, stream: s })
+            const res = await api.post<PlayResult>("/api/providers/play", { mediaId, episode, streamId: s.id, stream: s, download: true })
             toast.success(res.action === "torrent" && res.savePath ? `Downloading into ${res.savePath}` : "Sent to the torrent client", { id: t })
         } catch (e: any) {
             toast.error(e.message, { id: t })

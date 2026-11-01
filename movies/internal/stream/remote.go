@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os/exec"
 	"strings"
@@ -57,6 +58,10 @@ type remoteSource struct {
 	// then needs its crypto protocol).
 	hls, scanned, crypto bool
 	pick                 string
+	// handler serves the stream on this computer instead of a link (a
+	// torrent being played: RegisterRemoteHandler); key names it.
+	handler http.Handler
+	key     string
 }
 
 var remotes = struct {
@@ -80,17 +85,48 @@ func RegisterRemoteHLS(link string, headers map[string]string) string {
 	return register(link, headers, true, pickPlayable)
 }
 
+// RegisterRemoteHandler names a stream served on this computer (a torrent
+// being played, by key) for the conversion endpoints, like RegisterRemote:
+// ffmpeg reads it from the relay, which has h serve it.
+func RegisterRemoteHandler(key string, h http.Handler) string {
+	remotes.Lock()
+	defer remotes.Unlock()
+	now := time.Now()
+	for id, s := range remotes.m {
+		if s.handler != nil && s.key == key {
+			s.handler, s.used = h, now
+			return RemotePrefix + id
+		}
+	}
+	forgetLocked(now)
+	id := newSessionID()
+	remotes.m[id] = &remoteSource{handler: h, key: key, used: now}
+	return RemotePrefix + id
+}
+
 func register(link string, headers map[string]string, hls bool, pick string) string {
 	remotes.Lock()
 	defer remotes.Unlock()
 	now := time.Now()
 	for id, s := range remotes.m {
-		if s.url == link && s.hls == hls && s.pick == pick && sameHeaders(s.headers, headers) {
+		if s.handler == nil && s.url == link && s.hls == hls && s.pick == pick && sameHeaders(s.headers, headers) {
 			s.used = now
 			return RemotePrefix + id
 		}
 	}
-	// Forget the stale links, then the least recently used ones.
+	forgetLocked(now)
+	h := make(map[string]string, len(headers))
+	for k, v := range headers {
+		h[k] = v
+	}
+	id := newSessionID()
+	remotes.m[id] = &remoteSource{url: link, headers: h, used: now, hls: hls, pick: pick}
+	return RemotePrefix + id
+}
+
+// forgetLocked forgets the stale links, then the least recently used ones,
+// to make room for one.
+func forgetLocked(now time.Time) {
 	for id, s := range remotes.m {
 		if now.Sub(s.used) > remoteKeep {
 			delete(remotes.m, id)
@@ -105,13 +141,6 @@ func register(link string, headers map[string]string, hls bool, pick string) str
 		}
 		delete(remotes.m, oldest)
 	}
-	h := make(map[string]string, len(headers))
-	for k, v := range headers {
-		h[k] = v
-	}
-	id := newSessionID()
-	remotes.m[id] = &remoteSource{url: link, headers: h, used: now, hls: hls, pick: pick}
-	return RemotePrefix + id
 }
 
 func sameHeaders(a, b map[string]string) bool {
@@ -222,6 +251,10 @@ func serveRelay(w http.ResponseWriter, r *http.Request) {
 	src, _, ok := remoteSourceOf(RemotePrefix + id)
 	if !ok {
 		http.NotFound(w, r)
+		return
+	}
+	if src.handler != nil {
+		src.handler.ServeHTTP(w, r)
 		return
 	}
 	if src.hls {
@@ -376,6 +409,9 @@ func Fetch(ctx context.Context, link string, headers map[string]string, rng stri
 
 // fetchRemote requests a stream's link the way the stream proxy does.
 func fetchRemote(ctx context.Context, method string, src *remoteSource, rng string) (*http.Response, error) {
+	if src.handler != nil {
+		return fetchHandler(ctx, method, src.handler, rng)
+	}
 	link := CleanLink(src.url)
 	u, err := url.Parse(link)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
@@ -405,3 +441,26 @@ func fetchRemote(ctx context.Context, method string, src *remoteSource, rng stri
 	}
 	return client.Do(req)
 }
+
+// fetchHandler asks a stream served on this computer (RegisterRemoteHandler)
+// for a byte range of it, as fetchRemote asks a link: a range only (the
+// answer is held in memory).
+func fetchHandler(ctx context.Context, method string, h http.Handler, rng string) (*http.Response, error) {
+	if rng == "" && method != http.MethodHead {
+		return nil, errors.New("a range of it only")
+	}
+	req, err := http.NewRequestWithContext(ctx, method, "http://relay/", nil)
+	if err != nil {
+		return nil, err
+	}
+	if rng != "" {
+		req.Header.Set("Range", rng)
+	}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec.Result(), nil
+}
+
+// RemoteURL is the relay URL a "remote:" path is read from on this
+// computer: mpv plays a torrent being played from it.
+func RemoteURL(path string) (string, error) { return remoteInput(path) }

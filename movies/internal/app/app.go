@@ -36,7 +36,9 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/share"
 	"github.com/v0-0x/mediaserver/movies/internal/stream"
 	"github.com/v0-0x/mediaserver/movies/internal/torrent"
+	"github.com/v0-0x/mediaserver/movies/internal/torrentstream"
 	"github.com/v0-0x/mediaserver/movies/internal/update"
+	"github.com/v0-0x/mediaserver/movies/internal/util"
 )
 
 type App struct {
@@ -52,16 +54,18 @@ type App struct {
 	Player     *player.Manager
 	Downloads  *downloads.Manager
 	Torrents   *torrent.Manager
-	AutoDL     *torrent.AutoDownloader
-	Extensions *extensions.Manager
-	Stream     *stream.Service
-	Local      *stream.Local
-	HLS        *stream.HLS
-	Share      *share.Service
-	Discord    *discord.Client
-	Images     *images.Cache
-	Logs       *LogBuffer
-	Update     *update.Checker
+	// TorrentStream plays torrents as they download (package torrentstream).
+	TorrentStream *torrentstream.Engine
+	AutoDL        *torrent.AutoDownloader
+	Extensions    *extensions.Manager
+	Stream        *stream.Service
+	Local         *stream.Local
+	HLS           *stream.HLS
+	Share         *share.Service
+	Discord       *discord.Client
+	Images        *images.Cache
+	Logs          *LogBuffer
+	Update        *update.Checker
 	// Awake keeps the computer from sleeping while others play its files.
 	Awake *awake.Keeper
 	// Trash holds the files put away from Library tools › Clean up.
@@ -186,8 +190,22 @@ func New(dataDir string) (*App, error) {
 	if err := a.wireProviders(); err != nil {
 		return nil, fmt.Errorf("streaming providers: %w", err)
 	}
+	a.TorrentStream = torrentstream.New(torrentStreamDir(dataDir))
+	a.TorrentStream.Free = func(dir string) (uint64, error) {
+		_, free, err := util.DiskSpace(dir)
+		return free, err
+	}
 	a.wire()
 	return a, nil
+}
+
+// torrentStreamDir holds the torrents being played, in the cache folder
+// (gone when they're done).
+func torrentStreamDir(dataDir string) string {
+	if dir, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(dir, "kumobox", "torrent-stream")
+	}
+	return filepath.Join(dataDir, "torrent-stream")
 }
 
 // hlsDir holds the in-app player's HLS segments: on disk, in the cache
@@ -383,6 +401,7 @@ func (a *App) Shutdown() {
 	// to the other KumoBoxes before it stops.
 	a.Player.Stop()
 	a.Images.Close()
+	a.TorrentStream.Close()
 	a.Share.Stop()
 	a.Awake.Close()
 	a.Update.Stop()

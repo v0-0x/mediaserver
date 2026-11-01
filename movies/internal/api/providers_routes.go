@@ -327,6 +327,9 @@ type providerPlayBody struct {
 	// moment ago: the player does when none of them could be read (links
 	// expire, often within minutes).
 	Refresh bool `json:"refresh"`
+	// Download: a torrent goes to the torrent client, into the library,
+	// instead of playing as it downloads.
+	Download bool `json:"download"`
 }
 
 // providerPlay is POST /api/providers/play. A direct link opens in mpv or
@@ -349,7 +352,10 @@ func (s *Server) providerPlay(r *http.Request) (any, error) {
 	}
 	switch st.Kind {
 	case stream.KindTorrent:
-		return s.sendStreamTorrent(r.Context(), media, episode, st)
+		if body.Download {
+			return s.sendStreamTorrent(r.Context(), media, episode, st)
+		}
+		return s.streamTorrent(r, media, episode, st, body)
 	case stream.KindYouTube:
 		return map[string]any{"action": "external", "url": "https://www.youtube.com/watch?v=" + url.QueryEscape(st.YouTubeID)}, nil
 	case stream.KindExternal:

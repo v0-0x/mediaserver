@@ -27,6 +27,7 @@ import { toast } from "@/lib/toast"
 import { api, qs } from "@/lib/api"
 import { episodeKey, firstEpisode, formatKey, mediaIsShow, MOVIE_EPISODE, nextEpisode, prevEpisode, splitKey } from "@/lib/ids"
 import { type LiveProgress, mergeAnswers, useLiveStreams } from "@/lib/liveStreams"
+import { tv } from "@/lib/tv"
 import { usePlay } from "@/lib/play"
 import { useProviders, useSeason, useStatus } from "@/lib/queries"
 import type { EntryView, ProviderError, ProviderInfo, ProviderStream, Season, StreamsResult } from "@/lib/types"
@@ -401,9 +402,25 @@ function StreamRow({ s, provider, addonSubs, mediaId, episode }: { s: ProviderSt
                                 <Copy className="size-4" />
                             </IconButton>
                         )}
-                        <Button size="sm" variant="white" icon={<Magnet className="size-3.5" />} onClick={() => sendTorrent(mediaId, episode, s)}>
-                            Send to torrent client
-                        </Button>
+                        {tv ? (
+                            <Button size="sm" variant="white" icon={<Magnet className="size-3.5" />} onClick={() => sendTorrent(mediaId, episode, s)}>
+                                Send to torrent client
+                            </Button>
+                        ) : (
+                            <>
+                                <IconButton size="sm" label="Download it (the torrent client, into the library)" onClick={() => sendTorrent(mediaId, episode, s)}>
+                                    <Magnet className="size-4" />
+                                </IconButton>
+                                {!remote && (
+                                    <IconButton size="sm" label="Stream in mpv" onClick={() => playStream(mediaId, episode, { stream: s, player: "mpv" })}>
+                                        <MonitorPlay className="size-4" />
+                                    </IconButton>
+                                )}
+                                <Button size="sm" variant="white" icon={<Play className="size-3.5 fill-current" />} onClick={() => playStream(mediaId, episode, { stream: s, player: "builtin" })}>
+                                    Stream
+                                </Button>
+                            </>
+                        )}
                     </>
                 )}
                 {(s.kind === "youtube" || s.kind === "external") && (

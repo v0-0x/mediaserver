@@ -34,6 +34,7 @@ func (s *Server) routes() {
 	m := s.mux
 	s.peerRoutes()
 	s.uploadRoutes()
+	s.torrentStreamRoutes()
 	s.noteRoutes()
 	s.cleanupRoutes()
 	s.backupRoutes()

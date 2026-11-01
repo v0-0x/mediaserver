@@ -377,7 +377,8 @@ func TestProviderPlay(t *testing.T) {
 		t.Fatalf("youtube: %+v", ext)
 	}
 
-	// A torrent goes to the torrent client, into the library.
+	// A torrent downloaded instead of played goes to the torrent client,
+	// into the library (played, see TestTorrentStreamPlay).
 	var addedMu sync.Mutex
 	var added []map[string]any
 	transmission := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -415,7 +416,7 @@ func TestProviderPlay(t *testing.T) {
 		t.Fatal(err)
 	}
 	var sent struct{ Action, SavePath, Magnet string }
-	decodeBody(t, do(s, "POST", "/api/providers/play", local, jsonBody(t, map[string]any{"mediaId": 155, "streamId": torrent.ID}), nil), &sent)
+	decodeBody(t, do(s, "POST", "/api/providers/play", local, jsonBody(t, map[string]any{"mediaId": 155, "streamId": torrent.ID, "download": true}), nil), &sent)
 	addedMu.Lock()
 	defer addedMu.Unlock()
 	if sent.Action != "torrent" || sent.SavePath != filepath.Join(lib, "The Dark Knight (2008)") || len(added) != 1 ||

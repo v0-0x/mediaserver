@@ -1,10 +1,12 @@
-import { AlertTriangle, ArrowDownToLine, ChevronDown, Copy, ExternalLink, Magnet, Search, Users } from "lucide-react"
+import { AlertTriangle, ArrowDownToLine, ChevronDown, Copy, ExternalLink, Magnet, Play, Search, Users } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { toast } from "@/lib/toast"
 import { api } from "@/lib/api"
-import { episodeKey, firstEpisode, formatKey, latestAired, mediaIsShow, nextEpisode, seasonEpisodeCount, splitKey } from "@/lib/ids"
+import { episodeKey, firstEpisode, formatKey, latestAired, MOVIE_EPISODE, mediaIsShow, nextEpisode, seasonEpisodeCount, splitKey } from "@/lib/ids"
+import { usePlay } from "@/lib/play"
 import { type TorrentSearchBody, useStatus, useTorrentProviders, useTorrentSearch } from "@/lib/queries"
+import { tv } from "@/lib/tv"
 import type { EntryView, Media, TorrentProviderInfo, TorrentResult } from "@/lib/types"
 import { cn, copyText, formatBytes, relativeTime } from "@/lib/utils"
 import { Badge, Button, EmptyState, ErrorState, Input, Select, Tabs } from "../ui"
@@ -48,6 +50,7 @@ export function TorrentPanel({ entry, episode }: { entry: EntryView; episode?: n
     const [sort, setSort] = useState<SortKey>("best")
     const [searched, setSearched] = useState<TorrentSearchBody | null>(null)
     const search = useTorrentSearch()
+    const { playStream } = usePlay()
 
     const run = () => {
         const body: TorrentSearchBody = { provider, mediaId: media.id, query: query.trim() || undefined, resolution }
@@ -99,6 +102,29 @@ export function TorrentPanel({ entry, episode }: { entry: EntryView; episode?: n
         sending: sending === key(r),
         disabled: noClient || sending !== null,
         onDownload: () => download([r], key(r)),
+        // Played as it downloads, here (not on a TV): the episode it holds,
+        // or of a pack the one looked for.
+        onStream:
+            !tv && (r.infoHash || r.magnetLink)
+                ? () =>
+                      playStream(media.id, show ? (r.episodeNumber > 0 ? r.episodeNumber : episodeKey(season, ep)) : MOVIE_EPISODE, {
+                          player: "builtin",
+                          stream: {
+                              id: `torrent:${r.infoHash || r.magnetLink}`,
+                              kind: "torrent",
+                              provider: "torrents",
+                              providerName: "Torrents",
+                              title: r.name,
+                              type: "",
+                              quality: r.resolution,
+                              size: r.size,
+                              infoHash: r.infoHash || undefined,
+                              magnet: r.magnetLink || undefined,
+                              fileIdx: -1,
+                              seeders: r.seeders,
+                          },
+                      })
+                : undefined,
     })
 
     const download = async (items: TorrentResult[], what: string) => {
@@ -377,6 +403,7 @@ type RowProps = {
     sending: boolean
     disabled: boolean
     onDownload: () => void
+    onStream?: () => void
 }
 
 // What the torrent holds: an episode (S02E05) or a pack, and its group.
@@ -421,7 +448,7 @@ function Seeds({ r }: { r: TorrentResult }) {
 const sizeOf = (r: TorrentResult) => r.formattedSize || (r.size > 0 ? formatBytes(r.size) : "")
 const addedAt = (r: TorrentResult) => (r.date ? Date.parse(r.date) / 1000 || 0 : 0)
 
-function Actions({ r, sending, disabled, onDownload }: { r: TorrentResult } & Pick<RowProps, "sending" | "disabled" | "onDownload">) {
+function Actions({ r, sending, disabled, onDownload, onStream }: { r: TorrentResult } & Pick<RowProps, "sending" | "disabled" | "onDownload" | "onStream">) {
     return (
         <div className="flex items-center justify-end gap-1">
             {r.link && (
@@ -447,9 +474,14 @@ function Actions({ r, sending, disabled, onDownload }: { r: TorrentResult } & Pi
                     <Copy className="size-4" />
                 </button>
             )}
-            <Button size="sm" variant="white" loading={sending} disabled={disabled} onClick={onDownload} icon={<ArrowDownToLine className="size-4" />}>
+            <Button size="sm" variant={onStream ? "subtle" : "white"} loading={sending} disabled={disabled} onClick={onDownload} icon={<ArrowDownToLine className="size-4" />}>
                 Download
             </Button>
+            {onStream && (
+                <Button size="sm" variant="white" onClick={onStream} icon={<Play className="size-3.5 fill-current" />}>
+                    Stream
+                </Button>
+            )}
         </div>
     )
 }
