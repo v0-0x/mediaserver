@@ -15,7 +15,7 @@ import (
 	fileup "github.com/v0-0x/mediaserver/movies/internal/upload"
 )
 
-// A KumoBox sends files to one that takes its downloads, a piece at a time,
+// A Moviko sends files to one that takes its downloads, a piece at a time,
 // into the folder picked; only when it's allowed, and only into it.
 func TestUploadToHost(t *testing.T) {
 	const local = "127.0.0.1:5000"
@@ -64,7 +64,7 @@ func TestUploadToHost(t *testing.T) {
 		t.Fatalf("folders: %d %s", w.Code, w.Body)
 	}
 	// A file in two pieces, into a folder of its own.
-	data := bytes.Repeat([]byte("kumobox!"), (folders.Chunk+4096)/8)
+	data := bytes.Repeat([]byte("moviko!!"), (folders.Chunk+4096)/8)
 	rel := "Movie (2020)/Movie (2020).mkv"
 	send := func(offset, end int) *httpResult {
 		w := do(guest, "POST", "/api/upload?"+uploadQuery(hid, 0, rel, int64(offset), int64(len(data))), local, string(data[offset:end]), nil)

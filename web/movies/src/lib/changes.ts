@@ -1,10 +1,20 @@
-// What's new in KumoBox, newest first: shown once on each device after an
+// What's new in Moviko, newest first: shown once on each device after an
 // update (components/WhatsNew). A new entry gets the next id.
 
 export type Change = { title: string; text: string; to?: string }
 export type Release = { id: number; title: string; changes: Change[] }
 
 export const RELEASES: Release[] = [
+    {
+        id: 5,
+        title: "KumoBox is now Moviko",
+        changes: [
+            {
+                title: "A new name",
+                text: "Moviko: movie, and ko, as in Aniko, its sibling, with the clapperboard it already had. Everything came along: your library, lists, diary, settings and logins, your other devices and the server. On Linux the app and its command are moviko now (kumobox still opens it).",
+            },
+        ],
+    },
     {
         id: 4,
         title: "Stream torrents",
@@ -26,14 +36,14 @@ export const RELEASES: Release[] = [
             },
             {
                 title: "mediaserver",
-                text: "KumoBox's home server, for a Raspberry Pi or any Linux computer that stays on, shares movies and shows with your KumoBox apps (and anime with your Aniko apps): it shows up in Settings › Other devices.",
+                text: "Moviko's home server, for a Raspberry Pi or any Linux computer that stays on, shares movies and shows with your Moviko apps (and anime with your Aniko apps): it shows up in Settings › Other devices.",
                 to: "/settings?tab=devices",
             },
         ],
     },
     {
         id: 2,
-        title: "KumoBox 2.0",
+        title: "Moviko 2.0",
         changes: [
             {
                 title: "A new look",
@@ -81,7 +91,7 @@ export const RELEASES: Release[] = [
             },
             {
                 title: "Your other computers",
-                text: "KumoBox asks on Home whether to share with a new one, wakes a sleeping one to play its files, keeps this one awake while another plays from it, and syncs Continue watching when they meet again.",
+                text: "Moviko asks on Home whether to share with a new one, wakes a sleeping one to play its files, keeps this one awake while another plays from it, and syncs Continue watching when they meet again.",
                 to: "/settings?tab=devices",
             },
             {

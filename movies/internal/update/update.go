@@ -1,17 +1,17 @@
-// Package update finds newer versions of KumoBox on GitHub and installs them.
+// Package update finds newer versions of Moviko on GitHub and installs them.
 //
-// KumoBox ships three ways, and updates each its own way:
+// Moviko ships three ways, and updates each its own way:
 //   - Arch Linux builds it from source with packaging/arch/PKGBUILD, so the
 //     newest version is a commit: the newest stable release's, or on the
 //     beta channel the head of the repository's default branch. The update
 //     downloads that source, builds it with makepkg and installs the
 //     package with pacman (through pkexec, which asks for the password).
-//   - Windows installs the GitHub Release "KumoBox <v> for Windows" (tag
+//   - Windows installs the GitHub Release "Moviko <v> for Windows" (tag
 //     windows-v<v>). The update downloads the newest one's installer and
-//     runs it once KumoBox has quit; the installer starts the new version.
-//   - macOS has the app from the GitHub Release "KumoBox <v> for macOS" (tag
+//     runs it once Moviko has quit; the installer starts the new version.
+//   - macOS has the app from the GitHub Release "Moviko <v> for macOS" (tag
 //     macos-v<v>). The update downloads the newest one's zip of the app,
-//     unpacks it next to the app and, once KumoBox has quit, puts it in the
+//     unpacks it next to the app and, once Moviko has quit, puts it in the
 //     app's place and opens it (apply_mac.go).
 //
 // Each change is published as a beta first (a GitHub pre-release), and the
@@ -43,7 +43,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/util"
 )
 
-// Version is a build of KumoBox.
+// Version is a build of Moviko.
 type Version struct {
 	Version string `json:"version"`
 	Commit  string `json:"commit"`
@@ -59,7 +59,7 @@ const (
 	StateDownloading = "downloading"
 	StateBuilding    = "building"
 	StateInstalling  = "installing"
-	StateReady       = "ready" // installed: KumoBox restarts into it
+	StateReady       = "ready" // installed: Moviko restarts into it
 	StateFailed      = "failed"
 )
 
@@ -88,7 +88,7 @@ type Status struct {
 	Message  string   `json:"message,omitempty"`
 	Log      []string `json:"log"` // the last output lines
 	// ManualCommand is a command to run in a terminal: to install the
-	// update when KumoBox can't ask for the password, or what the build needs.
+	// update when Moviko can't ask for the password, or what the build needs.
 	ManualCommand string `json:"manualCommand,omitempty"`
 	// InstallFile: on Android, the downloaded APK the app asks Android to
 	// install (it's the app that can).
@@ -98,15 +98,15 @@ type Status struct {
 const (
 	defaultAPI = "https://api.github.com"
 	// packagedExe is where packaging/arch/PKGBUILD installs the server.
-	packagedExe = "/usr/lib/kumobox/kumobox"
+	packagedExe = "/usr/lib/moviko/moviko"
 	// VersionBase is the number of commits of the commit that's 2.0.0
-	// (desktop/package.json's kumoboxVersionBase): a build's version is
+	// (desktop/package.json's movikoVersionBase): a build's version is
 	// 2.0.<commits since then>, as the PKGBUILD and the release workflows
 	// make it, and was 1.0.<commits> before.
 	VersionBase = 161
 	maxChanges  = 30
 	maxLogLines = 20
-	// failureFile keeps why an update failed after KumoBox had quit for it
+	// failureFile keeps why an update failed after Moviko had quit for it
 	// (in CacheDir), for the next run to show.
 	failureFile = "last-failure.txt"
 )
@@ -122,33 +122,33 @@ type Checker struct {
 	RepoID string
 	Client *http.Client
 	Hub    *events.Hub
-	// Exits ends KumoBox when an update needs it to restart or to quit.
+	// Exits ends Moviko when an update needs it to restart or to quit.
 	Exits *lifecycle.Exits
 	// The running build.
 	Version string
 	Commit  string
-	// GOOS decides how KumoBox updates: "windows" and "darwin" from
+	// GOOS decides how Moviko updates: "windows" and "darwin" from
 	// releases, otherwise from source (a stable release's, or the default
 	// branch's head).
 	GOOS string
 	// Channel returns "beta" for betas too, anything else (or nil) for
 	// stable releases only.
 	Channel func() string
-	// Executable is KumoBox's server program, symlinks resolved.
+	// Executable is Moviko's server program, symlinks resolved.
 	Executable func() (string, error)
 	// PackagedExe is where the Arch package installs the server: only that
 	// copy updates itself on Linux.
 	PackagedExe string
-	// CacheDir holds the downloads and the build (<user cache>/kumobox/update).
+	// CacheDir holds the downloads and the build (<user cache>/moviko/update).
 	CacheDir string
 	// Token returns a GitHub token, or "" (see githubToken).
 	Token func(ctx context.Context) string
 	// StartInstaller starts the Windows installer, on its own, outside
-	// KumoBox's job object (see startInstaller).
+	// Moviko's job object (see startInstaller).
 	StartInstaller func(path string, args ...string) error
 	// macOS: StartHelper starts the program that opens the new app once
 	// the desktop app (the process ParentPID) has quit, and Writable says
-	// whether KumoBox may put files in a folder.
+	// whether Moviko may put files in a folder.
 	StartHelper func(name string, args ...string) error
 	ParentPID   func() int
 	Writable    func(dir string) bool
@@ -172,7 +172,7 @@ type Checker struct {
 	wg     sync.WaitGroup
 }
 
-// New makes the checker for this copy of KumoBox. It does nothing until Start
+// New makes the checker for this copy of Moviko. It does nothing until Start
 // or a call.
 func New(hub *events.Hub, exits *lifecycle.Exits) *Checker {
 	repo, id := config.UpdateRepo, config.UpdateRepoID
@@ -195,7 +195,7 @@ func New(hub *events.Hub, exits *lifecycle.Exits) *Checker {
 		GOOS:           runtime.GOOS,
 		Executable:     executable,
 		PackagedExe:    packagedExe,
-		CacheDir:       filepath.Join(cache, "kumobox", "update"),
+		CacheDir:       filepath.Join(cache, "moviko", "update"),
 		Token:          githubToken,
 		StartInstaller: startInstaller,
 		StartHelper:    util.Detach,
@@ -225,8 +225,8 @@ var defaultClient = &http.Client{
 	},
 }
 
-// executable is the server's program, symlinks resolved (/usr/bin/kumobox-server
-// is a link to /usr/lib/kumobox/kumobox).
+// executable is the server's program, symlinks resolved (/usr/bin/moviko-server
+// is a link to /usr/lib/moviko/moviko).
 func executable() (string, error) {
 	exe, err := os.Executable()
 	if err != nil {
@@ -241,7 +241,7 @@ func executable() (string, error) {
 }
 
 // Start runs the checks in the background until Stop. It also shows why an
-// update failed after KumoBox had quit for it.
+// update failed after Moviko had quit for it.
 func (c *Checker) Start() {
 	if c.Managed != "" {
 		return
@@ -280,7 +280,7 @@ func (c *Checker) loop() {
 
 // cleanup removes what the last update left (the source, the build, the
 // installer, the new app), unless an update is using it: being installed,
-// KumoBox quitting for it, or its package waiting to be installed by hand.
+// Moviko quitting for it, or its package waiting to be installed by hand.
 func (c *Checker) cleanup() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -336,38 +336,38 @@ func (c *Checker) statusLocked() Status {
 		s.CanApply, s.ApplyNote = false, c.Managed
 	}
 	if s.CanApply && fromReleases(c.GOOS) && s.Available && c.asset == nil {
-		s.CanApply, s.ApplyNote = false, "The newest release has no "+releaseFile(c.GOOS)+": download KumoBox from its page."
+		s.CanApply, s.ApplyNote = false, "The newest release has no "+releaseFile(c.GOOS)+": download Moviko from its page."
 	}
 	return s
 }
 
-// applyable says whether this copy of KumoBox can install updates itself, and
+// applyable says whether this copy of Moviko can install updates itself, and
 // how it does, or why it can't.
 func (c *Checker) applyable() (bool, string) {
 	exe, err := c.Executable()
 	switch c.GOOS {
 	case "linux":
 		if err != nil || exe != c.PackagedExe {
-			return false, "This copy of KumoBox isn't the Arch package: update it with git pull and make (or build the PKGBUILD again)."
+			return false, "This copy of Moviko isn't the Arch package: update it with git pull and make (or build the PKGBUILD again)."
 		}
 		for _, tool := range []string{"makepkg", "pacman"} {
 			if _, ok := util.LookPath(tool); !ok {
 				return false, "Updating needs " + tool + ", which isn't installed: sudo pacman -S --needed base-devel go nodejs npm"
 			}
 		}
-		return true, "KumoBox downloads the new version, builds it with makepkg and installs it with pacman, which asks for your password."
+		return true, "Moviko downloads the new version, builds it with makepkg and installs it with pacman, which asks for your password."
 	case "windows":
-		// <install dir>\resources\kumobox.exe, next to <install dir>\Uninstall KumoBox.exe.
-		if err != nil || !isFile(filepath.Join(filepath.Dir(filepath.Dir(exe)), "Uninstall KumoBox.exe")) {
-			return false, "This is a portable copy of KumoBox: to update it, download the new portable zip."
+		// <install dir>\resources\moviko.exe, next to <install dir>\Uninstall Moviko.exe.
+		if err != nil || !isFile(filepath.Join(filepath.Dir(filepath.Dir(exe)), "Uninstall Moviko.exe")) {
+			return false, "This is a portable copy of Moviko: to update it, download the new portable zip."
 		}
-		return true, "KumoBox downloads the installer and runs it: KumoBox closes, the new version installs and KumoBox opens again."
+		return true, "Moviko downloads the installer and runs it: Moviko closes, the new version installs and Moviko opens again."
 	case "darwin":
 		return c.macApplyable(exe, err)
 	case "android":
-		return true, "KumoBox downloads the new version and Android asks you to install it."
+		return true, "Moviko downloads the new version and Android asks you to install it."
 	}
-	return false, "KumoBox can't update itself on this system."
+	return false, "Moviko can't update itself on this system."
 }
 
 func isFile(p string) bool {
@@ -448,7 +448,7 @@ func (c *Checker) Check(ctx context.Context) Status {
 	close(done)
 	c.st.Checking = false
 	if errors.Is(err, context.Canceled) {
-		// KumoBox is shutting down: that says nothing about updates.
+		// Moviko is shutting down: that says nothing about updates.
 		c.publishLocked()
 		return c.statusLocked()
 	}
@@ -476,22 +476,22 @@ func (c *Checker) describe(err error) (string, string) {
 		if c.GOOS == "windows" {
 			hint = "If the repository is private, sign in to GitHub: Settings › Desktop app & programs › Install missing programs signs you in, or run gh auth login."
 		}
-		return fmt.Sprintf("KumoBox can't read github.com/%s (HTTP %d).", c.Repo, ae.status), hint
+		return fmt.Sprintf("Moviko can't read github.com/%s (HTTP %d).", c.Repo, ae.status), hint
 	case errors.As(err, &ae) && ae.rateLimited:
-		return "GitHub's limit on requests was reached: KumoBox checks again later.", "Signing in to GitHub (gh auth login) raises the limit."
+		return "GitHub's limit on requests was reached: Moviko checks again later.", "Signing in to GitHub (gh auth login) raises the limit."
 	case errors.Is(err, context.DeadlineExceeded):
 		return "GitHub didn't answer in time.", ""
 	}
 	var dnsErr *net.DNSError
 	if errors.As(err, &dnsErr) {
-		return "KumoBox can't reach GitHub: is this computer online?", ""
+		return "Moviko can't reach GitHub: is this computer online?", ""
 	}
 	// Anything else: said plainly, what happened under it as a detail.
-	return "KumoBox couldn't check for updates just now. It tries again later.", "Details: " + err.Error()
+	return "Moviko couldn't check for updates just now. It tries again later.", "Details: " + err.Error()
 }
 
 func (c *Checker) check(ctx context.Context) (result, error) {
-	g := &github{api: strings.TrimRight(c.API, "/"), repo: c.Repo, repoID: c.RepoID, client: c.Client, token: c.Token(ctx), userAgent: "KumoBox/" + c.Version}
+	g := &github{api: strings.TrimRight(c.API, "/"), repo: c.Repo, repoID: c.RepoID, client: c.Client, token: c.Token(ctx), userAgent: "Moviko/" + c.Version}
 	if fromReleases(c.GOOS) {
 		return c.checkReleases(ctx, g)
 	}
@@ -523,7 +523,7 @@ func (c *Checker) checkStable(ctx context.Context, g *github) (result, error) {
 		}
 	}
 	if best == nil {
-		return result{note: "There's no stable release of KumoBox yet."}, nil
+		return result{note: "There's no stable release of Moviko yet."}, nil
 	}
 	commit, err := g.commit(ctx, best.TagName)
 	if err != nil {
@@ -564,7 +564,7 @@ func (c *Checker) against(ctx context.Context, g *github, latest *Version, what 
 	res := result{latest: latest}
 	if c.Commit == "" {
 		res.available = true
-		res.note = "KumoBox can't tell which version this copy is (it was built without its git commit), so it offers the newest one."
+		res.note = "Moviko can't tell which version this copy is (it was built without its git commit), so it offers the newest one."
 		return res, nil
 	}
 	// Against the head's commit, not the branch: the version, the changes
@@ -574,7 +574,7 @@ func (c *Checker) against(ctx context.Context, g *github, latest *Version, what 
 	var ae *apiError
 	if errors.As(err, &ae) && (ae.status == http.StatusNotFound || ae.status == http.StatusUnprocessableEntity) {
 		res.available = true
-		res.note = "This copy was built from a commit GitHub doesn't have (" + short(c.Commit) + "), so KumoBox can't tell what changed."
+		res.note = "This copy was built from a commit GitHub doesn't have (" + short(c.Commit) + "), so Moviko can't tell what changed."
 		return res, nil
 	}
 	if err != nil {
@@ -626,11 +626,11 @@ func releasePrefix(goos string) string {
 func releaseAsset(goos, version string) string {
 	switch goos {
 	case "darwin":
-		return "KumoBox-" + version + "-macos-universal.zip"
+		return "Moviko-" + version + "-macos-universal.zip"
 	case "android":
-		return "KumoBox-" + version + "-android.apk"
+		return "Moviko-" + version + "-android.apk"
 	}
-	return "KumoBox-Setup-" + version + "-windows-x64.exe"
+	return "Moviko-Setup-" + version + "-windows-x64.exe"
 }
 
 // releaseFile says what that file is, for messages.
@@ -659,7 +659,7 @@ func (c *Checker) checkReleases(ctx context.Context, g *github) (result, error) 
 		if system == "" {
 			system = "Windows"
 		}
-		return result{note: "There's no KumoBox release for " + system + " yet."}, nil
+		return result{note: "There's no Moviko release for " + system + " yet."}, nil
 	}
 	version := strings.TrimPrefix(best.TagName, prefix)
 	latest := &Version{Version: version, Date: best.PublishedAt, URL: best.HTMLURL, Beta: best.Prerelease}
@@ -769,8 +769,8 @@ var (
 )
 
 // Apply starts installing the newest version, in the background: the
-// status follows it. On Linux it ends "ready" (restart KumoBox to use it); on
-// Windows KumoBox quits for the installer, which starts the new version, and on
+// status follows it. On Linux it ends "ready" (restart Moviko to use it); on
+// Windows Moviko quits for the installer, which starts the new version, and on
 // macOS to swap in the new app, which then opens.
 func (c *Checker) Apply() error {
 	if c.Managed != "" {
@@ -778,7 +778,7 @@ func (c *Checker) Apply() error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	// Installing: on Windows and macOS, KumoBox is quitting for the new
+	// Installing: on Windows and macOS, Moviko is quitting for the new
 	// version.
 	// Android: the APK is there, Android asks again (the last time was
 	// cancelled).
@@ -803,13 +803,13 @@ func (c *Checker) Apply() error {
 		inst = &a
 	}
 	c.applying = true
-	c.st.State, c.st.Progress, c.st.Message = StateDownloading, -1, "Downloading KumoBox "+display(target)+"…"
+	c.st.State, c.st.Progress, c.st.Message = StateDownloading, -1, "Downloading Moviko "+display(target)+"…"
 	c.st.Log, c.st.ManualCommand, c.st.InstallFile = nil, "", ""
 	c.publishLocked()
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
-		g := &github{api: strings.TrimRight(c.API, "/"), repo: c.Repo, repoID: c.RepoID, client: c.Client, token: c.Token(c.ctx), userAgent: "KumoBox/" + c.Version}
+		g := &github{api: strings.TrimRight(c.API, "/"), repo: c.Repo, repoID: c.RepoID, client: c.Client, token: c.Token(c.ctx), userAgent: "Moviko/" + c.Version}
 		var err error
 		switch c.GOOS {
 		case "windows":
@@ -890,7 +890,7 @@ func (c *Checker) output(line string) {
 	c.publishSoonLocked()
 }
 
-// saveFailure keeps why an update failed after KumoBox had shut down for it,
+// saveFailure keeps why an update failed after Moviko had shut down for it,
 // for the next run to show (see Start).
 func (c *Checker) saveFailure(msg string) {
 	if err := os.MkdirAll(c.CacheDir, 0o700); err == nil {

@@ -1,8 +1,8 @@
-// Package winsetup installs the programs KumoBox uses on Windows (ffmpeg and
+// Package winsetup installs the programs Moviko uses on Windows (ffmpeg and
 // ffprobe, mpv, yt-dlp) with Scoop: it runs
 // install-tools.ps1 in a PowerShell window, where the user follows it and
 // answers it. The Windows installer ships the same script and offers to run
-// it after installing KumoBox.
+// it after installing Moviko.
 package winsetup
 
 import (
@@ -38,14 +38,14 @@ func Running() bool {
 // Start opens the setup in a PowerShell window and returns at once.
 func Start() error {
 	if runtime.GOOS != "windows" {
-		return errors.New("KumoBox installs its programs itself on Windows only: install them with your package manager")
+		return errors.New("Moviko installs its programs itself on Windows only: install them with your package manager")
 	}
 	mu.Lock()
 	defer mu.Unlock()
 	if running {
 		return ErrRunning
 	}
-	path := filepath.Join(os.TempDir(), "kumobox-install-tools.ps1")
+	path := filepath.Join(os.TempDir(), "moviko-install-tools.ps1")
 	if err := os.WriteFile(path, script, 0o600); err != nil {
 		return err
 	}

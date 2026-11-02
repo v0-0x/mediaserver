@@ -85,10 +85,10 @@ export function ResultDetails({ result, label, files }: { result: LetterboxdResu
     )
 }
 
-// Connecting a Letterboxd account takes only its username: KumoBox reads the
+// Connecting a Letterboxd account takes only its username: Moviko reads the
 // member's public diary and exports what's watched here for Letterboxd's
 // importer. Connected, the dialog shows the account and syncs it. Devices on
-// the network see the account, but it's connected on the computer KumoBox
+// the network see the account, but it's connected on the computer Moviko
 // runs on.
 export function LetterboxdDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
     const { data: status } = useStatus()
@@ -137,7 +137,7 @@ export function LetterboxdDialog({ open, onOpenChange }: { open: boolean; onOpen
             open={open}
             onOpenChange={onOpenChange}
             title={connected ? "Letterboxd" : "Connect Letterboxd"}
-            description={connected ? undefined : "Bring your diary, ratings and watchlist to KumoBox, and send back what you watch here."}
+            description={connected ? undefined : "Bring your diary, ratings and watchlist to Moviko, and send back what you watch here."}
         >
             {connected ? (
                 <div className="flex flex-col gap-5">
@@ -181,12 +181,12 @@ export function LetterboxdDialog({ open, onOpenChange }: { open: boolean; onOpen
                     <div className="flex items-start gap-4 rounded-lg bg-white/[0.03] p-5">
                         <LetterboxdMark className="mt-1 w-9 shrink-0" />
                         <p className="text-sm text-muted">
-                            KumoBox reads your public Letterboxd diary and adds the films you watched, with your ratings and likes, to your list. Films you watch in KumoBox are
+                            Moviko reads your public Letterboxd diary and adds the films you watched, with your ratings and likes, to your list. Films you watch in Moviko are
                             logged in its diary, ready to export to Letterboxd. No password needed.
                         </p>
                     </div>
                     {lan ? (
-                        <p className="rounded-lg border border-line px-4 py-3 text-sm text-muted">Letterboxd is connected on the computer KumoBox runs on, in Settings › Letterboxd.</p>
+                        <p className="rounded-lg border border-line px-4 py-3 text-sm text-muted">Letterboxd is connected on the computer Moviko runs on, in Settings › Letterboxd.</p>
                     ) : (
                         <>
                             <Field label="Letterboxd username" help="As in letterboxd.com/username. Your profile and diary must be public.">

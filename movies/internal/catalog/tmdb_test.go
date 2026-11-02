@@ -173,8 +173,8 @@ func TestErrorsHideTheKey(t *testing.T) {
 }
 
 func TestEnvOverrides(t *testing.T) {
-	t.Setenv("KUMOBOX_TMDB_URL", "http://127.0.0.1:9/3/")
-	t.Setenv("KUMOBOX_TMDB_IMAGE_URL", "http://127.0.0.1:9/img")
+	t.Setenv("MOVIKO_TMDB_URL", "http://127.0.0.1:9/3/")
+	t.Setenv("MOVIKO_TMDB_IMAGE_URL", "http://127.0.0.1:9/img")
 	c := NewClient(nil)
 	if c.base != "http://127.0.0.1:9/3" || c.Image("w500", "/a.jpg") != "http://127.0.0.1:9/img/w500/a.jpg" || c.Image("w500", "") != "" {
 		t.Fatalf("base %q, image %q", c.base, c.Image("w500", "/a.jpg"))

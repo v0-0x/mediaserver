@@ -42,7 +42,7 @@ func (s *Server) routes() {
 	// --- core
 	m.HandleFunc("GET /api/status", h(s.status))
 	m.HandleFunc("GET /api/settings", h(func(r *http.Request) (any, error) { return settingsFor(r, s.app.Settings.Get()), nil }))
-	// The Stats page: what was watched in KumoBox, month by month.
+	// The Stats page: what was watched in Moviko, month by month.
 	m.HandleFunc("GET /api/stats/monthly", h(func(r *http.Request) (any, error) {
 		n := queryInt(r, "months")
 		if n <= 0 {
@@ -96,7 +96,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/library/ignored", h(func(r *http.Request) (any, error) { return s.app.Files.Ignored() }))
 	m.HandleFunc("GET /api/library/files", h(func(r *http.Request) (any, error) { return s.app.Files.All() }))
 	// The Local library page: the titles with files, this computer's or a
-	// sharing KumoBox's (?host=<its id>).
+	// sharing Moviko's (?host=<its id>).
 	m.HandleFunc("GET /api/library/titles", h(func(r *http.Request) (any, error) {
 		return s.app.Library.Titles(r.Context(), r.URL.Query().Get("host"))
 	}))
@@ -197,7 +197,7 @@ func (s *Server) routes() {
 
 	// --- downloads
 	m.HandleFunc("GET /api/downloads", h(func(r *http.Request) (any, error) { return s.app.Downloads.List(), nil }))
-	// The downloads of the KumoBox this one's go to (a TV's computer): its list,
+	// The downloads of the Moviko this one's go to (a TV's computer): its list,
 	// and cancel or retry there.
 	m.HandleFunc("GET /api/downloads/host", h(func(r *http.Request) (any, error) {
 		raw, host, ok, err := s.app.Share.DownloadsHost(r.Context(), "list", nil)
@@ -269,7 +269,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/update", h(s.updateStatus))
 	m.HandleFunc("POST /api/update/check", h(s.checkUpdate))
 	m.HandleFunc("POST /api/update/apply", h(s.applyUpdate))
-	m.HandleFunc("POST /api/update/restart", s.restartKumoBox)
+	m.HandleFunc("POST /api/update/restart", s.restartMoviko)
 
 	// --- web UI (SPA)
 	m.HandleFunc("/", s.serveUI)
@@ -374,7 +374,7 @@ func (s *Server) status(r *http.Request) (any, error) {
 		lan = lanURLs(cfg.Server.Port)
 	}
 	viewer := s.app.Platform.Viewer() // the connected Letterboxd member
-	// Home's questions about the other KumoBoxes: for this computer, which
+	// Home's questions about the other Movikos: for this computer, which
 	// decides about sharing.
 	var prompts []share.Prompt
 	if isTrusted(r) {
@@ -388,7 +388,7 @@ func (s *Server) status(r *http.Request) (any, error) {
 		"letterboxd":     viewer,
 		"tmdbConfigured": s.app.Platform.Configured(),
 		"features":       feat,
-		// The KumoBoxes this one is paired with (Home's Sync).
+		// The Movikos this one is paired with (Home's Sync).
 		"paired": s.app.Share.Paired(),
 		// The computers sharing with this one that don't answer (asleep).
 		"asleep": s.app.Share.Asleep(),
@@ -682,7 +682,7 @@ func (s *Server) openPath(r *http.Request) (any, error) {
 // mediaCollection is the Home and library page: the list, the library's
 // files, "Continue watching". type (MOVIE or TV) keeps only movies or shows.
 // The list's titles still on the air are fetched again in the background
-// when due; the page asks the other KumoBoxes for their watch history
+// when due; the page asks the other Movikos for their watch history
 // (another computer's progress) with POST /api/sharing/refresh.
 func (s *Server) mediaCollection(r *http.Request) (any, error) {
 	view, err := s.app.Library.Collection(r.Context(), false)

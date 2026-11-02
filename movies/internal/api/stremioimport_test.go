@@ -35,7 +35,7 @@ func TestStremioAccountImport(t *testing.T) {
 		}
 	}))
 	defer api.Close()
-	t.Setenv("KUMOBOX_STREMIO_API_URL", api.URL)
+	t.Setenv("MOVIKO_STREMIO_API_URL", api.URL)
 
 	creds := jsonBody(t, map[string]any{"email": "me@example.com", "password": "hunter2"})
 	if w := do(s, "POST", "/api/providers/stremio/import", lan, creds, nil); w.Code != http.StatusForbidden || logins.Load() != 0 {

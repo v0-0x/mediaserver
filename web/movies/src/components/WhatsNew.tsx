@@ -39,7 +39,7 @@ export function WhatsNew() {
     const [since, setSince] = useState(0)
 
     // After an update, on Home, not over a video. A device seeing it the
-    // first time shows the newest entry if KumoBox was in use already (an
+    // first time shows the newest entry if Moviko was in use already (an
     // update), and nothing on a new install.
     useEffect(() => {
         if (!status || open || playing || location.pathname !== "/") return
@@ -69,7 +69,7 @@ export function WhatsNew() {
     })
     if (!open || releases.length === 0) return null
     return (
-        <Dialog open onOpenChange={v => !v && close()} title="What's new in KumoBox" className="w-[min(94vw,640px)]" footer={<Button variant="primary" onClick={close}>Got it</Button>}>
+        <Dialog open onOpenChange={v => !v && close()} title="What's new in Moviko" className="w-[min(94vw,640px)]" footer={<Button variant="primary" onClick={close}>Got it</Button>}>
             <div className="flex flex-col gap-6">
                 {releases.map(r => (
                     <section key={r.id}>

@@ -891,7 +891,7 @@ func (m *Manager) ResetBuiltinProgress(mediaID, episode, end int) {
 	}
 	m.builtinSeen[k] = now
 	// Viewings nobody reported on for a day are over: forgotten, so the
-	// maps don't keep every episode watched while KumoBox runs.
+	// maps don't keep every episode watched while Moviko runs.
 	for old, at := range m.builtinSeen {
 		if now.Sub(at) > builtinForgetAfter {
 			delete(m.builtinStarted, old)

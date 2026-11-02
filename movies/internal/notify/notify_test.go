@@ -40,7 +40,7 @@ func (f *fakeList) MediaLite(_ context.Context, id int) (*catalog.Media, error) 
 
 func fixture(t *testing.T) (*Service, *fakeList, func() []Alert) {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

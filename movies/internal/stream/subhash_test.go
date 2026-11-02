@@ -134,7 +134,7 @@ func TestVideoSubtitles(t *testing.T) {
 	if len(subs) != 1 || subs[0].URL != "https://subs.example/tt0133093/"+want.Hash+".srt" {
 		t.Errorf("subtitles %+v", subs)
 	}
-	// A stream KumoBox no longer knows.
+	// A stream Moviko no longer knows.
 	if _, err := s.VideoSubtitles(context.Background(), movie, 0, RemotePrefix+"0123456789abcdef01234567", ""); err != ErrRemoteGone {
 		t.Errorf("unknown stream: %v", err)
 	}

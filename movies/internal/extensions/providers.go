@@ -159,7 +159,7 @@ func (p *TorrentProvider) SmartSearch(ctx context.Context, q torrent.SmartQuery)
 	}
 	media := ToProviderMedia(q.Media)
 	// The episode as providers number them: in its season (the season and
-	// the KumoBox key come along).
+	// the Moviko key come along).
 	season, episode := 0, 0
 	if q.Media != nil && q.Media.IsShow() && q.Episode > 0 {
 		season, episode = catalog.SplitKey(q.Episode)

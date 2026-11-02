@@ -16,8 +16,8 @@ type Entry struct {
 	Duration  float64 `json:"duration"` // seconds
 	Source    string  `json:"source"`   // local | stream | torrent
 	UpdatedAt int64   `json:"updatedAt"`
-	// Seq is the order this KumoBox stored it in (later is higher), whoever
-	// watched it: another KumoBox asks for what came after the last it has.
+	// Seq is the order this Moviko stored it in (later is higher), whoever
+	// watched it: another Moviko asks for what came after the last it has.
 	Seq int64 `json:"seq,omitempty"`
 }
 
@@ -44,14 +44,14 @@ func (e *Entry) Percent() float64 {
 
 type Store struct {
 	db *db.DB
-	// OnChange is told about each position this KumoBox saves (not those
-	// merged from another KumoBox): another KumoBox on the same account gets it.
+	// OnChange is told about each position this Moviko saves (not those
+	// merged from another Moviko): another Moviko on the same account gets it.
 	OnChange func(Entry)
 }
 
 func NewStore(d *db.DB) *Store { return &Store{db: d} }
 
-// changed tells OnChange about an entry this KumoBox saved.
+// changed tells OnChange about an entry this Moviko saved.
 func (s *Store) changed(e Entry) {
 	if s.OnChange != nil {
 		s.OnChange(e)
@@ -179,15 +179,15 @@ func (s *Store) LastWatched() map[int]int64 {
 }
 
 // Since returns the entries updated after t (unix seconds), oldest first:
-// what another KumoBox on the same account hasn't seen yet (an older KumoBox asks
+// what another Moviko on the same account hasn't seen yet (an older Moviko asks
 // so; see After).
 func (s *Store) Since(t int64, limit int) []*Entry {
 	return s.query(`WHERE updated_at > ? ORDER BY updated_at LIMIT ?`, t, limit)
 }
 
 // After returns the entries stored after seq, in the order they were
-// (whatever their time: one from another KumoBox comes late), up to limit:
-// what another KumoBox on the same account hasn't seen yet.
+// (whatever their time: one from another Moviko comes late), up to limit:
+// what another Moviko on the same account hasn't seen yet.
 func (s *Store) After(seq int64, limit int) []*Entry {
 	return s.query(`WHERE seq > ? ORDER BY seq LIMIT ?`, seq, limit)
 }
@@ -212,17 +212,17 @@ func (s *Store) query(where string, args ...any) []*Entry {
 	return out
 }
 
-// How far ahead of this KumoBox's clock another's entries may be.
+// How far ahead of this Moviko's clock another's entries may be.
 const maxAhead = 5 * time.Minute
 
-// Merge takes an entry from another KumoBox on the same account when it's
+// Merge takes an entry from another Moviko on the same account when it's
 // newer than this one's, with its time, and reports whether it did.
 func (s *Store) Merge(e Entry) (bool, error) {
 	merged, err := s.MergeAll([]Entry{e})
 	return len(merged) > 0, err
 }
 
-// MergeAll merges entries from another KumoBox (see Merge) at once, and
+// MergeAll merges entries from another Moviko (see Merge) at once, and
 // returns those it took.
 func (s *Store) MergeAll(entries []Entry) ([]Entry, error) {
 	var merged []Entry

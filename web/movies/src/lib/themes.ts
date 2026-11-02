@@ -14,7 +14,7 @@ type Palette = { frame: string; bg: string; s1: string; s2: string; s3: string; 
 export type ColorTheme = { id: string; name: string; accent: string; palette: Palette }
 
 export const COLOR_THEMES: ColorTheme[] = [
-    { id: "kumobox", name: "KumoBox", accent: "#7c6cf2", palette: { frame: "#0a0a0b", bg: "#111113", s1: "#161618", s2: "#1c1c1f", s3: "#232326", s4: "#2b2b2f", muted: "#a1a1a8", subtle: "#707077" } },
+    { id: "kumobox", name: "Moviko", accent: "#7c6cf2", palette: { frame: "#0a0a0b", bg: "#111113", s1: "#161618", s2: "#1c1c1f", s3: "#232326", s4: "#2b2b2f", muted: "#a1a1a8", subtle: "#707077" } },
     { id: "midnight", name: "Midnight", accent: "#5b8cff", palette: { frame: "#070a12", bg: "#0c111c", s1: "#111827", s2: "#172033", s3: "#1e2940", s4: "#26334d", muted: "#9aa4b8", subtle: "#6b7488" } },
     { id: "forest", name: "Forest", accent: "#34d399", palette: { frame: "#070b09", bg: "#0c120f", s1: "#111a15", s2: "#16211b", s3: "#1c2a22", s4: "#23342a", muted: "#9fb0a6", subtle: "#6d7f74" } },
     { id: "sakura", name: "Sakura", accent: "#f472b6", palette: { frame: "#0d0709", bg: "#140c10", s1: "#1b1116", s2: "#22161c", s3: "#2a1c23", s4: "#33222b", muted: "#b39aa6", subtle: "#7f6872" } },

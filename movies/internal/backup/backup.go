@@ -1,6 +1,6 @@
-// Package backup saves the user's own data in KumoBox as one JSON file, and
+// Package backup saves the user's own data in Moviko as one JSON file, and
 // puts it back, on this computer or another: the settings, the watch
-// history, KumoBox's own list and diary, the audio and subtitle choices, the
+// history, Moviko's own list and diary, the audio and subtitle choices, the
 // matches made by hand (and files ignored), the auto downloader's rules,
 // extensions and their data, the Stremio addons. Not caches, nor what
 // belongs to this computer (its identity on the network, the devices it
@@ -37,8 +37,8 @@ const Format = 1
 const MaxSize = 256 << 20
 
 type File struct {
-	KumoBox   int    `json:"kumobox"` // the format (its key from before the rename: older backups have it)
-	Version   string `json:"version"` // KumoBox's, that made it
+	Moviko   int    `json:"kumobox"` // the format (its key from before the rename: older backups have it)
+	Version   string `json:"version"` // Moviko's, that made it
 	CreatedAt int64  `json:"createdAt"`
 	Computer  string `json:"computer"`
 	// Logins: it holds the TMDB key, the Letterboxd sign-in and the passwords.
@@ -110,7 +110,7 @@ func Make(d *db.DB, settings config.Settings, logins bool, version, computer str
 	if err != nil {
 		return nil, err
 	}
-	f := &File{KumoBox: Format, Version: version, CreatedAt: time.Now().Unix(), Computer: computer, Logins: logins, Settings: raw, KV: map[string]json.RawMessage{}, Tables: map[string][]map[string]any{}}
+	f := &File{Moviko: Format, Version: version, CreatedAt: time.Now().Unix(), Computer: computer, Logins: logins, Settings: raw, KV: map[string]json.RawMessage{}, Tables: map[string][]map[string]any{}}
 	rows, err := d.Query(`SELECT key, value FROM kv`)
 	if err != nil {
 		return nil, err
@@ -213,16 +213,16 @@ func Read(r io.Reader) (*File, error) {
 		return nil, err
 	}
 	if len(data) > MaxSize {
-		return nil, errors.New("that file is too big to be an KumoBox backup")
+		return nil, errors.New("that file is too big to be a Moviko backup")
 	}
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.UseNumber()
 	var f File
-	if err := dec.Decode(&f); err != nil || f.KumoBox == 0 {
-		return nil, errors.New("that isn't an KumoBox backup")
+	if err := dec.Decode(&f); err != nil || f.Moviko == 0 {
+		return nil, errors.New("that isn't a Moviko backup")
 	}
-	if f.KumoBox > Format {
-		return nil, fmt.Errorf("that backup was made by a newer KumoBox (%s): update this one first", f.Version)
+	if f.Moviko > Format {
+		return nil, fmt.Errorf("that backup was made by a newer Moviko (%s): update this one first", f.Version)
 	}
 	return &f, nil
 }

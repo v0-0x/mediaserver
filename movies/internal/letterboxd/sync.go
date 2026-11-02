@@ -36,7 +36,7 @@ type Catalog interface {
 	MarkDiaryExported(ctx context.Context, ids []int64, at int64) error
 }
 
-// Sync keeps the KumoBox list and diary in step with a Letterboxd account.
+// Sync keeps the Moviko list and diary in step with a Letterboxd account.
 // Fill in the exported fields; the zero values of the others are fine.
 type Sync struct {
 	Catalog  Catalog
@@ -46,7 +46,7 @@ type Sync struct {
 	HTTP     *http.Client
 
 	// BaseURL is the Letterboxd website, APIBaseURL its API (defaults:
-	// $KUMOBOX_LETTERBOXD_URL / $KUMOBOX_LETTERBOXD_API_URL, then
+	// $MOVIKO_LETTERBOXD_URL / $MOVIKO_LETTERBOXD_API_URL, then
 	// DefaultBaseURL / DefaultAPIBaseURL).
 	BaseURL    string
 	APIBaseURL string
@@ -92,7 +92,7 @@ type Status struct {
 	// LastError why the last sync failed ("" when it didn't).
 	LastSync  int64  `json:"lastSync"`
 	LastError string `json:"lastError,omitempty"`
-	// Pending counts the diary entries logged in KumoBox that Letterboxd
+	// Pending counts the diary entries logged in Moviko that Letterboxd
 	// doesn't have yet.
 	Pending int  `json:"pending"`
 	Syncing bool `json:"syncing"`
@@ -176,11 +176,11 @@ func (s *Sync) httpClient() *http.Client {
 }
 
 func (s *Sync) baseURL() string {
-	return firstNonEmpty(s.BaseURL, os.Getenv("KUMOBOX_LETTERBOXD_URL"), DefaultBaseURL)
+	return firstNonEmpty(s.BaseURL, os.Getenv("MOVIKO_LETTERBOXD_URL"), DefaultBaseURL)
 }
 
 func (s *Sync) apiBaseURL() string {
-	return firstNonEmpty(s.APIBaseURL, os.Getenv("KUMOBOX_LETTERBOXD_API_URL"), DefaultAPIBaseURL)
+	return firstNonEmpty(s.APIBaseURL, os.Getenv("MOVIKO_LETTERBOXD_API_URL"), DefaultAPIBaseURL)
 }
 
 func firstNonEmpty(v ...string) string {

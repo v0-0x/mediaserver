@@ -11,13 +11,13 @@ import (
 )
 
 // The diary: each viewing of a movie (or a finished show), what Letterboxd
-// calls diary entries. KumoBox logs its own (source "kumobox", to export to
+// calls diary entries. Moviko logs its own (source "kumobox", to export to
 // Letterboxd) and keeps the ones imported from Letterboxd (source
 // "letterboxd", identified by their LetterboxdID so they're imported once).
 
 // Diary sources.
 const (
-	DiaryKumoBox    = "kumobox"
+	DiaryMoviko    = "kumobox"
 	DiaryLetterboxd = "letterboxd"
 )
 
@@ -44,7 +44,7 @@ func (p *Platform) AddDiary(ctx context.Context, e DiaryEntry) (*DiaryEntry, boo
 	}
 	e.LetterboxdID = strings.TrimSpace(e.LetterboxdID)
 	if e.Source == "" {
-		e.Source = DiaryKumoBox
+		e.Source = DiaryMoviko
 	}
 	if e.WatchedDate == "" {
 		e.WatchedDate = time.Now().Format(time.DateOnly)
@@ -104,10 +104,10 @@ func (p *Platform) Diary(ctx context.Context, mediaID int, limit int) ([]*DiaryE
 	return p.queryDiary(ctx, q, args...)
 }
 
-// PendingDiary lists the viewings logged in KumoBox that haven't been sent
+// PendingDiary lists the viewings logged in Moviko that haven't been sent
 // to Letterboxd yet, oldest first.
 func (p *Platform) PendingDiary(ctx context.Context) ([]*DiaryEntry, error) {
-	return p.queryDiary(ctx, `SELECT `+diaryCols+` FROM diary WHERE source = ? AND exported_at = 0 ORDER BY watched_date, id`, DiaryKumoBox)
+	return p.queryDiary(ctx, `SELECT `+diaryCols+` FROM diary WHERE source = ? AND exported_at = 0 ORDER BY watched_date, id`, DiaryMoviko)
 }
 
 func (p *Platform) queryDiary(ctx context.Context, q string, args ...any) ([]*DiaryEntry, error) {

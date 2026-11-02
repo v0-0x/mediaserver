@@ -5,7 +5,7 @@ import { Button } from "../ui"
 import { sendPluginEvent } from "./PluginRenderer"
 
 // Bridge injected into plugin webviews: exposes window.webview.channel.
-const BRIDGE = `<script>(function(){var h={};window.webview={channel:{on:function(n,cb){(h[n]=h[n]||[]).push(cb)},send:function(n,p){parent.postMessage({__kumoboxWebview:true,name:n,payload:p},'*')}}};window.addEventListener('message',function(e){var d=e.data;if(d&&d.__kumoboxToWebview){(h[d.name]||[]).forEach(function(cb){try{cb(d.payload)}catch(err){console.error(err)}})}});})();</script>`
+const BRIDGE = `<script>(function(){var h={};window.webview={channel:{on:function(n,cb){(h[n]=h[n]||[]).push(cb)},send:function(n,p){parent.postMessage({__movikoWebview:true,name:n,payload:p},'*')}}};window.addEventListener('message',function(e){var d=e.data;if(d&&d.__movikoToWebview){(h[d.name]||[]).forEach(function(cb){try{cb(d.payload)}catch(err){console.error(err)}})}});})();</script>`
 
 function withBridge(html: string) {
     if (/<head[^>]*>/i.test(html)) return html.replace(/<head([^>]*)>/i, `<head$1>${BRIDGE}`)
@@ -18,11 +18,11 @@ export function WebviewFrame({ pluginId, id, html, options, className }: { plugi
         const onMsg = (e: MessageEvent) => {
             if (e.source !== ref.current?.contentWindow) return
             const d = e.data
-            if (d && d.__kumoboxWebview) sendPluginEvent(pluginId, { kind: "webview-message", webviewId: id, name: d.name, payload: d.payload })
+            if (d && d.__movikoWebview) sendPluginEvent(pluginId, { kind: "webview-message", webviewId: id, name: d.name, payload: d.payload })
         }
         const onServer = (e: Event) => {
             const d = (e as CustomEvent).detail
-            if (d?.pluginId === pluginId && d.webviewId === id) ref.current?.contentWindow?.postMessage({ __kumoboxToWebview: true, name: d.name, payload: d.payload }, "*")
+            if (d?.pluginId === pluginId && d.webviewId === id) ref.current?.contentWindow?.postMessage({ __movikoToWebview: true, name: d.name, payload: d.payload }, "*")
         }
         window.addEventListener("message", onMsg)
         window.addEventListener("kumobox-webview-message", onServer)

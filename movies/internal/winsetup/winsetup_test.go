@@ -20,7 +20,7 @@ func TestScriptIsASCII(t *testing.T) {
 	}
 }
 
-// The script installs what KumoBox uses, and nothing it no longer does.
+// The script installs what Moviko uses, and nothing it no longer does.
 func TestScriptInstalls(t *testing.T) {
 	for _, want := range []string{"scoop install", "bucket add extras", `Install "ffmpeg"`, `Install "mpv"`, `Install "yt-dlp"`, "gh auth login"} {
 		if !bytes.Contains(script, []byte(want)) {
@@ -29,19 +29,19 @@ func TestScriptInstalls(t *testing.T) {
 	}
 	for _, gone := range []string{"ani-cli", "fzf", "aria2"} {
 		if bytes.Contains(script, []byte(gone)) {
-			t.Errorf("install-tools.ps1 still mentions %q, which KumoBox doesn't use", gone)
+			t.Errorf("install-tools.ps1 still mentions %q, which Moviko doesn't use", gone)
 		}
 	}
 }
 
-// The script checks the repository KumoBox updates from.
+// The script checks the repository Moviko updates from.
 func TestScriptRepo(t *testing.T) {
 	m := regexp.MustCompile(`\[string\]\$Repo = "([^"]+)"`).FindSubmatch(script)
 	if m == nil {
 		t.Fatal("install-tools.ps1 has no $Repo parameter with a default")
 	}
 	if string(m[1]) != config.UpdateRepo {
-		t.Errorf("install-tools.ps1's $Repo is %q, KumoBox updates from %q", m[1], config.UpdateRepo)
+		t.Errorf("install-tools.ps1's $Repo is %q, Moviko updates from %q", m[1], config.UpdateRepo)
 	}
 }
 

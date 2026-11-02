@@ -32,7 +32,7 @@ const AGES = [
 
 // Library tools › Clean up: the space the library takes, and movies and episodes to
 // put away: those watched a while ago, and second copies of an episode. They
-// go to KumoBox's trash (back with one click), which frees the space when it's
+// go to Moviko's trash (back with one click), which frees the space when it's
 // emptied, or by itself after 30 days.
 export function Cleanup() {
     const { data: status } = useStatus()
@@ -50,7 +50,7 @@ export function Cleanup() {
         try {
             const res = await api.post<{ moved: number; failed: Record<string, string> }>("/api/library/trash", { paths })
             const failed = Object.entries(res.failed ?? {})
-            if (res.moved) toast.success(`${res.moved} ${res.moved === 1 ? "file" : "files"} moved to KumoBox's trash. Put them back from it below, or empty it to free the space.`)
+            if (res.moved) toast.success(`${res.moved} ${res.moved === 1 ? "file" : "files"} moved to Moviko's trash. Put them back from it below, or empty it to free the space.`)
             if (failed.length) toast.error(`${failed.length} couldn't be moved: ${failed[0][1]}`)
         } catch (e: any) {
             toast.error(e.message)
@@ -64,7 +64,7 @@ export function Cleanup() {
     return (
         <div className="flex flex-col gap-10">
             <DiskUsage data={data} />
-            {lan && <p className="rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-muted">Files can only be put away on the computer KumoBox runs on.</p>}
+            {lan && <p className="rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-muted">Files can only be put away on the computer Moviko runs on.</p>}
             <WatchedFiles files={data.watched} busy={busy} readOnly={lan} onTrash={toTrash} />
             <Duplicates groups={data.duplicates} busy={busy} readOnly={lan} onTrash={toTrash} />
             <TrashList items={data.trash ?? []} bytes={data.trashBytes} readOnly={lan} onChange={refresh} />
@@ -104,7 +104,7 @@ function DiskUsage({ data }: { data: CleanupView }) {
                     <div className={cn("h-full rounded-full", tone)} style={{ width: `${Math.min(100, share * 100)}%` }} />
                 </div>
             )}
-            {data.trashBytes > 0 && <p className="text-xs text-subtle">KumoBox's trash takes {formatBytes(data.trashBytes)} of it until it's emptied (below).</p>}
+            {data.trashBytes > 0 && <p className="text-xs text-subtle">Moviko's trash takes {formatBytes(data.trashBytes)} of it until it's emptied (below).</p>}
         </section>
     )
 }
@@ -274,7 +274,7 @@ function Duplicates({ groups, busy, readOnly, onTrash }: Props & { groups: Clean
     )
 }
 
-// KumoBox's trash: put back, or deleted for good (the space freed).
+// Moviko's trash: put back, or deleted for good (the space freed).
 function TrashList({ items, bytes, readOnly, onChange }: { items: TrashItem[]; bytes: number; readOnly: boolean; onChange: () => void }) {
     const [busy, setBusy] = useState("")
     const restore = async (ids: string[]) => {
@@ -292,7 +292,7 @@ function TrashList({ items, bytes, readOnly, onChange }: { items: TrashItem[]; b
         }
     }
     const empty = async () => {
-        if (!confirm(`Delete the ${items.length} ${items.length === 1 ? "file" : "files"} in KumoBox's trash for good? This frees ${formatBytes(bytes)} and can't be undone.`)) return
+        if (!confirm(`Delete the ${items.length} ${items.length === 1 ? "file" : "files"} in Moviko's trash for good? This frees ${formatBytes(bytes)} and can't be undone.`)) return
         setBusy("empty")
         try {
             const res = await api.post<{ freed: number }>("/api/library/trash/empty", {})
@@ -309,7 +309,7 @@ function TrashList({ items, bytes, readOnly, onChange }: { items: TrashItem[]; b
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h3 className="flex items-center gap-2 text-[15px] font-semibold">
-                        <Trash2 className="size-4 text-muted" /> KumoBox's trash
+                        <Trash2 className="size-4 text-muted" /> Moviko's trash
                     </h3>
                     <p className="text-[13px] text-muted">Files put away here stay on their drive until it's emptied, and 30 days at most.</p>
                 </div>

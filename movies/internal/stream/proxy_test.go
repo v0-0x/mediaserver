@@ -132,7 +132,7 @@ func TestToVTT(t *testing.T) {
 }
 
 // Every URL hls.js would load goes through the proxy (none left to load
-// from KumoBox's own address), and a login header stays with its host.
+// from Moviko's own address), and a login header stays with its host.
 func TestRewritePlaylistLeavesNothingOut(t *testing.T) {
 	base, _ := url.Parse("https://cdn.example.com/hls/index.m3u8")
 	h := map[string]string{"Referer": "https://site.example/", "Authorization": "Bearer secret"}

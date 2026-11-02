@@ -19,7 +19,7 @@ function readHidden(): string[] {
     }
 }
 
-// Home, on the computer: an KumoBox new on the network (a TV, say), to share
+// Home, on the computer: a Moviko new on the network (a TV, say), to share
 // this computer's library with; and a paired one on another version than
 // this one, to update.
 export function DevicePrompts() {
@@ -69,14 +69,14 @@ export function DevicePrompts() {
                         </span>
                         <div className="min-w-0 flex-1">
                             <p className="font-medium">
-                                {isNew ? `Share this library with ${p.name}?` : p.kind === "older" ? `${p.name} runs an older KumoBox` : `${p.name} runs a newer KumoBox`}
+                                {isNew ? `Share this library with ${p.name}?` : p.kind === "older" ? `${p.name} runs an older Moviko` : `${p.name} runs a newer Moviko`}
                             </p>
                             <p className="mt-0.5 text-sm text-muted">
                                 {isNew
-                                    ? `KumoBox${tvApp ? "'s TV app" : ""} on ${p.name} is on this network. Once shared, it can play this computer's movies and shows.`
+                                    ? `Moviko${tvApp ? "'s TV app" : ""} on ${p.name} is on this network. Once shared, it can play this computer's movies and shows.`
                                     : p.kind === "older"
-                                      ? `KumoBox ${p.version} there, ${status.version} here: update it on ${p.name} (from its Home page) so everything works together.`
-                                      : `KumoBox ${p.version} there, ${status.version} here: update this one (Settings › Updates & about) so everything works together.`}
+                                      ? `Moviko ${p.version} there, ${status.version} here: update it on ${p.name} (from its Home page) so everything works together.`
+                                      : `Moviko ${p.version} there, ${status.version} here: update this one (Settings › Updates & about) so everything works together.`}
                             </p>
                         </div>
                         {isNew ? (

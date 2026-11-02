@@ -84,7 +84,7 @@ export function backdrop(url: string | undefined, width: number) {
 }
 
 // A size picked from srcSet that can't be loaded (offline, and never
-// downloaded) falls back to src: the size KumoBox keeps for offline use.
+// downloaded) falls back to src: the size Moviko keeps for offline use.
 function withoutSrcSet(e: React.SyntheticEvent<HTMLImageElement>) {
     e.currentTarget.removeAttribute("srcset")
 }
@@ -266,7 +266,7 @@ export function relativeTime(unix: number) {
     return new Date(unix * 1000).toLocaleDateString()
 }
 
-// Compares two KumoBox versions (2.0.<commits since 2.0.0's>, 1.0.<number
+// Compares two Moviko versions (2.0.<commits since 2.0.0's>, 1.0.<number
 // of commits> before): null when either isn't one, or is 1.0.0 (built by
 // hand: its version is unknown).
 export function compareVersions(a?: string, b?: string): number | null {

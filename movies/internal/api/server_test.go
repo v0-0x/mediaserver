@@ -27,15 +27,15 @@ func newTestServer(t *testing.T) *Server {
 	// Tests never reach the real TMDB (a key set in a test makes the app
 	// fetch the Discover page in the background): without a stand-in, it's
 	// an address nothing answers at.
-	if os.Getenv("KUMOBOX_TMDB_URL") == "" {
+	if os.Getenv("MOVIKO_TMDB_URL") == "" {
 		dead := httptest.NewServer(http.NotFoundHandler())
 		dead.Close()
-		t.Setenv("KUMOBOX_TMDB_URL", dead.URL)
+		t.Setenv("MOVIKO_TMDB_URL", dead.URL)
 	}
 	// Not t.TempDir: a database write still finishing as the app shuts down
 	// can add a file (SQLite's -wal) while the folder is removed, so its
 	// removal is tried again (after Shutdown, registered below).
-	dir, err := os.MkdirTemp("", "kumobox-test-")
+	dir, err := os.MkdirTemp("", "moviko-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func newTestServer(t *testing.T) *Server {
 		t.Fatal(err)
 	}
 	t.Cleanup(a.Shutdown)
-	return New(a, fstest.MapFS{"index.html": {Data: []byte("<html>kumobox</html>")}})
+	return New(a, fstest.MapFS{"index.html": {Data: []byte("<html>moviko</html>")}})
 }
 
 func do(s *Server, method, path, remote string, body string, mod func(r *http.Request)) *httptest.ResponseRecorder {
@@ -242,7 +242,7 @@ func TestLoopbackHostNames(t *testing.T) {
 			t.Errorf("local connection with this computer's name %s: got %d", name, w.Code)
 		}
 	}
-	// Devices of the network open KumoBox by the computer's local name.
+	// Devices of the network open Moviko by the computer's local name.
 	was := machineName
 	machineName = func() string { return "mypc" }
 	t.Cleanup(func() { machineName = was })
@@ -289,7 +289,7 @@ func TestServerLoginOneAttemptAtATime(t *testing.T) {
 	}
 }
 
-// A request the browsers' middleware didn't see (another KumoBox's) isn't
+// A request the browsers' middleware didn't see (another Moviko's) isn't
 // this computer's.
 func TestUnclassifiedRequestNotTrusted(t *testing.T) {
 	if isTrusted(httptest.NewRequest("GET", "/api/peer/files", nil)) {
@@ -458,7 +458,7 @@ func TestLANLogsAndUpdateEvents(t *testing.T) {
 	}
 
 	msg, _ := json.Marshal(events.Event{Type: events.UpdateStatus, Payload: update.Status{
-		Available: true, CanApply: true, ManualCommand: "sudo pacman -U /home/me/kumobox.pkg.tar.zst", Log: []string{"building in /home/me/..."},
+		Available: true, CanApply: true, ManualCommand: "sudo pacman -U /home/me/moviko.pkg.tar.zst", Log: []string{"building in /home/me/..."},
 	}})
 	// A request the middleware didn't classify counts as the LAN's.
 	r := httptest.NewRequest("GET", "/api/events", nil)

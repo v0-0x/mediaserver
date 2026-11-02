@@ -25,7 +25,7 @@ import (
 // body is what is POSTed to the resolver.
 
 const (
-	// EncoderSHA256 is the encoder build KumoBox runs (luffy's pin). A
+	// EncoderSHA256 is the encoder build Moviko runs (luffy's pin). A
 	// changed encoder is refused until it has been looked at.
 	EncoderSHA256 = "b706f1f2d21ef20d49758672dbdf3559b0d0916bb19850b0ef04991918eea73c"
 
@@ -88,7 +88,7 @@ func cachedEncoder(sum string) *encoder {
 func loadEncoder(ctx context.Context, wasm []byte, sum string) (*encoder, error) {
 	got := sha256.Sum256(wasm)
 	if hex.EncodeToString(got[:]) != sum {
-		return nil, errors.New("encoder changed upstream: refused until KumoBox is updated")
+		return nil, errors.New("encoder changed upstream: refused until Moviko is updated")
 	}
 	encodersMu.Lock()
 	defer encodersMu.Unlock()

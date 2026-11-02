@@ -1,4 +1,4 @@
-// A provider in ES module syntax (KumoBox converts it to CommonJS).
+// A provider in ES module syntax (Moviko converts it to CommonJS).
 import cheerio from 'cheerio-without-node-native';
 
 export async function getStreams(tmdbId, mediaType) {

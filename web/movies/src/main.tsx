@@ -6,11 +6,11 @@ import App from "./App"
 import "./index.css"
 import { applyCachedTheme } from "./lib/themes"
 
-// KumoBox was called KumoBox before 2.0.37: what this browser kept under KumoBox's
-// names (the theme, sorting, the player's volume…) takes KumoBox's.
+// Moviko was called Moviko before 2.0.37: what this browser kept under Moviko's
+// names (the theme, sorting, the player's volume…) takes Moviko's.
 try {
     for (const key of Object.keys(localStorage)) {
-        if (!/^kumobox[-.]/.test(key)) continue
+        if (!/^moviko[-.]/.test(key)) continue
         const name = "kumobox" + key.slice(4)
         if (localStorage.getItem(name) === null) localStorage.setItem(name, localStorage.getItem(key) ?? "")
         localStorage.removeItem(key)

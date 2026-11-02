@@ -19,11 +19,11 @@ import (
 
 // Uploads (package upload): files and folders sent from a computer into a
 // library. The app (web/src/components/UploadDialog) sends them a piece at
-// a time to its own KumoBox, which keeps them (mediaserver's movies side, for
-// the browser signed in to it) or passes them on to the KumoBox they go to
+// a time to its own Moviko, which keeps them (mediaserver's movies side, for
+// the browser signed in to it) or passes them on to the Moviko they go to
 // (one that takes this one's downloads), whose /api/peer/upload takes them.
 
-// uploadTarget is where files can go: a KumoBox this one may upload to, or
+// uploadTarget is where files can go: a Moviko this one may upload to, or
 // (ID "") this one.
 type uploadTarget struct {
 	ID     string `json:"id"`
@@ -33,7 +33,7 @@ type uploadTarget struct {
 	Here bool `json:"here,omitempty"`
 }
 
-// uploadFolders is a KumoBox's library folders files can go to (their index
+// uploadFolders is a Moviko's library folders files can go to (their index
 // is ?folder=), and the most a piece may hold.
 type uploadFolders struct {
 	Folders []string `json:"folders"`
@@ -61,25 +61,25 @@ func (s *Server) uploadRoutes() {
 	m.HandleFunc("GET /api/upload", s.uploadAsk)
 	// ?target=&folder=&path=&offset=&total=, a piece in the body.
 	m.HandleFunc("POST /api/upload", s.uploadAsk)
-	// From another KumoBox, the same (it may download onto this one).
+	// From another Moviko, the same (it may download onto this one).
 	m.HandleFunc("GET /api/peer/upload", shared(func(w http.ResponseWriter, r *http.Request) {
 		if !peerOf(r).Downloads {
-			writeJSON(w, http.StatusForbidden, map[string]any{"error": "this KumoBox doesn't take files from yours"})
+			writeJSON(w, http.StatusForbidden, map[string]any{"error": "this Moviko doesn't take files from yours"})
 			return
 		}
 		s.uploadHere(w, r, peerOf(r).Name)
 	}))
 	m.HandleFunc("POST /api/peer/upload", shared(func(w http.ResponseWriter, r *http.Request) {
 		if !peerOf(r).Downloads {
-			writeJSON(w, http.StatusForbidden, map[string]any{"error": "this KumoBox doesn't take files from yours"})
+			writeJSON(w, http.StatusForbidden, map[string]any{"error": "this Moviko doesn't take files from yours"})
 			return
 		}
 		s.uploadHere(w, r, peerOf(r).Name)
 	}))
 }
 
-// uploadsHere: this KumoBox takes files from the browser itself (it's
-// mediaserver's movies side); others take them from other KumoBoxes only.
+// uploadsHere: this Moviko takes files from the browser itself (it's
+// mediaserver's movies side); others take them from other Movikos only.
 func (s *Server) uploadsHere() bool { return s.Owner != nil }
 
 // machineHost is this computer's name, for the list of targets.
@@ -132,8 +132,8 @@ func (s *Server) uploadAsk(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(raw)
 }
 
-// uploadHere takes a request about an upload into this KumoBox's library:
-// its folders, where a file stands, or a piece. from is the KumoBox it comes
+// uploadHere takes a request about an upload into this Moviko's library:
+// its folders, where a file stands, or a piece. from is the Moviko it comes
 // from ("": the browser).
 func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string) {
 	q := r.URL.Query()
@@ -149,7 +149,7 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 	if err != nil || i < 0 || i >= len(dirs) {
 		msg := "no such library folder"
 		if len(dirs) == 0 {
-			msg = "this KumoBox has no library folder to put files in (Settings › Local library)"
+			msg = "this Moviko has no library folder to put files in (Settings › Local library)"
 		}
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": msg})
 		return

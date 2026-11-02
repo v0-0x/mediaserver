@@ -116,7 +116,7 @@ func (h *HLS) Start(ctx context.Context, req HLSRequest) (*HLSSession, error) {
 	h.mu.Lock()
 	if h.closed {
 		h.mu.Unlock()
-		return nil, errors.New("KumoBox is shutting down")
+		return nil, errors.New("Moviko is shutting down")
 	}
 	var s *hlsSession
 	var old []*hlsSession
@@ -288,7 +288,7 @@ func (h *HLS) Stop(id string) {
 	}
 }
 
-// Close ends every session, when KumoBox quits.
+// Close ends every session, when Moviko quits.
 func (h *HLS) Close() {
 	h.mu.Lock()
 	if h.closed {

@@ -21,7 +21,7 @@ import (
 // A Nuvio repository is a manifest.json listing providers: either a JSON
 // array of entries or an object with a "scrapers" array. Each entry points
 // (filename, relative to the manifest) at a CommonJS file exporting
-// getStreams(tmdbId, mediaType, season, episode). KumoBox installs each
+// getStreams(tmdbId, mediaType, season, episode). Moviko installs each
 // provider as an extension of type TypeNuvioProvider (same table, same
 // enable/disable/uninstall/logs/update flow as the others); the extension
 // id is "nuvio." + the provider id, its ManifestURI the repository's
@@ -69,7 +69,7 @@ type NuvioEntry struct {
 	Formats         []string `json:"formats"`
 	Limited         bool     `json:"limited"`
 
-	// Filled in by KumoBox: the code's URL, the extension id it installs
+	// Filled in by Moviko: the code's URL, the extension id it installs
 	// as, and its installed state.
 	URL              string `json:"url"`
 	ExtensionID      string `json:"extensionId"`

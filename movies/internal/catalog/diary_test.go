@@ -14,7 +14,7 @@ func TestDiary(t *testing.T) {
 	p.db.SetCache(liteKey(b.ID), b, time.Hour)
 
 	mine, added, err := p.AddDiary(ctx, DiaryEntry{MediaID: a.ID, WatchedDate: "2020-10-01", Rating: 90, Liked: true})
-	if err != nil || !added || mine.ID == 0 || mine.Source != DiaryKumoBox || mine.Media == nil || mine.Media.ID != a.ID {
+	if err != nil || !added || mine.ID == 0 || mine.Source != DiaryMoviko || mine.Media == nil || mine.Media.ID != a.ID {
 		t.Fatalf("logged: %+v %v %v", mine, added, err)
 	}
 	imported := DiaryEntry{MediaID: b.ID, WatchedDate: "2020-09-12", Rating: 70, Rewatch: true, Review: "Again!", Tags: "cinema",

@@ -1,6 +1,6 @@
 // Command mediaserver is the home server for v0-0x's apps: one program with a
 // side for each. The anime side is Aniko's server, for the Aniko apps (port
-// 43211, with the dashboard); the movies side is KumoBox's, for the KumoBox
+// 43211, with the dashboard); the movies side is Moviko's, for the Moviko
 // apps (port 43311); the music side is Utako's, for the Utako apps (port
 // 43411). Each keeps its own data, library, devices and logins: they share
 // the program, its updates, and the dashboard's sign-in.
@@ -107,7 +107,7 @@ func main() {
 	}
 	// And its Music pages the music side.
 	a.SetMusic(u.Handler())
-	log.Printf("mediaserver %s ready: anime (Aniko) at port %d, movies and shows (KumoBox) at port %d, music (Utako) at port %d — data: %s", version, a.Port(), m.Port(), u.Port(), root)
+	log.Printf("mediaserver %s ready: anime (Aniko) at port %d, movies and shows (Moviko) at port %d, music (Utako) at port %d — data: %s", version, a.Port(), m.Port(), u.Port(), root)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)

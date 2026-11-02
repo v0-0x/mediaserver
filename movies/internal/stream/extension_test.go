@@ -71,7 +71,7 @@ func (f *fakeExtension) FindEpisodeServer(ctx context.Context, ep extensions.OSE
 
 func openTestDB(t *testing.T) *db.DB {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

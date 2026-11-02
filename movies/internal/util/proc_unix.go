@@ -14,12 +14,12 @@ import (
 	"time"
 )
 
-// BindChildren is for Windows; here a killed KumoBox's children end with the
+// BindChildren is for Windows; here a killed Moviko's children end with the
 // desktop app's process group, or keep running like any orphan.
 func BindChildren() error { return nil }
 
 func detachAttrs(cmd *exec.Cmd) {
-	// A session of its own, so Ctrl+C on KumoBox's terminal doesn't close it.
+	// A session of its own, so Ctrl+C on Moviko's terminal doesn't close it.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 }
 

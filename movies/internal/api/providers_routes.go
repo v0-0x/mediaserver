@@ -188,7 +188,7 @@ func (s *Server) providerStreamsLive(w http.ResponseWriter, r *http.Request) {
 			started = true
 			w.Header().Set("Content-Type", "application/x-ndjson")
 			w.Header().Set("Cache-Control", "no-store")
-			// Proxies in front of KumoBox mustn't hold the lines back.
+			// Proxies in front of Moviko mustn't hold the lines back.
 			w.Header().Set("X-Accel-Buffering", "no")
 			w.WriteHeader(http.StatusOK)
 		}
@@ -609,7 +609,7 @@ func (s *Server) providerDownload(r *http.Request) (any, error) {
 	for _, k := range body.Episodes {
 		sd.Episodes = append(sd.Episodes, float64(k))
 	}
-	// Downloads go to another KumoBox (a TV's, say: to the computer's).
+	// Downloads go to another Moviko (a TV's, say: to the computer's).
 	if out, sent, err := s.sendDownload(r.Context(), share.DownloadStream, sd); sent {
 		return out, err
 	}
@@ -825,7 +825,7 @@ func (s *Server) collection(r *http.Request, u string, refresh bool) (any, error
 
 // importStremioAccount is POST /api/providers/stremio/import {email,
 // password}: signs in to a Stremio account and installs the addons on it
-// KumoBox can use → {added, skipped: [{id, name, transportUrl, reason}]}.
+// Moviko can use → {added, skipped: [{id, name, transportUrl, reason}]}.
 // Only on this computer. The password and the session's key are used for
 // the sign-in and the addon list, then forgotten: neither is saved nor
 // logged.

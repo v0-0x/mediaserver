@@ -566,7 +566,7 @@ function ManualMatchDialog({
         }
     }
     return (
-        <Dialog open={open} onOpenChange={onOpenChange} title={`Pick the right title on ${providerName}`} description="Search the provider and choose the matching entry. KumoBox remembers your choice.">
+        <Dialog open={open} onOpenChange={onOpenChange} title={`Pick the right title on ${providerName}`} description="Search the provider and choose the matching entry. Moviko remembers your choice.">
             <div className="flex gap-2">
                 <Input autoFocus value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === "Enter" && search()} placeholder="Search…" icon={<Search className="size-4" />} />
                 <Button variant="primary" loading={busy} onClick={search}>

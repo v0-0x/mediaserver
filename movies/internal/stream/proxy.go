@@ -73,7 +73,7 @@ var localProxyClient = &http.Client{
 // Credentials, when set, gives the headers authenticating a request for a
 // stream's link with the media server it's on (the token of a Jellyfin,
 // Emby or Plex server of Settings › Providers), nil for any other link.
-// KumoBox adds them when it fetches the link itself (proxy, relay) or has
+// Moviko adds them when it fetches the link itself (proxy, relay) or has
 // mpv or a downloader fetch it on this computer: they're never handed to
 // the browser, nor put in links.
 var Credentials func(u *url.URL) map[string]string
@@ -156,7 +156,7 @@ var sameSiteHeaders = map[string]bool{"referer": true, "origin": true, "user-age
 
 // IsDocumentRequest reports a navigation or frame load. Proxied and cached
 // remote content is only ever loaded as media/images/XHR by the app, never
-// opened as a page on KumoBox's origin.
+// opened as a page on Moviko's origin.
 func IsDocumentRequest(r *http.Request) bool {
 	switch r.Header.Get("Sec-Fetch-Dest") {
 	case "document", "iframe", "frame", "embed", "object":
@@ -185,7 +185,7 @@ func SafeContentType(ct string) string {
 
 // ServeProxy implements GET /api/proxy.
 func ServeProxy(w http.ResponseWriter, r *http.Request) {
-	// Remote content must never run as a page on KumoBox's origin.
+	// Remote content must never run as a page on Moviko's origin.
 	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	if IsDocumentRequest(r) {
 		http.Error(w, "not a page", http.StatusForbidden)

@@ -9,9 +9,9 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/config"
 )
 
-// Prompt is what Home asks about another KumoBox on the network: whether to
-// share this KumoBox's library with one that's new ("new"), or to update one
-// of the two, their versions differing ("older": its KumoBox is older than
+// Prompt is what Home asks about another Moviko on the network: whether to
+// share this Moviko's library with one that's new ("new"), or to update one
+// of the two, their versions differing ("older": its Moviko is older than
 // this one, "newer": this one is).
 type Prompt struct {
 	Kind     string `json:"kind"`
@@ -21,7 +21,7 @@ type Prompt struct {
 	Version  string `json:"version"`
 }
 
-// Prompts are Home's questions about the other KumoBoxes, for the app on this
+// Prompts are Home's questions about the other Movikos, for the app on this
 // computer (not a device on the network: it can't change sharing).
 func (s *Service) Prompts() []Prompt {
 	now := time.Now()
@@ -35,13 +35,13 @@ func (s *Service) Prompts() []Prompt {
 		if !p.online(now) {
 			continue
 		}
-		// A mediaserver: it shares its library with this KumoBox when its
+		// A mediaserver: it shares its library with this Moviko when its
 		// owner says so, and is updated from its dashboard.
 		if p.platform == PlatformServer {
 			continue
 		}
 		pr := Prompt{ID: p.id, Name: s.view(p, now).Name, Platform: p.platform, Version: p.version}
-		// One that shares its library with this KumoBox isn't new here.
+		// One that shares its library with this Moviko isn't new here.
 		if !p.allowed && !p.shares && !p.declined {
 			pr.Kind = "new"
 			out = append(out, pr)
@@ -64,7 +64,7 @@ func (s *Service) Prompts() []Prompt {
 	return out
 }
 
-// compareVersions compares two KumoBox versions (2.0.<commits since 2.0.0's>,
+// compareVersions compares two Moviko versions (2.0.<commits since 2.0.0's>,
 // 1.0.<number of commits> before):
 // ok is false when either isn't one, or is a build's default (1.0.0: built
 // by hand, its version unknown).

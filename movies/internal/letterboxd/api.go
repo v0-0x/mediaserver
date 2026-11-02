@@ -34,7 +34,7 @@ import (
 //   - Unknown fields are ignored, missing ones read as empty: only ids,
 //     names and the token are needed.
 
-// DefaultAPIBaseURL is the API's address ($KUMOBOX_LETTERBOXD_API_URL or
+// DefaultAPIBaseURL is the API's address ($MOVIKO_LETTERBOXD_API_URL or
 // Sync.APIBaseURL point elsewhere).
 const DefaultAPIBaseURL = "https://api.letterboxd.com/api/v0"
 

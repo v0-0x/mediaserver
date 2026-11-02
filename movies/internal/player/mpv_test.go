@@ -12,7 +12,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/config"
 )
 
-const fakeMpvEnv = "KUMOBOX_PLAYER_TEST_FAKE_MPV"
+const fakeMpvEnv = "MOVIKO_PLAYER_TEST_FAKE_MPV"
 
 func TestMain(m *testing.M) {
 	if mode := os.Getenv(fakeMpvEnv); mode != "" {

@@ -9,7 +9,7 @@ import (
 )
 
 // Pull reads the connected member's diary feed and brings its new entries
-// into KumoBox: each becomes a diary entry (Source "letterboxd", LetterboxdID
+// into Moviko: each becomes a diary entry (Source "letterboxd", LetterboxdID
 // the feed's guid, so it's only added once) and updates the film's list
 // entry (see apply.go for the rules). The feed only has the latest 50
 // entries; older ones come with Import.

@@ -4,7 +4,7 @@ package torrent
 //
 // The auto downloader keeps the shows the user follows downloaded: each
 // rule names a show, and every few minutes (Settings › Torrent client ›
-// Auto downloader) KumoBox works out which of its episodes are wanted —
+// Auto downloader) Moviko works out which of its episodes are wanted —
 // the regular episodes that aired after the last one watched (or the
 // rule's start), that aren't in the library and weren't grabbed before —
 // searches every torrent source for each, picks the best release that
@@ -111,7 +111,7 @@ type AutoDownloader struct {
 	hub      *events.Hub
 	mu       sync.Mutex
 	now      func() time.Time
-	// Send, when set, sends a release where this KumoBox's downloads go (the
+	// Send, when set, sends a release where this Moviko's downloads go (the
 	// computer a TV's go to), and reports whether it did; else it goes to
 	// the torrent client here.
 	Send func(ctx context.Context, mediaID int, uris []string) (bool, error)
@@ -731,7 +731,7 @@ func (a *AutoDownloader) grab(ctx context.Context, r *Rule, media *catalog.Media
 	if save == "" {
 		save = a.torrents.SavePath(media, season, files)
 	}
-	// Where this KumoBox's downloads go, when it isn't here (a TV's go to
+	// Where this Moviko's downloads go, when it isn't here (a TV's go to
 	// the computer it uses).
 	sent := false
 	if a.Send != nil {

@@ -1,4 +1,4 @@
-// Package providers holds what every streaming provider of KumoBox shares:
+// Package providers holds what every streaming provider of Moviko shares:
 // the request a provider gets for a movie or an episode, the streams it
 // answers with, and helpers to read qualities, sizes and seeders out of the
 // free text sources come with, rank streams and query many providers at
@@ -45,7 +45,7 @@ const (
 // show. Providers pick the ids they understand (TMDB, IMDb) or search by
 // title and year.
 type Request struct {
-	// MediaID is the KumoBox media id (see catalog/ids.go).
+	// MediaID is the Moviko media id (see catalog/ids.go).
 	MediaID int `json:"mediaId"`
 	// TMDBID is the TMDB movie or TV id, IMDbID the IMDb one ("tt0133093",
 	// the show's for an episode), empty when TMDB doesn't know it.

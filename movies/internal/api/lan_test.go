@@ -10,7 +10,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/extensions"
 )
 
-// refusedURL is an address on this computer: KumoBox never downloads
+// refusedURL is an address on this computer: Moviko never downloads
 // extensions, collections or repositories from there, so the requests of
 // these tests that this computer may make fail without any network.
 const refusedURL = "http://127.0.0.1:1/manifest.json"
@@ -60,7 +60,7 @@ func TestLANDoesntManageProviders(t *testing.T) {
 }
 
 // Devices on the LAN see the marketplace, addon collections and Nuvio
-// repositories of the settings, no others: they can't make KumoBox
+// repositories of the settings, no others: they can't make Moviko
 // download (and keep in its cache) whatever they like.
 func TestLANReadsConfiguredSourcesOnly(t *testing.T) {
 	s := newProvidersServer(t)
@@ -118,7 +118,7 @@ func TestLANExtensionSettingsHidden(t *testing.T) {
 }
 
 // GET requests only read: fetching a title or the providers' streams again,
-// or asking the other KumoBoxes again, is a POST, which other websites
+// or asking the other Movikos again, is a POST, which other websites
 // can't send. Devices on the LAN may still, as they browse and play.
 func TestRefreshesArePosts(t *testing.T) {
 	s, tmdbHits := newCountingCatalogServer(t)
@@ -177,7 +177,7 @@ func TestRefreshesArePosts(t *testing.T) {
 }
 
 // Every method but GET and HEAD (which only read) has to come from
-// KumoBox's own pages, for this computer's browsers and the LAN's alike:
+// Moviko's own pages, for this computer's browsers and the LAN's alike:
 // another origin, "null" (sandboxed frames, file: pages), a cross-site
 // fetch or a host name another site could point here are refused.
 func TestNonGetRequestsChecked(t *testing.T) {

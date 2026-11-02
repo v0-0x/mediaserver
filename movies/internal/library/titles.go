@@ -10,7 +10,7 @@ import (
 )
 
 // The Local library page: the movies and shows with files, on this
-// computer or on another KumoBox sharing its library, each summed up.
+// computer or on another Moviko sharing its library, each summed up.
 
 // LibraryTitle is a movie or show of the Local library page.
 type LibraryTitle struct {
@@ -34,7 +34,7 @@ type LibraryTitle struct {
 	Resolutions   []string `json:"resolutions"`
 	ReleaseGroups []string `json:"releaseGroups"`
 	// Dir is the folder that holds it: its movie's or show's folder, else
-	// the one most of its files are in ("" for another KumoBox's).
+	// the one most of its files are in ("" for another Moviko's).
 	Dir string `json:"dir"`
 	// Unwatched is how many of its episodes with a file haven't been
 	// watched (the movie: 1 or 0), Next the file of the first of them.
@@ -52,7 +52,7 @@ type SeasonFiles struct {
 }
 
 // Titles lists the movies and shows with files: this computer's (host ""),
-// or those another KumoBox shares (its host id). Titles whose data can't
+// or those another Moviko shares (its host id). Titles whose data can't
 // be had (TMDB not answering, never fetched) are left out until it can.
 func (s *Service) Titles(ctx context.Context, host string) ([]*LibraryTitle, error) {
 	var files []*LocalFile

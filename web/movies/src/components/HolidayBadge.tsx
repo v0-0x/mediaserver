@@ -4,7 +4,7 @@ import type { Holiday } from "@/lib/themes"
 import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
-// The holiday's little drawing: on KumoBox's logo in the sidebar, and in the
+// The holiday's little drawing: on Moviko's logo in the sidebar, and in the
 // Themes menu (ThemesMenu).
 export function HolidayIcon({ id, className }: { id: string; className?: string }) {
     const common = { viewBox: "0 0 32 32", className, "aria-hidden": true } as const
@@ -96,7 +96,7 @@ export function useHolidayNotice(holiday: Holiday | null, seasonal: string) {
         } catch {
             return // nowhere to remember it: not said each time
         }
-        toast(`KumoBox's ${holiday.name} theme is on`, {
+        toast(`Moviko's ${holiday.name} theme is on`, {
             description: `Its colors and ${holiday.effectName.toLowerCase()}, ${holiday.when.replace(/^In /, "in ").replace(/^January/, "on January")}. Change it from Themes in the sidebar.`,
             duration: 12000,
             // Only that: the settings as they are then (not when it showed).

@@ -17,14 +17,14 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/stream"
 )
 
-// A host's files are played through this KumoBox's server: the player asks it
+// A host's files are played through this Moviko's server: the player asks it
 // as for a local file, and it forwards the request to the host (signed),
-// and the answer back. The host converts the video for this KumoBox's player
+// and the answer back. The host converts the video for this Moviko's player
 // when needed, like for one of its own.
 
-var errNotShared = errors.New("that library isn't shared with this KumoBox any more")
+var errNotShared = errors.New("that library isn't shared with this Moviko any more")
 
-// host is an KumoBox that shares its library with this one.
+// host is a Moviko that shares its library with this one.
 func (s *Service) host(id string) *peer {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -191,7 +191,7 @@ func remoteSession(id string) (host, session string, ok bool) {
 	return host, session, ok && sessionID.MatchString(host) && sessionID.MatchString(session)
 }
 
-// IsRemoteSession reports an HLS session on another KumoBox.
+// IsRemoteSession reports an HLS session on another Moviko.
 func IsRemoteSession(id string) bool {
 	_, _, ok := remoteSession(id)
 	return ok

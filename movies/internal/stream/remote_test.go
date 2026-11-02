@@ -89,7 +89,7 @@ func TestRemoteStreamConverts(t *testing.T) {
 		t.Errorf("file: %d", w.Code)
 	}
 
-	// A name KumoBox doesn't know.
+	// A name Moviko doesn't know.
 	if _, err := l.Probe(context.Background(), RemotePrefix+"0123456789abcdef01234567"); err != ErrRemoteGone {
 		t.Errorf("unknown name: %v", err)
 	}

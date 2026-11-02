@@ -7,9 +7,9 @@ var (
 	toolsDir string
 )
 
-// SetToolsDir sets the folder where KumoBox puts programs itself (the macOS
+// SetToolsDir sets the folder where Moviko puts programs itself (the macOS
 // programs setup: ffmpeg, yt-dlp, mpv). On macOS it goes first on the
-// PATH, for KumoBox's lookups and the programs it starts; it needn't exist
+// PATH, for Moviko's lookups and the programs it starts; it needn't exist
 // yet.
 func SetToolsDir(dir string) {
 	toolsMu.Lock()

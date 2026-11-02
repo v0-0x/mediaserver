@@ -157,24 +157,24 @@ func TestConnectAndPull(t *testing.T) {
 	}
 }
 
-func TestPullKeepsKumoBoxState(t *testing.T) {
+func TestPullKeepsMovikoState(t *testing.T) {
 	ts := newTestSync(t)
 	ctx := context.Background()
 	ts.settings(t, func(l *config.LetterboxdSettings) { l.Username = "davevis" })
 	at := func(y, m, d int) int64 { return time.Date(y, time.Month(m), d, 12, 0, 0, 0, time.UTC).Unix() }
-	// Rated in KumoBox after both Letterboxd ratings: the score stays.
+	// Rated in Moviko after both Letterboxd ratings: the score stays.
 	ts.cat.put(catalog.ListEntry{MediaID: matrix, Status: "COMPLETED", Progress: 1, Score: 50, CompletedAt: date(2019, 1, 1), UpdatedAt: at(2024, 3, 11)})
 	// Rated before: Letterboxd's newer rating wins.
 	ts.cat.put(catalog.ListEntry{MediaID: dune2, Status: "PAUSED", Score: 50, UpdatedAt: at(2024, 1, 1)})
-	// Being watched in KumoBox: a show stays Watching.
+	// Being watched in Moviko: a show stays Watching.
 	ts.cat.put(catalog.ListEntry{MediaID: chernobyl, Status: "CURRENT", Progress: 1003, UpdatedAt: at(2024, 1, 1)})
 	// Rewatching since after the viewing: stays.
 	ts.cat.put(catalog.ListEntry{MediaID: parasite, Status: "REPEATING", Score: 0, UpdatedAt: at(2024, 3, 5)})
 	// On the watchlist: an undated review doesn't touch it.
 	ts.cat.put(catalog.ListEntry{MediaID: reloaded, Status: "PLANNING", UpdatedAt: at(2024, 1, 1)})
-	// Logged in KumoBox the same day as on Letterboxd, not exported yet.
+	// Logged in Moviko the same day as on Letterboxd, not exported yet.
 	ts.cat.put(catalog.ListEntry{MediaID: obscure, Status: "COMPLETED", Progress: 1, Score: 40, CompletedAt: date(2024, 2, 15), UpdatedAt: at(2024, 2, 15)})
-	mine, _, _ := ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: obscure, WatchedDate: "2024-02-15", Rating: 40, Source: SourceKumoBox})
+	mine, _, _ := ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: obscure, WatchedDate: "2024-02-15", Rating: 40, Source: SourceMoviko})
 
 	res, err := ts.Pull(ctx)
 	if err != nil {
@@ -222,7 +222,7 @@ func TestChangeRules(t *testing.T) {
 		{"partial date is older", matrix, &catalog.ListEntry{Status: "COMPLETED", Progress: 1, CompletedAt: catalog.FuzzyDate{Year: new(2024)}},
 			func(c *change) { c.watched("2024-01-02", false) },
 			listState{exists: true, status: "COMPLETED", progress: 1, completedAt: "2024-01-02"}},
-		{"movie watched since KumoBox's rewatch began", matrix, &catalog.ListEntry{Status: "REPEATING", Progress: 0, UpdatedAt: day(2024, 1, 1)},
+		{"movie watched since Moviko's rewatch began", matrix, &catalog.ListEntry{Status: "REPEATING", Progress: 0, UpdatedAt: day(2024, 1, 1)},
 			func(c *change) { c.watched("2024-01-02", true) },
 			listState{exists: true, status: "COMPLETED", progress: 1, completedAt: "2024-01-02"}},
 		{"movie rewatch began after the viewing", matrix, &catalog.ListEntry{Status: "REPEATING", UpdatedAt: day(2024, 2, 1)},
@@ -240,7 +240,7 @@ func TestChangeRules(t *testing.T) {
 		{"rating with no score", matrix, &catalog.ListEntry{Status: "COMPLETED", UpdatedAt: day(2024, 6, 1)},
 			func(c *change) { c.rate(70, day(2024, 1, 1)) },
 			listState{exists: true, status: "COMPLETED", score: 70}},
-		{"newer KumoBox score stays", matrix, &catalog.ListEntry{Status: "COMPLETED", Score: 40, UpdatedAt: day(2024, 6, 1)},
+		{"newer Moviko score stays", matrix, &catalog.ListEntry{Status: "COMPLETED", Score: 40, UpdatedAt: day(2024, 6, 1)},
 			func(c *change) { c.rate(70, day(2024, 1, 1)) },
 			listState{exists: true, status: "COMPLETED", score: 40}},
 		{"newer Letterboxd rating wins", matrix, &catalog.ListEntry{Status: "COMPLETED", Score: 40, UpdatedAt: day(2023, 6, 1)},
@@ -292,7 +292,7 @@ func TestImport(t *testing.T) {
 	ts := newTestSync(t)
 	ctx := context.Background()
 	ts.settings(t, func(l *config.LetterboxdSettings) { l.Username = "davevis"; l.ImportWatchlist = true })
-	// Rated in KumoBox after the Letterboxd rating (2019-06-01).
+	// Rated in Moviko after the Letterboxd rating (2019-06-01).
 	ts.cat.put(catalog.ListEntry{MediaID: heat, Status: "COMPLETED", Progress: 1, Score: 80, UpdatedAt: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC).Unix()})
 	data := buildZip(t, "", exportFiles)
 	ex, err := ReadExportZip(bytes.NewReader(data), int64(len(data)))
@@ -474,9 +474,9 @@ func TestExport(t *testing.T) {
 		}
 		return got.ID
 	}
-	m := add(catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-01", Rating: 87, Rewatch: true, Review: "Great, again.", Tags: "a, b", Source: SourceKumoBox})
-	c := add(catalog.DiaryEntry{MediaID: chernobyl, WatchedDate: "2024-02-01", Source: SourceKumoBox})
-	h := add(catalog.DiaryEntry{MediaID: heat, WatchedDate: "2024-01-15", Rating: 70, Source: SourceKumoBox, ExportedAt: 123})
+	m := add(catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-01", Rating: 87, Rewatch: true, Review: "Great, again.", Tags: "a, b", Source: SourceMoviko})
+	c := add(catalog.DiaryEntry{MediaID: chernobyl, WatchedDate: "2024-02-01", Source: SourceMoviko})
+	h := add(catalog.DiaryEntry{MediaID: heat, WatchedDate: "2024-01-15", Rating: 70, Source: SourceMoviko, ExportedAt: 123})
 	add(catalog.DiaryEntry{MediaID: parasite, WatchedDate: "2024-01-20", Rating: 100, Source: SourceLetterboxd, LetterboxdID: "letterboxd-watch-1"})
 
 	var buf bytes.Buffer
@@ -545,7 +545,7 @@ func TestLoggedWatched(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if e == nil || e.ID == 0 || e.WatchedDate != "2024-03-12" || e.Rating != 85 || !e.Liked || e.Rewatch || e.Source != SourceKumoBox || e.ExportedAt != 0 {
+	if e == nil || e.ID == 0 || e.WatchedDate != "2024-03-12" || e.Rating != 85 || !e.Liked || e.Rewatch || e.Source != SourceMoviko || e.ExportedAt != 0 {
 		t.Fatalf("entry = %+v", e)
 	}
 	// The same day again: the same entry.

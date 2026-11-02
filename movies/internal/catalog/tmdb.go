@@ -67,7 +67,7 @@ type genreList struct {
 }
 
 // NewClient returns a client reading its key, language and region from
-// settings. KUMOBOX_TMDB_URL and KUMOBOX_TMDB_IMAGE_URL override the API and
+// settings. MOVIKO_TMDB_URL and MOVIKO_TMDB_IMAGE_URL override the API and
 // image hosts (tests, offline demos).
 func NewClient(settings func() config.Settings) *Client {
 	if settings == nil {
@@ -80,10 +80,10 @@ func NewClient(settings func() config.Settings) *Client {
 		settings: settings,
 		genres:   map[string]genreList{},
 	}
-	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("KUMOBOX_TMDB_URL")), "/"); u != "" {
+	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("MOVIKO_TMDB_URL")), "/"); u != "" {
 		c.base = u
 	}
-	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("KUMOBOX_TMDB_IMAGE_URL")), "/"); u != "" {
+	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("MOVIKO_TMDB_IMAGE_URL")), "/"); u != "" {
 		c.images = u
 	}
 	return c

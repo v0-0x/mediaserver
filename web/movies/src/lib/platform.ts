@@ -1,4 +1,4 @@
-// The computer KumoBox runs on (status.platform: Go's GOOS), for install hints
+// The computer Moviko runs on (status.platform: Go's GOOS), for install hints
 // and examples. The server's error messages use the same commands
 // (server/internal/util/hints.go).
 

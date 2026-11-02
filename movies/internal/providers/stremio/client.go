@@ -47,7 +47,7 @@ type Addon struct {
 	Position    int   `json:"position"`
 	InstalledAt int64 `json:"installedAt,omitempty"`
 
-	// Local addons run on this computer or the LAN (KumoBox only talks to
+	// Local addons run on this computer or the LAN (Moviko only talks to
 	// them once the user installed them on purpose).
 	Local bool `json:"local"`
 	// Supported addons serve streams or subtitles of movies or series.

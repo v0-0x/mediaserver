@@ -39,10 +39,10 @@ import { Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparat
 import { toast as sonner } from "sonner"
 import { toast } from "@/lib/toast"
 
-// KumoBox's logo: a clapperboard with a play button, on a dark tile. The
-// same drawing is the app icon (packaging/icons/kumobox.svg) and the favicon
-// (public/kumobox.svg).
-export function KumoBoxLogo({ className }: { className?: string }) {
+// Moviko's logo: a clapperboard with a play button, on a dark tile. The
+// same drawing is the app icon (packaging/icons/moviko.svg) and the favicon
+// (public/moviko.svg).
+export function MovikoLogo({ className }: { className?: string }) {
     return (
         <svg viewBox="0 0 64 64" className={className} aria-hidden>
             <path d="M59.86 59.86C59.27 60.45 58.63 60.95 57.87 61.4C57.12 61.85 56.31 62.23 55.33 62.56C54.36 62.88 53.35 63.15 52.01 63.36C50.66 63.58 50.57 63.74 47.24 63.84C43.9 63.95 37.08 64 32 64C26.92 64 20.1 63.95 16.76 63.84C13.43 63.74 13.34 63.58 11.99 63.36C10.65 63.15 9.64 62.88 8.67 62.56C7.69 62.23 6.88 61.85 6.13 61.4C5.37 60.95 4.73 60.45 4.14 59.86C3.55 59.27 3.05 58.63 2.6 57.87C2.15 57.12 1.77 56.31 1.44 55.33C1.12 54.36 0.85 53.35 0.64 52.01C0.42 50.66 0.26 50.57 0.16 47.24C0.05 43.9 0 37.08 0 32C0 26.92 0.05 20.1 0.16 16.76C0.26 13.43 0.42 13.34 0.64 11.99C0.85 10.65 1.12 9.64 1.44 8.67C1.77 7.69 2.15 6.88 2.6 6.13C3.05 5.37 3.55 4.73 4.14 4.14C4.73 3.55 5.37 3.05 6.13 2.6C6.88 2.15 7.69 1.77 8.67 1.44C9.64 1.12 10.65 0.85 11.99 0.64C13.34 0.42 13.43 0.26 16.76 0.16C20.1 0.05 26.92 0 32 0C37.08 0 43.9 0.05 47.24 0.16C50.57 0.26 50.66 0.42 52.01 0.64C53.35 0.85 54.36 1.12 55.33 1.44C56.31 1.77 57.12 2.15 57.87 2.6C58.63 3.05 59.27 3.55 59.86 4.14C60.45 4.73 60.95 5.37 61.4 6.13C61.85 6.88 62.23 7.69 62.56 8.67C62.88 9.64 63.15 10.65 63.36 11.99C63.58 13.34 63.74 13.43 63.84 16.76C63.95 20.1 64 26.92 64 32C64 37.08 63.95 43.9 63.84 47.24C63.74 50.57 63.58 50.66 63.36 52.01C63.15 53.35 62.88 54.36 62.56 55.33C62.23 56.31 61.85 57.12 61.4 57.87C60.95 58.63 60.45 59.27 59.86 59.86Z" fill="#141416" />
@@ -54,16 +54,16 @@ export function KumoBoxLogo({ className }: { className?: string }) {
     )
 }
 
-// "kumobox", in rounded strokes like the logo's curves; in the text color.
-export function KumoBoxWordmark({ className }: { className?: string }) {
+// "moviko", in rounded strokes like the logo's curves; in the text color.
+export function MovikoWordmark({ className }: { className?: string }) {
     return (
-        <svg viewBox="0 0 200 40" className={className} aria-hidden>
+        <svg viewBox="0 0 159 40" className={className} aria-hidden>
             <g fill="none" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3.5 3.5V36M18 14 3.5 26.5M9.5 21.3 18.5 36M27 14v13a9 9 0 0 0 18 0V14m0 0v22M54.5 36V14m0 7a7 7 0 0 1 14 0v15m0-15a7 7 0 0 1 14 0v15M120.5 3.5V36M179.5 14l17 22m0-22-17 22" />
-                <circle cx="101" cy="25" r="11" />
-                <circle cx="131.5" cy="25" r="11" />
-                <circle cx="161" cy="25" r="11" />
+                <path d="M3.5 36V14m0 7a7 7 0 0 1 14 0v15m0-15a7 7 0 0 1 14 0v15M71.5 14l10 22 10-22M100.5 14v22M109.5 3.5V36M124 14 109.5 26.5M115.5 21.3 124.5 36" />
+                <circle cx="51.5" cy="25" r="11" />
+                <circle cx="144.5" cy="25" r="11" />
             </g>
+            <circle cx="100.5" cy="4.5" r="3.6" fill="currentColor" />
         </svg>
     )
 }
@@ -118,7 +118,7 @@ export function useNavGroups(): { label: string; items: NavItem[] }[] {
     ]
 }
 
-// Back to the page before, when there's one in KumoBox. Not on a TV: its
+// Back to the page before, when there's one in Moviko. Not on a TV: its
 // remote has Back. In the desktop app, Alt+Left (⌘[ on a Mac) and a
 // mouse's back button too, which a browser does by itself.
 function BackButton({ wide }: { wide: boolean }) {
@@ -262,13 +262,13 @@ export function Sidebar() {
                     onClick={() => navigate("/")}
                     data-tv-skip-nav
                     className={cn("focus-ring flex h-10 items-center gap-2.5 rounded-md", wide ? "min-w-0 flex-1 px-2" : "justify-center")}
-                    aria-label="KumoBox home"
+                    aria-label="Moviko home"
                 >
                     <span className="relative shrink-0">
-                        <KumoBoxLogo className="size-7" />
+                        <MovikoLogo className="size-7" />
                         <HolidayOnLogo holiday={holiday} />
                     </span>
-                    {wide && <KumoBoxWordmark className="h-[18px] w-auto text-fg" />}
+                    {wide && <MovikoWordmark className="h-[18px] w-auto text-fg" />}
                 </button>
                 {!tv && <BackButton wide={wide} />}
             </div>
@@ -340,7 +340,7 @@ export function Sidebar() {
                                 <DropdownItem icon={<Settings2 />} onSelect={() => navigate("/settings?tab=letterboxd")}>
                                     Import & export
                                 </DropdownItem>
-                                {/* The account is managed on the computer KumoBox runs on. */}
+                                {/* The account is managed on the computer Moviko runs on. */}
                                 {status?.client !== "lan" && (
                                     <>
                                         <DropdownSeparator />

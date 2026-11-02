@@ -111,7 +111,7 @@ func (s *Scanner) Folders() ([]FolderInfo, error) {
 					}
 				}
 				if strings.HasPrefix(name, ".") {
-					// Hidden, like scans skip them, except KumoBox's own
+					// Hidden, like scans skip them, except Moviko's own
 					// downloads in progress.
 					if isDir && strings.HasPrefix(name, ".kumobox-download-") {
 						c.unfinished++
@@ -259,7 +259,7 @@ func labelFor(root, dir string) string {
 func readableError(err error) string {
 	switch {
 	case errors.Is(err, fs.ErrPermission):
-		return "KumoBox isn't allowed to read this folder (permission denied)"
+		return "Moviko isn't allowed to read this folder (permission denied)"
 	case errors.Is(err, fs.ErrNotExist):
 		return "The folder doesn't exist (is the drive connected?)"
 	}

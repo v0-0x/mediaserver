@@ -29,7 +29,7 @@ const (
 	typeWatching = 3
 	// status_display_type: the status under your name (member list, DMs)
 	// shows the activity's details, the title ("Watching Breaking Bad"), rather
-	// than the Discord application's name ("Watching KumoBox").
+	// than the Discord application's name ("Watching Moviko").
 	statusShowsDetails = 2
 )
 
@@ -134,7 +134,7 @@ type Activity struct {
 }
 
 // AppAsset names the image used without a poster, and as the small badge
-// ("KumoBox"): an art asset uploaded under that name to the Discord
+// ("Moviko"): an art asset uploaded under that name to the Discord
 // application (Settings › Discord), if it has one; Discord shows nothing
 // otherwise.
 const AppAsset = "kumobox"
@@ -156,7 +156,7 @@ type Watching struct {
 // episode ("S01E02 · Pilot") for a show or the year for a movie, with the
 // poster and, while it plays, the time bar.
 func Presence(w Watching, now time.Time) Activity {
-	a := Activity{Details: w.Title, LargeImage: AppAsset, LargeText: w.Title, SmallImage: AppAsset, SmallText: "KumoBox"}
+	a := Activity{Details: w.Title, LargeImage: AppAsset, LargeText: w.Title, SmallImage: AppAsset, SmallText: "Moviko"}
 	// Discord shows images from the web by their https URL.
 	if strings.HasPrefix(w.Poster, "https://") {
 		a.LargeImage = w.Poster

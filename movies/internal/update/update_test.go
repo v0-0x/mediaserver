@@ -123,7 +123,7 @@ func newTestChecker(t *testing.T, gh *fakeGitHub) *Checker {
 	c.Client = gh.Client()
 	c.CacheDir = filepath.Join(t.TempDir(), "update")
 	c.Token = func(context.Context) string { return "secret-token" }
-	c.Executable = func() (string, error) { return "/home/me/kumobox/dist/kumobox", nil }
+	c.Executable = func() (string, error) { return "/home/me/moviko/dist/moviko", nil }
 	c.StartInstaller = func(string, ...string) error { return fmt.Errorf("no installer in tests") }
 	c.Version, c.Commit, c.GOOS = "1.0.50", oldSHA, "linux"
 	c.Channel = func() string { return gh.channel }
@@ -238,8 +238,8 @@ func windowsReleases(installer []byte) []map[string]any {
 			"html_url":         "https://github.com/o/r/releases/tag/" + tag,
 			"target_commitish": headSHA, "published_at": "2026-10-02T08:00:00Z",
 			"assets": []map[string]any{
-				{"id": 41, "name": "KumoBox-" + v + "-windows-x64-portable.zip", "size": 10, "digest": "sha256:00"},
-				{"id": 42, "name": "KumoBox-Setup-" + v + "-windows-x64.exe", "size": len(installer), "digest": "sha256:" + hex.EncodeToString(sum[:])},
+				{"id": 41, "name": "Moviko-" + v + "-windows-x64-portable.zip", "size": 10, "digest": "sha256:00"},
+				{"id": 42, "name": "Moviko-Setup-" + v + "-windows-x64.exe", "size": len(installer), "digest": "sha256:" + hex.EncodeToString(sum[:])},
 			},
 		}
 	}
@@ -271,7 +271,7 @@ func TestCheckWindowsPicksNewestRelease(t *testing.T) {
 	if !slices.Equal(st.Changes, []string{"Newer", "Older"}) || st.ChangesTotal != 2 {
 		t.Fatalf("changes %q (%d)", st.Changes, st.ChangesTotal)
 	}
-	if c.asset == nil || c.asset.ID != 42 || c.asset.Name != "KumoBox-Setup-1.0.10-windows-x64.exe" || !strings.HasPrefix(c.asset.Digest, "sha256:") {
+	if c.asset == nil || c.asset.ID != 42 || c.asset.Name != "Moviko-Setup-1.0.10-windows-x64.exe" || !strings.HasPrefix(c.asset.Digest, "sha256:") {
 		t.Fatalf("installer %+v", c.asset)
 	}
 	if !slices.Contains(gh.paths(), "/repos/o/r/releases?per_page=100") {
@@ -321,14 +321,14 @@ func TestLastPage(t *testing.T) {
 
 // The environment's tokens come first, in this order.
 func TestTokenFromEnvironment(t *testing.T) {
-	t.Setenv("KUMOBOX_GITHUB_TOKEN", "kumobox")
+	t.Setenv("MOVIKO_GITHUB_TOKEN", "moviko")
 	t.Setenv("GH_TOKEN", "gh")
 	t.Setenv("GITHUB_TOKEN", "github")
 	ctx := context.Background()
-	if tok := githubToken(ctx); tok != "kumobox" {
-		t.Fatalf("token %q, want KUMOBOX_GITHUB_TOKEN's", tok)
+	if tok := githubToken(ctx); tok != "moviko" {
+		t.Fatalf("token %q, want MOVIKO_GITHUB_TOKEN's", tok)
 	}
-	t.Setenv("KUMOBOX_GITHUB_TOKEN", "")
+	t.Setenv("MOVIKO_GITHUB_TOKEN", "")
 	if tok := githubToken(ctx); tok != "gh" {
 		t.Fatalf("token %q, want GH_TOKEN's", tok)
 	}
@@ -344,7 +344,7 @@ func TestTokenFromPrograms(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the stand-in programs are shell scripts")
 	}
-	for _, k := range []string{"KUMOBOX_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"} {
+	for _, k := range []string{"MOVIKO_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"} {
 		t.Setenv(k, "")
 	}
 	bin := t.TempDir()
@@ -436,10 +436,10 @@ func TestExtract(t *testing.T) {
 		entry{hdr: tar.Header{Typeflag: tar.TypeXGlobalHeader, PAXRecords: map[string]string{"comment": headSHA}}},
 		dirEntry("o-r-2222222/"),
 		dirEntry("o-r-2222222/packaging/arch/"),
-		fileEntry("o-r-2222222/packaging/arch/PKGBUILD", "pkgname=kumobox\n", 0o644),
-		fileEntry("o-r-2222222/packaging/kumobox.sh", "#!/bin/sh\n", 0o755),
+		fileEntry("o-r-2222222/packaging/arch/PKGBUILD", "pkgname=moviko\n", 0o644),
+		fileEntry("o-r-2222222/packaging/moviko.sh", "#!/bin/sh\n", 0o755),
 		entry{hdr: tar.Header{Typeflag: tar.TypeSymlink, Name: "o-r-2222222/passwd", Linkname: "/etc/passwd"}},
-		entry{hdr: tar.Header{Typeflag: tar.TypeLink, Name: "o-r-2222222/hard", Linkname: "o-r-2222222/packaging/kumobox.sh"}},
+		entry{hdr: tar.Header{Typeflag: tar.TypeLink, Name: "o-r-2222222/hard", Linkname: "o-r-2222222/packaging/moviko.sh"}},
 		entry{hdr: tar.Header{Typeflag: tar.TypeChar, Name: "o-r-2222222/tty", Devmajor: 5}},
 		entry{hdr: tar.Header{Typeflag: tar.TypeFifo, Name: "o-r-2222222/fifo"}},
 	))
@@ -451,13 +451,13 @@ func TestExtract(t *testing.T) {
 	if top != filepath.Join(dest, "o-r-2222222") {
 		t.Fatalf("top %q", top)
 	}
-	if b, err := os.ReadFile(filepath.Join(top, "packaging", "arch", "PKGBUILD")); err != nil || string(b) != "pkgname=kumobox\n" {
+	if b, err := os.ReadFile(filepath.Join(top, "packaging", "arch", "PKGBUILD")); err != nil || string(b) != "pkgname=moviko\n" {
 		t.Fatalf("PKGBUILD: %q %v", b, err)
 	}
 	if runtime.GOOS != "windows" {
-		st, err := os.Stat(filepath.Join(top, "packaging", "kumobox.sh"))
+		st, err := os.Stat(filepath.Join(top, "packaging", "moviko.sh"))
 		if err != nil || st.Mode().Perm()&0o111 == 0 {
-			t.Fatalf("kumobox.sh lost its exec bit: %v %v", st, err)
+			t.Fatalf("moviko.sh lost its exec bit: %v %v", st, err)
 		}
 		st, err = os.Stat(filepath.Join(top, "packaging", "arch", "PKGBUILD"))
 		if err != nil || st.Mode().Perm()&0o111 != 0 {
@@ -499,7 +499,7 @@ func TestExtractRefusesPathsOutside(t *testing.T) {
 // Windows
 
 func TestDownloadChecksDigest(t *testing.T) {
-	installer := []byte("MZ the new KumoBox installer")
+	installer := []byte("MZ the new Moviko installer")
 	gh := newFakeGitHub(t)
 	gh.mux.HandleFunc("GET /repos/o/r/releases/assets/42", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Accept") != "application/octet-stream" {
@@ -511,9 +511,9 @@ func TestDownloadChecksDigest(t *testing.T) {
 	})
 	gh.mux.HandleFunc("GET /files/installer.exe", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(installer) })
 	c := newTestChecker(t, gh)
-	g := &github{api: gh.URL, repo: "o/r", client: gh.Client(), token: "secret-token", userAgent: "KumoBox/test"}
+	g := &github{api: gh.URL, repo: "o/r", client: gh.Client(), token: "secret-token", userAgent: "Moviko/test"}
 	dir := t.TempDir()
-	file := filepath.Join(dir, "KumoBox-Setup-1.0.10-windows-x64.exe")
+	file := filepath.Join(dir, "Moviko-Setup-1.0.10-windows-x64.exe")
 	var last int64
 	if err := c.download(context.Background(), g, "/repos/o/r/releases/assets/42", "application/octet-stream", file, int64(len(installer)), func(done, total int64) {
 		if total != int64(len(installer)) {
@@ -545,15 +545,15 @@ func TestDownloadChecksDigest(t *testing.T) {
 // installedWindows makes c look like an installed Windows copy.
 func installedWindows(t *testing.T, c *Checker) {
 	t.Helper()
-	dir := filepath.Join(t.TempDir(), "KumoBox")
+	dir := filepath.Join(t.TempDir(), "Moviko")
 	if err := os.MkdirAll(filepath.Join(dir, "resources"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "Uninstall KumoBox.exe"), nil, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "Uninstall Moviko.exe"), nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	c.GOOS, c.Version = "windows", "1.0.9"
-	c.Executable = func() (string, error) { return filepath.Join(dir, "resources", "kumobox.exe"), nil }
+	c.Executable = func() (string, error) { return filepath.Join(dir, "resources", "moviko.exe"), nil }
 }
 
 // waitState waits until the update is ready or failed.
@@ -574,7 +574,7 @@ func waitState(t *testing.T, c *Checker) Status {
 }
 
 func TestApplyWindows(t *testing.T) {
-	installer := []byte("MZ the new KumoBox installer")
+	installer := []byte("MZ the new Moviko installer")
 	gh := newFakeGitHub(t)
 	gh.json("GET /repos/o/r/releases", windowsReleases(installer))
 	gh.mux.HandleFunc("GET /repos/o/r/releases/assets/42", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(installer) })
@@ -595,7 +595,7 @@ func TestApplyWindows(t *testing.T) {
 	select {
 	case exit = <-c.Exits.C():
 	case <-time.After(10 * time.Second):
-		t.Fatalf("KumoBox wasn't asked to quit: %+v", c.Status())
+		t.Fatalf("Moviko wasn't asked to quit: %+v", c.Status())
 	}
 	if exit.Code != lifecycle.CodeInstalling || exit.Restart || exit.Before == nil {
 		t.Fatalf("exit %+v", exit)
@@ -603,14 +603,14 @@ func TestApplyWindows(t *testing.T) {
 	if st := waitState(t, c); st.State != StateInstalling {
 		t.Fatalf("state %q: %s", st.State, st.Message)
 	}
-	// The installer starts once KumoBox has shut down.
+	// The installer starts once Moviko has shut down.
 	if started != nil {
-		t.Fatal("the installer started before KumoBox quit")
+		t.Fatal("the installer started before Moviko quit")
 	}
 	if err := exit.Before(); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(c.CacheDir, "KumoBox-Setup-1.0.10-windows-x64.exe")
+	path := filepath.Join(c.CacheDir, "Moviko-Setup-1.0.10-windows-x64.exe")
 	if want := []string{path, "--updated", "/S", "--force-run"}; !slices.Equal(started, want) {
 		t.Fatalf("started %q, want %q", started, want)
 	}
@@ -638,12 +638,12 @@ func TestApplyWindowsDamagedDownload(t *testing.T) {
 	}
 	select {
 	case e := <-c.Exits.C():
-		t.Fatalf("KumoBox was asked to quit: %+v", e)
+		t.Fatalf("Moviko was asked to quit: %+v", e)
 	default:
 	}
 }
 
-// When the installer can't start, KumoBox has already shut down: it restarts
+// When the installer can't start, Moviko has already shut down: it restarts
 // and the next run says what happened.
 func TestApplyWindowsInstallerDidntStart(t *testing.T) {
 	installer := []byte("MZ installer")
@@ -664,7 +664,7 @@ func TestApplyWindowsInstallerDidntStart(t *testing.T) {
 	next := newTestChecker(t, gh)
 	next.CacheDir = c.CacheDir
 	next.Start()
-	if st := next.Status(); st.State != StateFailed || !strings.Contains(st.Message, "access denied") || !strings.Contains(st.Message, "KumoBox-Setup-1.0.10-windows-x64.exe") {
+	if st := next.Status(); st.State != StateFailed || !strings.Contains(st.Message, "access denied") || !strings.Contains(st.Message, "Moviko-Setup-1.0.10-windows-x64.exe") {
 		t.Fatalf("next run: state %q: %s", st.State, st.Message)
 	}
 	if _, err := os.Stat(filepath.Join(c.CacheDir, failureFile)); !os.IsNotExist(err) {
@@ -684,7 +684,7 @@ func TestApplyNeedsAnUpdate(t *testing.T) {
 	}
 }
 
-// KumoBox asks GitHub for its repository by number: its old name, after a
+// Moviko asks GitHub for its repository by number: its old name, after a
 // rename, could be taken by anyone, who'd then make the updates.
 func TestRepositoryByNumber(t *testing.T) {
 	c := New(events.NewHub(), lifecycle.NewExits())
@@ -696,7 +696,7 @@ func TestRepositoryByNumber(t *testing.T) {
 	if g.root() != "/repositories/"+config.UpdateRepoID {
 		t.Errorf("root %q", g.root())
 	}
-	t.Setenv("KUMOBOX_UPDATE_REPO", "me/fork")
+	t.Setenv("MOVIKO_UPDATE_REPO", "me/fork")
 	c2 := New(events.NewHub(), lifecycle.NewExits())
 	t.Cleanup(c2.Stop)
 	if g := (&github{repo: c2.Repo, repoID: c2.RepoID}); g.root() != "/repos/me/fork" {

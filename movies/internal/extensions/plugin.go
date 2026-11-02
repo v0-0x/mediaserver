@@ -273,7 +273,7 @@ func (m *Manager) launchPlugin(ctx context.Context, l *Loaded) {
 }
 
 // pluginUsedTooMuchMemory stops a plugin whose runtime the memory watchdog
-// stopped (memory.go): it stays off until it's turned on again (or KumoBox
+// stopped (memory.go): it stays off until it's turned on again (or Moviko
 // starts again), its card saying why.
 func (m *Manager) pluginUsedTooMuchMemory(l *Loaded, rt *Runtime) {
 	m.stopPlugin(l.Manifest.ID)
@@ -488,7 +488,7 @@ func (h *PluginHost) bindings(r *Runtime, vm *goja.Runtime) *goja.Object {
 		}
 		return toJS(vm, v)
 	}
-	unsupported := func(name string) error { return fmt.Errorf("%s is not available in KumoBox", name) }
+	unsupported := func(name string) error { return fmt.Errorf("%s is not available in Moviko", name) }
 	needScope := func(api, scope string) {
 		if !h.scopes[scope] {
 			panic(vm.NewGoError(fmt.Errorf("%s requires the %q permission", api, scope)))
@@ -883,7 +883,7 @@ var pluginPrelude = strings.TrimSpace(`
   g.$ui = { register: function(fn){ uiCallbacks.push(fn); } };
   g.$shared = { define: function(name, factory){ shared[name] = factory; }, use: function(name){ return shared[name] ? shared[name]() : undefined; } };
   // Plugins expect these two as plain strings.
-  var appBase = { getVersion: '3.10.3', getVersionName: 'KumoBox', invalidateClientQuery: function(){},
+  var appBase = { getVersion: '3.10.3', getVersionName: 'Moviko', invalidateClientQuery: function(){},
     getClientIds: function(){ return []; }, getClientPlatform: function(){ return 'denshi'; } };
   g.$app = new Proxy(appBase, { get: function(t, k){
     if (k in t) return t[k];

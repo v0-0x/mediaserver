@@ -41,7 +41,7 @@ export function SleepingHosts() {
                                 ? "Its library shows up here as soon as it answers."
                                 : h.canWake
                                   ? "Its library isn't here until it's on. It can be woken up from here."
-                                  : `Its library isn't here until it's on. To wake it from here, update KumoBox on ${h.name} and turn on Wake-on-LAN in its settings (BIOS).`}
+                                  : `Its library isn't here until it's on. To wake it from here, update Moviko on ${h.name} and turn on Wake-on-LAN in its settings (BIOS).`}
                         </p>
                     </div>
                     {h.canWake && (

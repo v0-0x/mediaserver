@@ -11,7 +11,7 @@ import { Ext, Group, Password, Row, type SectionProps, Stack } from "./parts"
 // Letterboxd: the account (connected at once, not with Save), how it syncs,
 // importing an export and exporting what's watched here. Devices on the
 // network see it all and sync, but the account, imports and the API sign-in
-// are managed on the computer KumoBox runs on.
+// are managed on the computer Moviko runs on.
 export function LetterboxdSection({ draft, set }: SectionProps) {
     const { data: status } = useStatus()
     const { data: lb } = useLetterboxdStatus()
@@ -94,13 +94,13 @@ export function LetterboxdSection({ draft, set }: SectionProps) {
                         )}
                     </>
                 ) : lan ? (
-                    <Row label="Not connected" help="Letterboxd is connected on the computer KumoBox runs on.">
+                    <Row label="Not connected" help="Letterboxd is connected on the computer Moviko runs on.">
                         <LetterboxdMark className="w-8" />
                     </Row>
                 ) : (
                     <Stack
                         label="Connect your Letterboxd account"
-                        help="Your username, as in letterboxd.com/username. KumoBox reads your public diary: the films you log there, with your ratings and likes, come to your list. No password needed."
+                        help="Your username, as in letterboxd.com/username. Moviko reads your public diary: the films you log there, with your ratings and likes, come to your list. No password needed."
                     >
                         <div className="flex gap-2">
                             <Input icon={<AtSign className="size-4" />} placeholder="username" value={username} onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === "Enter" && connect()} />
@@ -112,7 +112,7 @@ export function LetterboxdSection({ draft, set }: SectionProps) {
                 )}
             </Group>
 
-            <Group title="Sync" description="What the diary brings and what KumoBox keeps for Letterboxd.">
+            <Group title="Sync" description="What the diary brings and what Moviko keeps for Letterboxd.">
                 <Row label="Sync automatically" help="Read your Letterboxd diary in the background (its last 50 entries; older ones come with an export, below).">
                     <Switch checked={l?.autoSync ?? false} onChange={v => set("letterboxd", { autoSync: v })} />
                 </Row>
@@ -121,10 +121,10 @@ export function LetterboxdSection({ draft, set }: SectionProps) {
                         <Input type="number" min={15} className="w-24" value={l.syncMinutes} onChange={e => set("letterboxd", { syncMinutes: Number(e.target.value) })} />
                     </Row>
                 )}
-                <Row label="Log the movies I watch" help="A movie watched to the end (or marked watched) in KumoBox gets a diary entry, with your rating, ready to send to Letterboxd.">
+                <Row label="Log the movies I watch" help="A movie watched to the end (or marked watched) in Moviko gets a diary entry, with your rating, ready to send to Letterboxd.">
                     <Switch checked={l?.logWatched ?? false} onChange={v => set("letterboxd", { logWatched: v })} />
                 </Row>
-                <Row label="Import my watchlist" help="The films of your Letterboxd watchlist go on your KumoBox watchlist (from an export, below).">
+                <Row label="Import my watchlist" help="The films of your Letterboxd watchlist go on your Moviko watchlist (from an export, below).">
                     <Switch checked={l?.importWatchlist ?? false} onChange={v => set("letterboxd", { importWatchlist: v })} />
                 </Row>
             </Group>
@@ -161,12 +161,12 @@ function ImportGroup({ lan }: { lan: boolean }) {
                 help={
                     <>
                         On Letterboxd, open <Ext href="https://letterboxd.com/settings/data/">Settings › Data › Export your data</Ext> and upload the ZIP here (or some of its CSV
-                        files): your diary, ratings, likes, reviews{" "}and watchlist come to KumoBox. Importing again only adds what's new.
+                        files): your diary, ratings, likes, reviews{" "}and watchlist come to Moviko. Importing again only adds what's new.
                     </>
                 }
             >
                 {lan ? (
-                    <p className="text-sm text-muted">Import your data on the computer KumoBox runs on.</p>
+                    <p className="text-sm text-muted">Import your data on the computer Moviko runs on.</p>
                 ) : (
                     <div className="flex flex-wrap items-center gap-3">
                         <input
@@ -217,7 +217,7 @@ function Step({ n, title, help, done, children }: { n: number; title: string; he
     )
 }
 
-// What's watched in KumoBox goes to Letterboxd as a CSV its importer takes
+// What's watched in Moviko goes to Letterboxd as a CSV its importer takes
 // (or straight away, with API access): download it, import it on
 // letterboxd.com, then mark its entries sent so the next file only has new
 // ones.
@@ -243,7 +243,7 @@ function ExportGroup({ pending, apiConnected }: { pending: number; apiConnected:
     return (
         <Group
             title="Send to Letterboxd"
-            description="Movies you watch in KumoBox are logged in its diary. Letterboxd takes them as a CSV file: download it, import it on letterboxd.com, then tell KumoBox so the next file only has new entries."
+            description="Movies you watch in Moviko are logged in its diary. Letterboxd takes them as a CSV file: download it, import it on letterboxd.com, then tell Moviko so the next file only has new entries."
         >
             <Row label="Waiting to be sent" help={pending ? `${plural(pending, "diary entry", "diary entries")} not on Letterboxd yet` : "Everything is on Letterboxd"}>
                 <Badge tone={pending ? "amber" : "green"}>{pending}</Badge>
@@ -296,7 +296,7 @@ function ExportGroup({ pending, apiConnected }: { pending: number; apiConnected:
                     </Button>
                 </Row>
             )}
-            <Row label="Your watchlist" help="The films of your KumoBox watchlist as a CSV, for the Import button of your Letterboxd watchlist.">
+            <Row label="Your watchlist" help="The films of your Moviko watchlist as a CSV, for the Import button of your Letterboxd watchlist.">
                 <Button
                     size="sm"
                     variant="subtle"
@@ -311,7 +311,7 @@ function ExportGroup({ pending, apiConnected }: { pending: number; apiConnected:
     )
 }
 
-// Letterboxd's API is granted on request: with an app's credentials KumoBox
+// Letterboxd's API is granted on request: with an app's credentials Moviko
 // logs straight to the account.
 function ApiGroup({ draft, set, lan, available, connected, member }: SectionProps & { lan: boolean; available: boolean; connected: boolean; member?: string }) {
     const { apiLogin, apiLogout } = useLetterboxd()
@@ -332,11 +332,11 @@ function ApiGroup({ draft, set, lan, available, connected, member }: SectionProp
             },
         )
     const description =
-        "Letterboxd gives API access on request (letterboxd.com/api-beta). With an app's client ID and secret, KumoBox logs what you watch to your account directly, without CSV files."
+        "Letterboxd gives API access on request (letterboxd.com/api-beta). With an app's client ID and secret, Moviko logs what you watch to your account directly, without CSV files."
     if (lan)
         return (
             <Group title="API access (optional)" description={description}>
-                <Row label={connected ? `Signed in${member ? ` as ${member}` : ""}` : available ? "Not signed in" : "Not set up"} help="API access is set up on the computer KumoBox runs on.">
+                <Row label={connected ? `Signed in${member ? ` as ${member}` : ""}` : available ? "Not signed in" : "Not set up"} help="API access is set up on the computer Moviko runs on.">
                     <Badge tone={connected ? "green" : "gray"}>{connected ? "Connected" : "Off"}</Badge>
                 </Row>
             </Group>
@@ -364,7 +364,7 @@ function ApiGroup({ draft, set, lan, available, connected, member }: SectionProp
                         </Button>
                     </Row>
                 ) : (
-                    <Stack label="Sign in to the API" help="Your password goes to Letterboxd only; KumoBox keeps the tokens it gets back, not the password.">
+                    <Stack label="Sign in to the API" help="Your password goes to Letterboxd only; Moviko keeps the tokens it gets back, not the password.">
                         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
                             <Input placeholder="Username or email" value={user} onChange={e => setUser(e.target.value)} />
                             <Password value={password} onChange={setPassword} placeholder="Password" />

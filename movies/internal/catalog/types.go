@@ -1,4 +1,4 @@
-// Package catalog is KumoBox's movie and show catalog: metadata from TMDB
+// Package catalog is Moviko's movie and show catalog: metadata from TMDB
 // (The Movie Database) and the user's list, kept in the local database and
 // synced with Letterboxd (see package letterboxd).
 //
@@ -175,7 +175,7 @@ type CollectionRef struct {
 
 // Media is a movie or a show.
 type Media struct {
-	// ID is the KumoBox media id (see ids.go), TMDBID the TMDB one.
+	// ID is the Moviko media id (see ids.go), TMDBID the TMDB one.
 	ID     int    `json:"id"`
 	TMDBID int    `json:"tmdbId"`
 	IMDbID string `json:"imdbId,omitempty"`
@@ -578,7 +578,7 @@ func (c *Collection) Find(mediaID int) *ListEntry {
 }
 
 // Viewer is the connected Letterboxd member (nil when none is connected).
-// ID is derived from the username, so KumoBoxes connected to the same
+// ID is derived from the username, so Movikos connected to the same
 // Letterboxd account recognise each other (library sharing).
 type Viewer struct {
 	ID     int    `json:"id"`
@@ -673,7 +673,7 @@ func (u EntryUpdate) applyTo(e *ListEntry) {
 }
 
 // DiaryEntry is one viewing of a movie (or a show, finished): what
-// Letterboxd calls a diary entry. KumoBox logs one when a movie is watched
+// Letterboxd calls a diary entry. Moviko logs one when a movie is watched
 // to the end, and imports Letterboxd's. Rating is 0-100 (0: none).
 type DiaryEntry struct {
 	ID          int64  `json:"id"`
@@ -689,7 +689,7 @@ type DiaryEntry struct {
 	// LetterboxdID identifies an imported entry (the RSS guid or the
 	// diary URI), so importing twice doesn't duplicate it.
 	LetterboxdID string `json:"letterboxdId,omitempty"`
-	// ExportedAt is when a KumoBox entry went to Letterboxd (CSV export or
+	// ExportedAt is when a Moviko entry went to Letterboxd (CSV export or
 	// API), 0 while it's still to be sent.
 	ExportedAt int64  `json:"exportedAt,omitempty"`
 	CreatedAt  int64  `json:"createdAt"`

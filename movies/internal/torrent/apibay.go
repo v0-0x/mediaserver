@@ -16,7 +16,7 @@ package torrent
 // rows. Searching "tt0133093" lists the torrents tagged with that IMDb id.
 // Categories: 200 video (with all of its subcategories), 201 movies,
 // 202 movie DVDR, 205 TV, 207 HD movies, 208 HD TV, 209 3D, 211 UHD movies,
-// 212 UHD TV; KumoBox asks for 200 and drops the other kind's rows itself,
+// 212 UHD TV; Moviko asks for 200 and drops the other kind's rows itself,
 // so one search finds both SD and HD copies.
 
 import (

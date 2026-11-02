@@ -133,7 +133,7 @@ const nuvioPrelude = `(function (g, cheerio, origRequire) {
       text: function () { return Promise.resolve(r.text()); },
       json: function () { return new Promise(function (resolve) { resolve(JSON.parse(r.text())); }); },
       arrayBuffer: function () { return Promise.resolve(r.arrayBuffer()); },
-      blob: function () { return Promise.reject(new Error('Response.blob() is not available in KumoBox')); },
+      blob: function () { return Promise.reject(new Error('Response.blob() is not available in Moviko')); },
       clone: function () { return makeResponse(r); }
     };
   }
@@ -311,6 +311,6 @@ const nuvioPrelude = `(function (g, cheerio, origRequire) {
     }
     var bare = name.replace(/^node:/, '');
     if (bare === 'buffer' || bare === 'url') return origRequire(bare);
-    throw new Error("Cannot find module '" + name + "' (Nuvio providers in KumoBox can use cheerio-without-node-native, crypto-js and axios)");
+    throw new Error("Cannot find module '" + name + "' (Nuvio providers in Moviko can use cheerio-without-node-native, crypto-js and axios)");
   };
 })`

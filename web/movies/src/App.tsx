@@ -11,7 +11,7 @@ import { HolidayBackdrop, HolidayGarland } from "./components/HolidayDecor"
 import { HolidayEffects } from "./components/HolidayEffects"
 import { useHolidayNotice } from "./components/HolidayBadge"
 import { WhatsNew } from "./components/WhatsNew"
-import { KumoBoxLogo, Sidebar } from "./components/Sidebar"
+import { MovikoLogo, Sidebar } from "./components/Sidebar"
 import { TmdbNotice } from "./components/TmdbNotice"
 import { PhoneNav } from "./components/PhoneNav"
 import { Button, Input, Spinner, TooltipProvider } from "./components/ui"
@@ -58,10 +58,10 @@ export default function App() {
     // Until the server says what it is (a moment): not the app's pages
     // asking it for things.
     if (!status && (!isError || isFetching)) return <div className="h-full bg-frame" />
-    return <KumoBoxApp />
+    return <MovikoApp />
 }
 
-function KumoBoxApp() {
+function MovikoApp() {
     const qc = useQueryClient()
     const navigate = useNavigate()
     const location = useLocation()
@@ -71,7 +71,7 @@ function KumoBoxApp() {
     const mini = location.pathname === "/mini"
 
     // Not in the small picture-in-picture window: alerts and toasts belong
-    // in KumoBox's window, not over the video.
+    // in Moviko's window, not over the video.
     useEffect(() => (mini ? undefined : connectEvents(qc)), [qc, mini])
     // Back finds a page as it was left (scrolled, focused); a new one starts
     // at its top. Before the page is drawn: its scroll isn't the last one's.
@@ -105,7 +105,7 @@ function KumoBoxApp() {
     // Apply UI preferences. Settings previews the colors and holiday theme
     // before they're saved; when that preview ends (Discard, leaving the
     // page) the saved ones come back. The date is looked at again each hour:
-    // a holiday theme comes on (and goes) while KumoBox runs.
+    // a holiday theme comes on (and goes) while Moviko runs.
     const ui = status?.settings.ui
     const preview = useStore(themePreviewStore)
     const [hour, setHour] = useState(() => Math.floor(Date.now() / 3_600_000))
@@ -126,7 +126,7 @@ function KumoBoxApp() {
     // From the saved settings: not a holiday being tried in Settings.
     const saved = useMemo(() => resolveTheme(ui), [ui, hour])
     useHolidayNotice(ui && !mini ? saved.holiday : null, ui?.seasonal ?? "auto")
-    // Updates are looked for each time KumoBox opens (on this computer only).
+    // Updates are looked for each time Moviko opens (on this computer only).
     useCheckOnOpen(!!status && status.client !== "lan" && !mini)
     const playing = useStore(playerStore, p => !!p)
     // Before 2.0's look: its plain panel, no holiday decorations.
@@ -221,7 +221,7 @@ function MiniPlayer() {
         return !!r
     })
     useEffect(() => {
-        document.title = "KumoBox"
+        document.title = "Moviko"
     }, [])
     return (
         <TooltipProvider>
@@ -257,8 +257,8 @@ function PasswordGate() {
     return (
         <div className="grid h-full place-items-center bg-bg p-6">
             <div className="card w-full max-w-sm p-8 text-center rise-in">
-                <KumoBoxLogo className="mx-auto size-11" />
-                <h1 className="mt-4 text-xl font-semibold">KumoBox</h1>
+                <MovikoLogo className="mx-auto size-11" />
+                <h1 className="mt-4 text-xl font-semibold">Moviko</h1>
                 <p className="mt-1 text-sm text-muted">This server is password protected.</p>
                 <div className="mt-6 flex flex-col gap-3">
                     <Input type="password" autoFocus icon={<Lock className="size-4" />} placeholder="Password" value={pw} onChange={e => setPw(e.target.value)} onKeyDown={e => e.key === "Enter" && submit()} />

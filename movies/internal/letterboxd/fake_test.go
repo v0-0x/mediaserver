@@ -234,7 +234,7 @@ func (f *fakeCatalog) PendingDiary(ctx context.Context) ([]*catalog.DiaryEntry, 
 	defer f.mu.Unlock()
 	var out []*catalog.DiaryEntry
 	for _, d := range f.diary {
-		if d.Source == SourceKumoBox && d.ExportedAt == 0 {
+		if d.Source == SourceMoviko && d.ExportedAt == 0 {
 			c := *d
 			out = append(out, &c)
 		}
@@ -311,7 +311,7 @@ var testNow = time.Date(2024, 3, 12, 9, 0, 0, 0, time.UTC)
 
 func newTestSync(t *testing.T) *testSync {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -19,7 +19,7 @@ export function TmdbNotice() {
                 <div className="min-w-0 flex-1 text-sm">
                     <p className="font-semibold">Add a TMDB API key to get started</p>
                     <p className="mt-0.5 text-muted">
-                        KumoBox gets every movie and show — posters, seasons, episodes, where to watch — from The Movie Database. A key is free; your library and players work
+                        Moviko gets every movie and show — posters, seasons, episodes, where to watch — from The Movie Database. A key is free; your library and players work
                         without one.
                     </p>
                 </div>

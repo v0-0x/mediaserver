@@ -11,7 +11,7 @@ import (
 func TestPublicProxy(t *testing.T) {
 	t.Setenv("HTTP_PROXY", "http://127.0.0.1:3128")
 	t.Setenv("NO_PROXY", "")
-	for host, ok := range map[string]bool{"127.0.0.1:43311": false, "localhost": false, "kumobox.localhost": false, "192.168.1.1": false, "[::1]": false, "169.254.169.254": false, "203.0.113.5": true} {
+	for host, ok := range map[string]bool{"127.0.0.1:43311": false, "localhost": false, "moviko.localhost": false, "192.168.1.1": false, "[::1]": false, "169.254.169.254": false, "203.0.113.5": true} {
 		req, _ := http.NewRequestWithContext(context.Background(), "GET", "http://"+host+"/", nil)
 		if err := CheckPublicHost(req.Context(), req.URL.Hostname()); (err == nil) != ok {
 			t.Errorf("%s: %v", host, err)

@@ -7,7 +7,7 @@ import (
 )
 
 // mediaserver's one dashboard: its Movies and TV pages ask the movies side
-// (KumoBox's server, on its own port) through this one, at /api/movies/...,
+// (Moviko's server, on its own port) through this one, at /api/movies/...,
 // and its Music pages the music side (Utako's server), at /api/music/..., so
 // they're on the dashboard's address with its sign-in. The other side gets
 // them as from its own computer: only the dashboard's owner (or this

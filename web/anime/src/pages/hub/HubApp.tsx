@@ -19,7 +19,7 @@ import Overview from "./Overview"
 // its password, set the first time with its setup code. The slider at the
 // top picks what it's about: Anime (the anime side, Aniko's server: what it
 // streams to whom, its devices and AniList logins, its library, the
-// computer it runs on), Movies or TV (the movies side, KumoBox's server,
+// computer it runs on), Movies or TV (the movies side, Moviko's server,
 // asked through this one: media/), Music (the music side, Utako's server,
 // asked through this one too: music/).
 
@@ -313,7 +313,7 @@ function Setup() {
 }
 
 // What the dashboard is about, a slider: Anime (the anime side, for the
-// Aniko apps), Movies or TV (the movies side, for the KumoBox apps), Music
+// Aniko apps), Movies or TV (the movies side, for the Moviko apps), Music
 // (the music side, for the Utako apps).
 const SIDES: { value: Side; label: string; icon: React.ReactNode }[] = [
     { value: "anime", label: "Anime", icon: <Sparkles /> },

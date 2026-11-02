@@ -54,7 +54,7 @@ func fakeStremioAPI(t *testing.T) *httptest.Server {
 	return srv
 }
 
-// An account's addons: those KumoBox can use are installed, the others
+// An account's addons: those Moviko can use are installed, the others
 // left out with the reason.
 func TestAccountImport(t *testing.T) {
 	api := fakeStremioAPI(t)
@@ -118,11 +118,11 @@ func TestAccountImport(t *testing.T) {
 }
 
 func TestAPIURL(t *testing.T) {
-	t.Setenv("KUMOBOX_STREMIO_API_URL", "")
+	t.Setenv("MOVIKO_STREMIO_API_URL", "")
 	if APIURL() != DefaultAPIURL {
 		t.Errorf("default: %s", APIURL())
 	}
-	t.Setenv("KUMOBOX_STREMIO_API_URL", " http://127.0.0.1:9999/ ")
+	t.Setenv("MOVIKO_STREMIO_API_URL", " http://127.0.0.1:9999/ ")
 	if APIURL() != "http://127.0.0.1:9999" {
 		t.Errorf("override: %s", APIURL())
 	}

@@ -35,7 +35,7 @@ func TestUpdateRoutes(t *testing.T) {
 	}
 	select {
 	case e := <-s.app.Exits.C():
-		t.Fatalf("a device on the network restarted KumoBox: %+v", e)
+		t.Fatalf("a device on the network restarted Moviko: %+v", e)
 	default:
 	}
 
@@ -43,7 +43,7 @@ func TestUpdateRoutes(t *testing.T) {
 	if w := do(s, "POST", "/api/update/apply", local, "{}", nil); w.Code != http.StatusConflict {
 		t.Fatalf("apply without an update: got %d %s", w.Code, w.Body.String())
 	}
-	// Restart answers, then asks cmd/kumobox to shut down and start again.
+	// Restart answers, then asks cmd/moviko to shut down and start again.
 	if w := do(s, "POST", "/api/update/restart", local, "{}", nil); w.Code != http.StatusOK {
 		t.Fatalf("restart: got %d", w.Code)
 	}

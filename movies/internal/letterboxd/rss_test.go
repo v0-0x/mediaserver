@@ -190,7 +190,7 @@ func TestFetchFeed(t *testing.T) {
 	if len(feed.Items) != 8 || feed.Username != "davevis" {
 		t.Errorf("feed = %s, %d items", feed.Username, len(feed.Items))
 	}
-	if gotUA != "KumoBox/"+config.AppVersion {
+	if gotUA != "Moviko/"+config.AppVersion {
 		t.Errorf("User-Agent = %q", gotUA)
 	}
 	if _, err := FetchFeed(ctx, srv.Client(), srv.URL, "nobody"); !errors.Is(err, ErrNoSuchMember) {

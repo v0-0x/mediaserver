@@ -50,7 +50,7 @@ function playAlert(qc: QueryClient, a: Alert) {
     api.post("/api/playback/local", { path: a.path, mediaId: a.mediaId, episode: a.episode, player: "mpv" }).catch((e: Error) => toast.error(e.message))
 }
 
-// Whether this browser shows KumoBox's notifications: "unsupported" where it
+// Whether this browser shows Moviko's notifications: "unsupported" where it
 // can't (not over https, the TV app), else the permission.
 export function systemNotifications(): NotificationPermission | "unsupported" {
     if (typeof Notification === "undefined" || !window.isSecureContext) return "unsupported"

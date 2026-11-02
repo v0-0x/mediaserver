@@ -8,20 +8,20 @@ import (
 // videosFolder is the home folder for videos: the library's default
 const videosFolder = "Movies"
 
-// defaultDataDir is ~/Library/Application Support/KumoBox. The desktop app
+// defaultDataDir is ~/Library/Application Support/Moviko. The desktop app
 // keeps its window's browser data in its electron folder (desktop/main.js).
 func defaultDataDir() string {
 	if d, err := os.UserConfigDir(); err == nil {
-		return filepath.Join(d, "KumoBox")
+		return filepath.Join(d, "Moviko")
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Library", "Application Support", "KumoBox")
+	return filepath.Join(home, "Library", "Application Support", "Moviko")
 }
 
-// runtimeDir is $TMPDIR/kumobox ($TMPDIR is the user's own temporary folder),
+// runtimeDir is $TMPDIR/moviko ($TMPDIR is the user's own temporary folder),
 // where the desktop app (desktop/main.js) looks too.
 func runtimeDir() string {
-	return filepath.Join(os.TempDir(), "kumobox")
+	return filepath.Join(os.TempDir(), "moviko")
 }
 
 // findQbittorrent finds the qBittorrent app in /Applications or

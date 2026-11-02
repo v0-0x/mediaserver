@@ -1,14 +1,14 @@
 package update
 
-// macOS: KumoBox is the app KumoBox.app, wherever the user put it (/Applications
-// usually), and the server is its Contents/Resources/kumobox. The update
-// downloads the newest release's zip of the app (KumoBox-<v>-macos-universal.zip)
-// and unpacks it next to the app, in macStaging. Once KumoBox has shut down,
+// macOS: Moviko is the app Moviko.app, wherever the user put it (/Applications
+// usually), and the server is its Contents/Resources/moviko. The update
+// downloads the newest release's zip of the app (Moviko-<v>-macos-universal.zip)
+// and unpacks it next to the app, in macStaging. Once Moviko has shut down,
 // the new app takes the old one's place (two renames, so nothing is ever
 // half copied), and a small helper waits for the desktop app to quit, then
 // removes the old app and opens the new one.
 //
-// KumoBox's own download isn't quarantined, so macOS opens the new app without
+// Moviko's own download isn't quarantined, so macOS opens the new app without
 // asking again.
 
 import (
@@ -43,7 +43,7 @@ func macBundle(exe string) string {
 // macStaging is where an update unpacks the new app: next to the app, on
 // the same disk, so that it moves into place with a rename.
 func macStaging(app string) string {
-	return filepath.Join(filepath.Dir(app), ".kumobox-update")
+	return filepath.Join(filepath.Dir(app), ".moviko-update")
 }
 
 // macApplyable says whether this copy can update itself (see applyable).
@@ -55,18 +55,18 @@ func (c *Checker) macApplyable(exe string, err error) (bool, string) {
 	dir := filepath.Dir(app)
 	switch {
 	case app == "":
-		return false, "This copy of KumoBox isn't the macOS app: update it with git pull and make, or get the app from KumoBox's releases."
+		return false, "This copy of Moviko isn't the macOS app: update it with git pull and make, or get the app from Moviko's releases."
 	case strings.Contains(app, "/AppTranslocation/"):
 		// macOS runs apps opened from a download's folder from a read-only
 		// copy, until they're moved.
-		return false, "macOS runs this copy of KumoBox from a temporary copy: drag KumoBox to your Applications folder and open it from there, then it can update itself."
+		return false, "macOS runs this copy of Moviko from a temporary copy: drag Moviko to your Applications folder and open it from there, then it can update itself."
 	case !c.Writable(dir):
 		if strings.HasPrefix(app, "/Volumes/") {
-			return false, "KumoBox runs from its disk image: drag it to your Applications folder and open it from there, then it can update itself."
+			return false, "Moviko runs from its disk image: drag it to your Applications folder and open it from there, then it can update itself."
 		}
-		return false, "KumoBox can't write to " + dir + ", where it is: download the new version from its page."
+		return false, "Moviko can't write to " + dir + ", where it is: download the new version from its page."
 	}
-	return true, "KumoBox downloads the new version and puts it in this one's place: KumoBox closes and opens again."
+	return true, "Moviko downloads the new version and puts it in this one's place: Moviko closes and opens again."
 }
 
 func (c *Checker) applyMac(ctx context.Context, g *github, target Version, zipAsset *asset) error {
@@ -79,7 +79,7 @@ func (c *Checker) applyMac(ctx context.Context, g *github, target Version, zipAs
 	}
 	app := macBundle(exe)
 	if app == "" {
-		return errors.New("this copy of KumoBox isn't the macOS app")
+		return errors.New("this copy of Moviko isn't the macOS app")
 	}
 	dir := c.CacheDir
 	if err := removeAll(dir); err != nil {
@@ -90,7 +90,7 @@ func (c *Checker) applyMac(ctx context.Context, g *github, target Version, zipAs
 	}
 	path := filepath.Join(dir, filepath.Base(zipAsset.Name))
 	err = c.download(ctx, g, g.root()+"/releases/assets/"+strconv.FormatInt(zipAsset.ID, 10), "application/octet-stream", path, zipAsset.Size, func(done, total int64) {
-		c.progress(StateDownloading, percent(done, total), "Downloading KumoBox "+display(target)+"…")
+		c.progress(StateDownloading, percent(done, total), "Downloading Moviko "+display(target)+"…")
 	})
 	if err != nil {
 		return fmt.Errorf("couldn't download the new version: %w", err)
@@ -100,7 +100,7 @@ func (c *Checker) applyMac(ctx context.Context, g *github, target Version, zipAs
 		return err
 	}
 
-	c.step(StateInstalling, -1, "Unpacking KumoBox "+display(target)+"…")
+	c.step(StateInstalling, -1, "Unpacking Moviko "+display(target)+"…")
 	staging := macStaging(app)
 	if err := removeAll(staging); err != nil {
 		return fmt.Errorf("couldn't remove the last update's files: %w", err)
@@ -111,22 +111,22 @@ func (c *Checker) applyMac(ctx context.Context, g *github, target Version, zipAs
 		_ = removeAll(staging)
 		return fmt.Errorf("couldn't unpack the new version: %w", err)
 	}
-	if !isFile(filepath.Join(newApp, "Contents", "Resources", "kumobox")) {
+	if !isFile(filepath.Join(newApp, "Contents", "Resources", "moviko")) {
 		_ = removeAll(staging)
-		return errors.New("the new version's app has no KumoBox server in it")
+		return errors.New("the new version's app has no Moviko server in it")
 	}
 	if err := ctx.Err(); err != nil {
 		_ = removeAll(staging)
 		return err
 	}
 
-	c.step(StateInstalling, -1, "Installing KumoBox "+display(target)+": KumoBox closes now and opens again when it's done.")
+	c.step(StateInstalling, -1, "Installing Moviko "+display(target)+": Moviko closes now and opens again when it's done.")
 	exit := lifecycle.Exit{Code: lifecycle.CodeInstalling, Before: func() error {
 		return c.swapApp(app, newApp, staging, target)
 	}}
 	if c.Exits == nil || !c.Exits.Request(exit) {
 		_ = removeAll(staging)
-		return errors.New("KumoBox is already shutting down")
+		return errors.New("Moviko is already shutting down")
 	}
 	return nil
 }
@@ -139,9 +139,9 @@ while kill -0 "$1" 2>/dev/null && [ "$i" -lt 300 ]; do sleep 0.1; i=$((i+1)); do
 rm -rf "$3"
 open "$2"`
 
-// swapApp puts the new app in the old one's place, once KumoBox has shut down
+// swapApp puts the new app in the old one's place, once Moviko has shut down
 // (the desktop app is still running, from the old app's files). When that
-// fails, KumoBox restarts as it was and says why (see lifecycle.Exit).
+// fails, Moviko restarts as it was and says why (see lifecycle.Exit).
 func (c *Checker) swapApp(app, newApp, staging string, target Version) error {
 	old := filepath.Join(staging, "old.app")
 	dest := app
@@ -158,8 +158,8 @@ func (c *Checker) swapApp(app, newApp, staging string, target Version) error {
 		c.saveFailure(swapFailure(err, target))
 		return fmt.Errorf("moving the new app: %w", err)
 	}
-	if err := c.StartHelper("/bin/sh", "-c", reopen, "kumobox-update", strconv.Itoa(c.ParentPID()), dest, staging); err != nil {
-		// The new version is in place: KumoBox restarts into it instead, and
+	if err := c.StartHelper("/bin/sh", "-c", reopen, "moviko-update", strconv.Itoa(c.ParentPID()), dest, staging); err != nil {
+		// The new version is in place: Moviko restarts into it instead, and
 		// its next update removes the old app.
 		return fmt.Errorf("starting the helper that opens the new version: %w", err)
 	}
@@ -168,9 +168,9 @@ func (c *Checker) swapApp(app, newApp, staging string, target Version) error {
 
 // swapFailure says why the new app couldn't take the old one's place.
 func swapFailure(err error, target Version) string {
-	msg := "KumoBox couldn't put the new version (" + display(target) + ") in its place: " + err.Error() + "."
+	msg := "Moviko couldn't put the new version (" + display(target) + ") in its place: " + err.Error() + "."
 	if errors.Is(err, fs.ErrPermission) || errors.Is(err, syscall.EPERM) {
-		msg += " If macOS said KumoBox was prevented from modifying apps, allow it in System Settings › Privacy & Security › App Management and update again;"
+		msg += " If macOS said Moviko was prevented from modifying apps, allow it in System Settings › Privacy & Security › App Management and update again;"
 	}
 	return msg + " or download the new version from its release page."
 }

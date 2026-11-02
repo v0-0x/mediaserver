@@ -36,7 +36,7 @@ type SearchResult struct {
 	Dub           bool `json:"dub"`
 }
 
-// Trackers are added to the magnet links KumoBox makes from info hashes.
+// Trackers are added to the magnet links Moviko makes from info hashes.
 var Trackers = []string{
 	"udp://tracker.opentrackr.org:1337/announce",
 	"udp://open.stealth.si:80/announce",

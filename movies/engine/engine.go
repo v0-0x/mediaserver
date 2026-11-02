@@ -1,7 +1,7 @@
-// Package engine runs mediaserver's movies side: KumoBox's server, for movies
-// and TV shows. It plays nothing; it shares its library with the KumoBox apps
-// at home (as any KumoBox does, through its sharing), streams to them and
-// takes their downloads when allowed. Its own pages are KumoBox's, on its own
+// Package engine runs mediaserver's movies side: Moviko's server, for movies
+// and TV shows. It plays nothing; it shares its library with the Moviko apps
+// at home (as any Moviko does, through its sharing), streams to them and
+// takes their downloads when allowed. Its own pages are Moviko's, on its own
 // port, for whoever signed in to mediaserver's dashboard. Its data, library
 // and devices are its own, apart from the anime side's.
 package engine
@@ -20,12 +20,12 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/webui"
 )
 
-// ProtocolVersion is the KumoBox version this side's code comes from: what it
-// tells the KumoBox apps it is, not mediaserver's version.
-const ProtocolVersion = "2.0.8"
+// ProtocolVersion is the Moviko version this side's code comes from: what it
+// tells the Moviko apps it is, not mediaserver's version.
+const ProtocolVersion = "2.0.9"
 
-// DefaultPort is where the KumoBox apps and the movies pages reach this side
-// (KumoBox's own port).
+// DefaultPort is where the Moviko apps and the movies pages reach this side
+// (Moviko's own port).
 const DefaultPort = config.DefaultPort
 
 // Options say how the movies side runs.
@@ -79,10 +79,10 @@ func Start(o Options) (*Engine, error) {
 	srv.Owner, srv.DashboardPort = o.Owner, o.DashboardPort
 	if err := srv.Start(); err != nil {
 		a.Shutdown()
-		return nil, fmt.Errorf("could not start the movies side: %v (is mediaserver, or KumoBox, already running?)", err)
+		return nil, fmt.Errorf("could not start the movies side: %v (is mediaserver, or Moviko, already running?)", err)
 	}
 	a.Start()
-	log.Printf("movies: KumoBox's pages at port %d, after signing in to the dashboard", a.Settings.Get().Server.Port)
+	log.Printf("movies: Moviko's pages at port %d, after signing in to the dashboard", a.Settings.Get().Server.Port)
 	return &Engine{app: a, srv: srv}, nil
 }
 

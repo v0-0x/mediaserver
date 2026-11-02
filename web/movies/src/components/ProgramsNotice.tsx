@@ -7,7 +7,7 @@ import { useStatus } from "@/lib/queries"
 const list = (names: string[]) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`)
 
 // On Windows and macOS, when the in-app player's ffmpeg is
-// missing: a button that installs what KumoBox uses. Hidden for good per set of
+// missing: a button that installs what Moviko uses. Hidden for good per set of
 // missing programs.
 export function ProgramsNotice() {
     const { data: status } = useStatus()
@@ -22,13 +22,13 @@ export function ProgramsNotice() {
         <div className="flex flex-wrap items-center gap-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-4">
             <Wrench className="size-5 shrink-0 text-amber-300" />
             <div className="min-w-0 flex-1 text-sm">
-                <p className="font-semibold text-amber-200">{running ? "Installing the programs KumoBox uses…" : `KumoBox needs ${list(missing)}`}</p>
+                <p className="font-semibold text-amber-200">{running ? "Installing the programs Moviko uses…" : `Moviko needs ${list(missing)}`}</p>
                 <p className="mt-0.5 text-muted">
                     {running
-                        ? `Follow the ${setupWindow(status)} window. KumoBox picks the programs up as soon as they're installed.`
+                        ? `Follow the ${setupWindow(status)} window. Moviko picks the programs up as soon as they're installed.`
                         : status?.platform === "darwin"
-                          ? "KumoBox can download them for you, in a Terminal window: no Homebrew or password needed."
-                          : "KumoBox can install them for you with Scoop, in a PowerShell window, for your Windows user (no administrator rights)."}
+                          ? "Moviko can download them for you, in a Terminal window: no Homebrew or password needed."
+                          : "Moviko can install them for you with Scoop, in a PowerShell window, for your Windows user (no administrator rights)."}
                 </p>
             </div>
             {!running && (

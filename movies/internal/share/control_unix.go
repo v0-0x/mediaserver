@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// reuseAddr lets another KumoBox on this computer listen for beacons too.
+// reuseAddr lets another Moviko on this computer listen for beacons too.
 func reuseAddr(_, _ string, c syscall.RawConn) error {
 	var err error
 	_ = c.Control(func(fd uintptr) {

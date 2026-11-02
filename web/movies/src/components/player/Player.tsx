@@ -128,7 +128,7 @@ export function PlayerOverlay({ mini = false }: { mini?: boolean }) {
 
 function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: () => void; mini: boolean; stage: React.RefObject<HTMLDivElement | null> }) {
     const settings = useSettings()
-    // A device on the network: mpv would open on the computer KumoBox runs
+    // A device on the network: mpv would open on the computer Moviko runs
     // on (the server refuses it, or plays the file here instead).
     const status = useStatus().data
     const remote = status?.client === "lan"
@@ -749,7 +749,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
         canvas.height = 18
         let grey = false
         let from = -1
-        // Counted again from a seek; not while KumoBox is in the background
+        // Counted again from a seek; not while Moviko is in the background
         // (nothing is drawn then).
         const onSeek = () => void (from = -1)
         v.addEventListener("seeking", onSeek)
@@ -854,7 +854,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
         const v = videoRef.current
         if (!v) return
         if (!trackRef.current) {
-            trackRef.current = v.addTextTrack("subtitles", "KumoBox", "und")
+            trackRef.current = v.addTextTrack("subtitles", "Moviko", "und")
         }
         const tr = trackRef.current
         // Hidden while they change: a cue removed while it shows can stay
@@ -1215,7 +1215,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
             /* not a URL */
         }
         const code = failStatus ?? (Number(/\banswered (\d{3})\b/.exec(error)?.[1]) || null)
-        const lines = [`KumoBox ${status?.version ?? ""}: playback failed`.replace(" :", ":"), `Error: ${redactLinks(error)}`, `Title: ${title}`]
+        const lines = [`Moviko ${status?.version ?? ""}: playback failed`.replace(" :", ":"), `Error: ${redactLinks(error)}`, `Title: ${title}`]
         if (src) {
             lines.push(
                 `Provider: ${src.server}${src.provider ? ` (${src.provider})` : ""}`,
@@ -1697,7 +1697,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                 </div>
             )}
 
-            {/* top bar. The small window's: what plays, back to KumoBox and close;
+            {/* top bar. The small window's: what plays, back to Moviko and close;
                 dragging it moves the window. */}
             {mini && (
                 <div
@@ -1707,7 +1707,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                     )}
                 >
                     <p className="min-w-0 flex-1 truncate text-[13px] font-semibold text-white">{title}</p>
-                    <button onClick={expand} title="Back to KumoBox (p)" aria-label="Back to KumoBox" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 [-webkit-app-region:no-drag]">
+                    <button onClick={expand} title="Back to Moviko (p)" aria-label="Back to Moviko" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 [-webkit-app-region:no-drag]">
                         <Maximize2 className="size-4" />
                     </button>
                     <button onClick={close} title="Close" aria-label="Close" className="grid size-8 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 [-webkit-app-region:no-drag]">
@@ -2335,7 +2335,7 @@ const forcedSub = (o: SubOption) => /forced|signs?\b.*songs?/i.test(`${o.title} 
 // What a text may say of links, to be copied and shared: their scheme,
 // host and path, which help tell what went wrong, but not what gives
 // access to a stream (query strings, fragments, user names and
-// passwords, path parts that look like tokens). KumoBox's own links
+// passwords, path parts that look like tokens). Moviko's own links
 // (/api/proxy?u=…) carry the provider's link in theirs.
 function redactLinks(text: string) {
     const tokenLike = (s: string) =>

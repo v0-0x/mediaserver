@@ -2,11 +2,11 @@
 // Emby (which shares most of Jellyfin's API) and Plex. A movie or an
 // episode is found by its TMDB id (its IMDb id when the server has no TMDB
 // id for it), and each of its files becomes a direct link to the file as it
-// is (no transcoding on the server): KumoBox's in-app player converts what
+// is (no transcoding on the server): Moviko's in-app player converts what
 // the browser can't play, mpv plays everything.
 //
 // The server's token never goes in the links: the players and the browser
-// get links without it, and KumoBox adds it (Credentials) when it fetches a
+// get links without it, and Moviko adds it (Credentials) when it fetches a
 // video from the server itself (stream proxy, relay, mpv, downloads), for
 // the servers' video paths only.
 package mediaserver
@@ -209,7 +209,7 @@ func (p *Provider) get(ctx context.Context, rel string, q url.Values, limit int6
 		req.Header.Set(k, v)
 	}
 	if p.cfg.Kind == Plex {
-		req.Header.Set("X-Plex-Product", "KumoBox")
+		req.Header.Set("X-Plex-Product", "Moviko")
 		req.Header.Set("X-Plex-Client-Identifier", "kumobox")
 	}
 	resp, err := p.http.Do(req)

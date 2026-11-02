@@ -29,7 +29,7 @@ type Loaded struct {
 	UpdatedAt   int64
 
 	mgr *Manager
-	// payload is the code of an extension installed since KumoBox started.
+	// payload is the code of an extension installed since Moviko started.
 	// The others' is read from the database when their runtime starts
 	// (code): dozens of providers carry megabytes of it, and they start
 	// rarely.

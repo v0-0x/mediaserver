@@ -7,9 +7,9 @@ import (
 	"time"
 )
 
-// The program reading from KumoBox ends once KumoBox's end of the pipe closes (as
-// when KumoBox crashes), not only when it's stopped.
-func TestInhibitorEndsWithKumoBox(t *testing.T) {
+// The program reading from Moviko ends once Moviko's end of the pipe closes (as
+// when Moviko crashes), not only when it's stopped.
+func TestInhibitorEndsWithMoviko(t *testing.T) {
 	c := &cmdInhibitor{args: []string{"cat"}, stdin: true}
 	if err := c.start(); err != nil {
 		t.Skip("no cat:", err)
@@ -24,7 +24,7 @@ func TestInhibitorEndsWithKumoBox(t *testing.T) {
 	if !running {
 		t.Fatal("ended at once")
 	}
-	// KumoBox gone: its end of the pipe closed by the system.
+	// Moviko gone: its end of the pipe closed by the system.
 	_ = pipe.Close()
 	for i := 0; i < 50; i++ {
 		c.mu.Lock()
@@ -35,5 +35,5 @@ func TestInhibitorEndsWithKumoBox(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	t.Fatal("it went on without KumoBox")
+	t.Fatal("it went on without Moviko")
 }

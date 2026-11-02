@@ -9,7 +9,7 @@ import type { CollectionItem } from "@/lib/types"
 import { cn, LIST_STATUS } from "@/lib/utils"
 
 // Your movies and shows in numbers: from your list, and what you watched in
-// KumoBox month by month.
+// Moviko month by month.
 
 type Month = { month: string; movies: number; episodes: number; minutes: number }
 
@@ -67,7 +67,7 @@ export default function StatsPage() {
         <div className="min-h-full px-6 pt-8 pb-24 md:px-8 xl:px-10">
             <div className="mb-8">
                 <h1 className="text-[1.75rem] font-semibold tracking-tight">Stats</h1>
-                <p className="mt-1 text-muted">Your movies and shows in numbers: your list, and what you watched in KumoBox.</p>
+                <p className="mt-1 text-muted">Your movies and shows in numbers: your list, and what you watched in Moviko.</p>
             </div>
             <div className="flex flex-col gap-8">
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -121,7 +121,7 @@ function ChartCard({ title, note, table, children }: { title: string; note?: str
     )
 }
 
-// Movies and episodes finished in KumoBox, month by month: one series, in
+// Movies and episodes finished in Moviko, month by month: one series, in
 // the accent.
 function MonthlyChart({ months }: { months: Month[] }) {
     const [hover, setHover] = useState<number | null>(null)
@@ -155,9 +155,9 @@ function MonthlyChart({ months }: { months: Month[] }) {
         </table>
     )
     return (
-        <ChartCard title="Watched in KumoBox" note="Movies and episodes, by the month you last watched each one, the last 12 months" table={table}>
+        <ChartCard title="Watched in Moviko" note="Movies and episodes, by the month you last watched each one, the last 12 months" table={table}>
             {empty ? (
-                <p className="py-10 text-center text-sm text-muted">Nothing finished in KumoBox these 12 months yet. Each movie and episode you watch to the end here shows up by month.</p>
+                <p className="py-10 text-center text-sm text-muted">Nothing finished in Moviko these 12 months yet. Each movie and episode you watch to the end here shows up by month.</p>
             ) : (
                 // Headroom above the plot: the hover readout over the tallest
                 // month stays clear of the title.

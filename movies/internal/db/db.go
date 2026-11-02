@@ -1,5 +1,5 @@
 // Package db wraps the SQLite database that holds every piece of persistent
-// state KumoBox keeps on disk (settings, library files, watch history, caches,
+// state Moviko keeps on disk (settings, library files, watch history, caches,
 // installed extensions, downloads...).
 package db
 
@@ -183,9 +183,9 @@ func Open(path string) (*DB, error) {
 	return &DB{DB: conn}, nil
 }
 
-// columns are added to tables made by an older KumoBox.
+// columns are added to tables made by an older Moviko.
 var columns = []struct{ table, name, def string }{
-	// The order this KumoBox stored each position in (see history.Store): the
+	// The order this Moviko stored each position in (see history.Store): the
 	// others on the same account ask for what came after what they have.
 	{"watch_history", "seq", "INTEGER NOT NULL DEFAULT 0"},
 }

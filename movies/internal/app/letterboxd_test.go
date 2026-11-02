@@ -31,7 +31,7 @@ func newTestApp(t *testing.T) *App {
 		_, _ = w.Write(raw)
 	}))
 	t.Cleanup(tmdb.Close)
-	t.Setenv("KUMOBOX_TMDB_URL", tmdb.URL)
+	t.Setenv("MOVIKO_TMDB_URL", tmdb.URL)
 	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
 	t.Setenv("LOCALAPPDATA", t.TempDir())
 	a, err := New(t.TempDir())
@@ -97,7 +97,7 @@ func TestCompletedMovieLogged(t *testing.T) {
 	}
 	waitDiary(t, a, 155, 1)
 	d, _ := a.Platform.Diary(ctx, 155, 0)
-	if e := d[0]; e.Source != catalog.DiaryKumoBox || e.WatchedDate != time.Now().Format("2006-01-02") || e.Rewatch || e.ExportedAt != 0 {
+	if e := d[0]; e.Source != catalog.DiaryMoviko || e.WatchedDate != time.Now().Format("2006-01-02") || e.Rewatch || e.ExportedAt != 0 {
 		t.Errorf("entry: %+v", e)
 	}
 
@@ -163,7 +163,7 @@ func TestCompletedMovieLogged(t *testing.T) {
 	waitDiary(t, a, show, 0)
 }
 
-// Logging can be turned off, and what another KumoBox on the account
+// Logging can be turned off, and what another Moviko on the account
 // finished is logged there, not here.
 func TestCompletedMovieNotLogged(t *testing.T) {
 	a := newTestApp(t)
@@ -184,7 +184,7 @@ func TestCompletedMovieNotLogged(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitDiary(t, a, 27205, 0)
-	// Played here after all: logged (the mark of the other KumoBox's
+	// Played here after all: logged (the mark of the other Moviko's
 	// completion was taken).
 	cfg.Letterboxd.LogWatched = true
 	if _, err := a.Settings.Save(cfg); err != nil {

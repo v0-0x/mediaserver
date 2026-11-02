@@ -162,7 +162,7 @@ func TestSetActivitySendsThePresence(t *testing.T) {
 	if got["details"] != "Breaking Bad" || got["state"] != "S01E02 · Cat's in the Bag..." {
 		t.Errorf("details %q, state %q", got["details"], got["state"])
 	}
-	if assets["large_image"] != poster || assets["small_text"] != "KumoBox" || assets["small_image"] != AppAsset {
+	if assets["large_image"] != poster || assets["small_text"] != "Moviko" || assets["small_image"] != AppAsset {
 		t.Errorf("assets %v", assets)
 	}
 	start, _ := ts["start"].(float64)

@@ -15,7 +15,7 @@ import (
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestHideContinueConcurrent(t *testing.T) {
 	}
 }
 
-// Files other KumoBox apps share fill in the episodes this computer doesn't
+// Files other Moviko apps share fill in the episodes this computer doesn't
 // have; its own always win.
 func TestSharedFilesFillIn(t *testing.T) {
 	s := newTestService(t)
@@ -426,7 +426,7 @@ func TestSummarize(t *testing.T) {
 }
 
 // The Local library page's titles: this computer's files, or another
-// KumoBox's, with their movies and shows.
+// Moviko's, with their movies and shows.
 func TestTitles(t *testing.T) {
 	f := testCatalog(t)
 	p, d, _ := newTestPlatform(t, f)

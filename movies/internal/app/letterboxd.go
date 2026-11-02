@@ -13,25 +13,25 @@ import (
 )
 
 // Letterboxd: the sync service, and the diary entries of the movies watched
-// in KumoBox. A movie is logged when it becomes Watched (COMPLETED) here:
+// in Moviko. A movie is logged when it becomes Watched (COMPLETED) here:
 // played to the end (catalog.Platform.OnCompleted), marked watched on its
 // page, or put on the Watched list by hand (UpdateEntry). Shows aren't
-// logged: Letterboxd is about films. Finishing a movie on another KumoBox
+// logged: Letterboxd is about films. Finishing a movie on another Moviko
 // on the same account (its watch history moves this list on) isn't logged
-// either: that KumoBox logs it.
+// either: that Moviko logs it.
 
 // diaryLog is the state of logging viewings.
 type diaryLog struct {
 	// mu: one viewing logged at a time, so that a movie finished two ways
 	// at once (played to the end while marked watched) is logged once.
 	mu sync.Mutex
-	// elsewhere holds the movies another KumoBox finished, until their
+	// elsewhere holds the movies another Moviko finished, until their
 	// completion comes (or a minute passes).
 	elsewhereMu sync.Mutex
 	elsewhere   map[int]time.Time
 }
 
-// elsewhereFor is how long a completion is put down to another KumoBox.
+// elsewhereFor is how long a completion is put down to another Moviko.
 const elsewhereFor = time.Minute
 
 // wireLetterboxd sets up the Letterboxd sync (started with the app).
@@ -103,7 +103,7 @@ func (a *App) UpdateEntry(ctx context.Context, u catalog.EntryUpdate) error {
 
 // reviewLogged gives the latest viewing of a movie, when it was logged here
 // and isn't on Letterboxd yet, the review the user just wrote, so that it
-// goes to Letterboxd with it. Only reviews written in KumoBox get there: a
+// goes to Letterboxd with it. Only reviews written in Moviko get there: a
 // review that came from Letterboxd isn't copied into new viewings.
 func (a *App) reviewLogged(ctx context.Context, mediaID int, review string) {
 	a.diary.mu.Lock()
@@ -113,7 +113,7 @@ func (a *App) reviewLogged(ctx context.Context, mediaID int, review string) {
 		return
 	}
 	d := latest[0]
-	if d.Source != catalog.DiaryKumoBox || d.ExportedAt != 0 || d.Review == strings.TrimSpace(review) {
+	if d.Source != catalog.DiaryMoviko || d.ExportedAt != 0 || d.Review == strings.TrimSpace(review) {
 		return
 	}
 	if err := a.Platform.ReviewDiary(ctx, d.ID, review); err != nil {
@@ -140,7 +140,7 @@ func (a *App) rateLogged(ctx context.Context, mediaID int) {
 		return
 	}
 	d, rating := latest[0], int(math.Round(e.Score))
-	if d.Source != catalog.DiaryKumoBox || d.ExportedAt != 0 || (d.Rating == rating && d.Liked == e.Liked) {
+	if d.Source != catalog.DiaryMoviko || d.ExportedAt != 0 || (d.Rating == rating && d.Liked == e.Liked) {
 		return
 	}
 	if err := a.Platform.RateDiary(ctx, d.ID, rating, e.Liked); err != nil {
@@ -149,7 +149,7 @@ func (a *App) rateLogged(ctx context.Context, mediaID int) {
 }
 
 // progressElsewhere moves the list on for an episode (or a movie) another
-// KumoBox on the same account finished: its completion isn't logged here.
+// Moviko on the same account finished: its completion isn't logged here.
 func (a *App) progressElsewhere(ctx context.Context, mediaID, episode int) {
 	a.watchedElsewhere(mediaID)
 	changed, err := a.Platform.UpdateProgress(ctx, mediaID, episode)
@@ -163,7 +163,7 @@ func (a *App) progressElsewhere(ctx context.Context, mediaID, episode int) {
 	a.finishedElsewhere(mediaID) // not completed: no mark left behind
 }
 
-// watchedElsewhere notes that another KumoBox finished a title, before its
+// watchedElsewhere notes that another Moviko finished a title, before its
 // progress is applied here.
 func (a *App) watchedElsewhere(mediaID int) {
 	a.diary.elsewhereMu.Lock()
@@ -181,7 +181,7 @@ func (a *App) watchedElsewhere(mediaID int) {
 }
 
 // finishedElsewhere reports (once) whether a completion of mediaID came from
-// another KumoBox's history.
+// another Moviko's history.
 func (a *App) finishedElsewhere(mediaID int) bool {
 	a.diary.elsewhereMu.Lock()
 	defer a.diary.elsewhereMu.Unlock()

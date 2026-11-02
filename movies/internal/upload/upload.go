@@ -1,5 +1,5 @@
 // Package upload takes files sent from another computer into a library
-// folder: a device's KumoBox, or a browser signed in to the server, sends
+// folder: a device's Moviko, or a browser signed in to the server, sends
 // them a piece at a time (Chunk at most), each piece after the last, so a
 // large one never sits in memory and an upload cut short carries on where
 // it stopped. A file is written next to its place as <name>.part (the

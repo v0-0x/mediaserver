@@ -19,7 +19,7 @@
 #
 # The program goes in ~/.local/bin/mediaserver (it replaces it itself when
 # it updates), its data in ~/.local/share/mediaserver (anime/ for the Aniko
-# apps' side, movies/ for the KumoBox apps'), its service in
+# apps' side, movies/ for the Moviko apps'), its service in
 # /etc/systemd/system/mediaserver.service. A computer that ran Aniko Hub
 # moves to mediaserver: its service is replaced, its data moves into
 # anime/ (its library, AniList logins, devices and password stay).
@@ -57,7 +57,7 @@ die() {
 if [ "$(id -u)" -eq 0 ]; then
   die "Run this as the user mediaserver is to run as (pi, say), not as root or with sudo: it asks for sudo when it needs it."
 fi
-[ "$(uname -s)" = Linux ] || die "mediaserver is for Linux (a Raspberry Pi, say). On Windows and macOS, install Aniko and KumoBox themselves."
+[ "$(uname -s)" = Linux ] || die "mediaserver is for Linux (a Raspberry Pi, say). On Windows and macOS, install Aniko and Moviko themselves."
 command -v curl > /dev/null || die "This needs curl: sudo apt-get install -y curl"
 
 user=$(id -un)
@@ -244,7 +244,7 @@ if [ "$has_systemd" = 1 ]; then
   echo "  Logs:        journalctl -u mediaserver -f"
 fi
 echo
-echo "On your computers, TVs and phones, turn on Settings › Other devices (Aniko) and Settings › Devices (KumoBox): mediaserver shows up there."
+echo "On your computers, TVs and phones, turn on Settings › Other devices (Aniko) and Settings › Devices (Moviko): mediaserver shows up there."
 }
 
 main "$@"

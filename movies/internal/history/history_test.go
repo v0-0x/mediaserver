@@ -9,7 +9,7 @@ import (
 )
 
 func TestMergeKeepsTheNewest(t *testing.T) {
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,7 +20,7 @@ func TestMergeKeepsTheNewest(t *testing.T) {
 	}
 	here := s.Get(1, 2).UpdatedAt
 
-	// Older, from another KumoBox: this one's stays.
+	// Older, from another Moviko: this one's stays.
 	if ok, _ := s.Merge(Entry{MediaID: 1, Episode: 2, Position: 900, Duration: 1400, Source: "local", UpdatedAt: here - 60}); ok {
 		t.Error("an older position replaced a newer one")
 	}
@@ -31,7 +31,7 @@ func TestMergeKeepsTheNewest(t *testing.T) {
 	if e := s.Get(1, 2); e.Position != 700 || e.UpdatedAt != here+60 {
 		t.Errorf("entry %+v", e)
 	}
-	// One this KumoBox hadn't.
+	// One this Moviko hadn't.
 	if ok, _ := s.Merge(Entry{MediaID: 5, Episode: 1, Position: 300, Duration: 1400, UpdatedAt: here + 120}); !ok {
 		t.Error("a new entry wasn't taken")
 	}
@@ -54,10 +54,10 @@ func TestMergeKeepsTheNewest(t *testing.T) {
 }
 
 // Positions are handed out in the order they were stored, whatever their
-// time: one merged late from another KumoBox, with an older time, still comes
+// time: one merged late from another Moviko, with an older time, still comes
 // after what was asked for already.
 func TestAfterIsTheStoredOrder(t *testing.T) {
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestAfterIsTheStoredOrder(t *testing.T) {
 		t.Fatalf("after the last: %+v", more)
 	}
 
-	// From another KumoBox, watched an hour ago: still new to whoever asks.
+	// From another Moviko, watched an hour ago: still new to whoever asks.
 	merged, err := s.MergeAll([]Entry{
 		{MediaID: 2, Episode: 1, Position: 50, Duration: 1400, UpdatedAt: time.Now().Add(-time.Hour).Unix()},
 		{MediaID: 2, Episode: 2, Position: 60, Duration: 1400, UpdatedAt: time.Now().Add(-time.Hour).Unix()},
@@ -117,12 +117,12 @@ func TestAfterIsTheStoredOrder(t *testing.T) {
 // A database from before the stored order: its positions get one, by
 // their time, and new ones come after.
 func TestSeqForOlderDatabases(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "kumobox.db")
+	path := filepath.Join(t.TempDir(), "moviko.db")
 	d, err := db.Open(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// As an older KumoBox left it: no seq column.
+	// As an older Moviko left it: no seq column.
 	for _, q := range []string{
 		`DROP INDEX idx_watch_history_seq`,
 		`ALTER TABLE watch_history DROP COLUMN seq`,

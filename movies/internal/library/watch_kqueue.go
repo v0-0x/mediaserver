@@ -5,7 +5,7 @@ package library
 import "syscall"
 
 // watchBudget is how many files and folders the watcher may watch: kqueue
-// opens each one, so half of the files KumoBox may have open (Go raises that
+// opens each one, so half of the files Moviko may have open (Go raises that
 // limit at startup), the rest staying for its connections and its own
 // files.
 var watchBudget = func() int {

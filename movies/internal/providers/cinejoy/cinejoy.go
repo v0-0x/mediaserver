@@ -4,11 +4,11 @@
 // which answers HLS playlists (and MP4 files) from several servers.
 //
 // The resolver only takes requests sealed by Cinejoy's own encoder
-// (encoder.go). KumoBox downloads it from the resolver, checks it's the
+// (encoder.go). Moviko downloads it from the resolver, checks it's the
 // very build pinned in EncoderSHA256 and runs it in wazero, where it can't
 // reach anything but its own memory.
 //
-// Like luffy, KumoBox asks the servers proven to work, all at once, and
+// Like luffy, Moviko asks the servers proven to work, all at once, and
 // only offers a server's stream once its playlist and first segment load.
 package cinejoy
 

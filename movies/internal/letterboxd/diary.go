@@ -9,12 +9,12 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/catalog"
 )
 
-// What's watched in KumoBox goes to Letterboxd as diary entries: logged
+// What's watched in Moviko goes to Letterboxd as diary entries: logged
 // here (LoggedWatched), then exported as a CSV for letterboxd.com/import
 // (Export, then MarkExported once imported) or sent with the API (Push).
 
 // LoggedWatched logs a viewing of mediaID today, when Settings.Letterboxd.
-// LogWatched is on; call it when KumoBox marks a movie (or show) watched.
+// LogWatched is on; call it when Moviko marks a movie (or show) watched.
 // The entry gets the list entry's score and like, and is a rewatch when the
 // diary already has the film. A viewing already logged today isn't logged
 // again: that entry is returned. It returns nil when logging is off.
@@ -37,7 +37,7 @@ func (s *Sync) LoggedWatched(ctx context.Context, mediaID int) (*catalog.DiaryEn
 		MediaID:     mediaID,
 		WatchedDate: today,
 		Rewatch:     len(existing) > 0,
-		Source:      SourceKumoBox,
+		Source:      SourceMoviko,
 		CreatedAt:   now.Unix(),
 	}
 	if coll, err := s.Catalog.Collection(ctx, "", false); err == nil && coll != nil {
@@ -72,7 +72,7 @@ func findEntry(coll *catalog.Collection, mediaID int) *catalog.ListEntry {
 	return nil
 }
 
-// Export writes the diary entries logged in KumoBox as a CSV for
+// Export writes the diary entries logged in Moviko as a CSV for
 // letterboxd.com/import: those not sent yet, or all of them when all is
 // set. It returns the ids of the entries written, for MarkExported once the
 // member has imported the file. Entries imported from Letterboxd are never
@@ -90,7 +90,7 @@ func (s *Sync) Export(ctx context.Context, w io.Writer, all bool) ([]int64, erro
 	}
 	var mine []*catalog.DiaryEntry
 	for _, e := range entries {
-		if e != nil && e.Source == SourceKumoBox {
+		if e != nil && e.Source == SourceMoviko {
 			mine = append(mine, e)
 		}
 	}
@@ -125,7 +125,7 @@ func (s *Sync) Export(ctx context.Context, w io.Writer, all bool) ([]int64, erro
 	return ids, nil
 }
 
-// ExportWatchlist writes the KumoBox watchlist (PLANNING) as a CSV for
+// ExportWatchlist writes the Moviko watchlist (PLANNING) as a CSV for
 // Letterboxd's watchlist importer and returns how many films it has.
 func (s *Sync) ExportWatchlist(ctx context.Context, w io.Writer) (int, error) {
 	coll, err := s.Catalog.Collection(ctx, "", false)

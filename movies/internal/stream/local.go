@@ -34,7 +34,7 @@ type Local struct {
 	files    *library.Store
 	db       *db.DB
 	// MaxTranscodes: how many videos may be converted at once (0: any). A
-	// KumoBox Hub's small computer converts one or two at most.
+	// Moviko Hub's small computer converts one or two at most.
 	MaxTranscodes int
 	transcoding   atomic.Int32
 }
@@ -221,7 +221,7 @@ func (l *Local) probeRemote(ctx context.Context, path string) (*Probe, error) {
 			// "http://127.0.0.1:…/r/…: Server returned 404 Not Found" is the
 			// provider's host answering, through the relay.
 			if i := strings.Index(msg, "Server returned "); i >= 0 {
-				return nil, fmt.Errorf("the provider's link answered %s (it may have expired: KumoBox asks the provider again)", strings.TrimPrefix(msg[i:], "Server returned "))
+				return nil, fmt.Errorf("the provider's link answered %s (it may have expired: Moviko asks the provider again)", strings.TrimPrefix(msg[i:], "Server returned "))
 			}
 			return nil, fmt.Errorf("the stream couldn't be read: %s", msg)
 		}

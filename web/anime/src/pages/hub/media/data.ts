@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api"
 import { toast } from "@/lib/toast"
 
-// mediaserver's movies side (KumoBox's server), as the dashboard's Movies
+// mediaserver's movies side (Moviko's server), as the dashboard's Movies
 // and TV pages see it: its API through this side's, at /api/movies/...
 // (server: anime/internal/api/movies.go), with the dashboard's sign-in.
 

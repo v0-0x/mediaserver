@@ -1,4 +1,4 @@
-// Shapes returned by the KumoBox API (mirrors the Go structs).
+// Shapes returned by the Moviko API (mirrors the Go structs).
 
 export type FuzzyDate = { year?: number | null; month?: number | null; day?: number | null }
 
@@ -169,7 +169,7 @@ export type Discover = {
 
 // One viewing of a movie: a Letterboxd diary entry. rating is 0-100 (0:
 // none); source is "kumobox" (logged here) or "letterboxd" (imported);
-// exportedAt is when a KumoBox entry went to Letterboxd (0: not yet).
+// exportedAt is when a Moviko entry went to Letterboxd (0: not yet).
 export type DiaryEntry = {
     id: number
     mediaId: number
@@ -281,7 +281,7 @@ export type LocalFile = {
     locked: boolean
     ignored: boolean
     matchScore: number
-    // Shared by another KumoBox app on the network (path kumobox://<host>/…).
+    // Shared by another Moviko app on the network (path kumobox://<host>/…).
     host?: string
     hostName?: string
 }
@@ -330,7 +330,7 @@ export type EntryView = {
     others: EpisodeView[] | null
     nextEpisode: EpisodeView | null
     localCount: number
-    sharedCount: number // files other KumoBox apps share
+    sharedCount: number // files other Moviko apps share
     images?: { banner: string; poster: string; fanart: string; clearlogo: string } | null
     // The title's ids on other sites.
     mappings?: { tmdbId: number; imdbId?: string; tvdbId?: number }
@@ -434,12 +434,12 @@ export type Settings = {
     qbittorrent: TorrentClientConfig
     transmission: TorrentClientConfig
     server: { host: string; port: number; allowLan: boolean; password: string; webUi: boolean }
-    // downloadTo: the KumoBox this one's downloads go to (its ID; "" here).
+    // downloadTo: the Moviko this one's downloads go to (its ID; "" here).
     // keepAwake: don't let this computer sleep while another device plays its
     // files. autoSync: sync watch history when a paired device comes back.
     sharing: { enabled: boolean; name: string; downloadTo?: string; keepAwake?: boolean; autoSync?: boolean }
     notify?: { newEpisodes: boolean; downloads: boolean }
-    // Which releases KumoBox updates to: stable ones, or betas too.
+    // Which releases Moviko updates to: stable ones, or betas too.
     updates?: { channel: "stable" | "beta" }
     ui: {
         accentColor: string
@@ -454,7 +454,7 @@ export type Settings = {
         colorTheme?: string
         seasonal?: string
         seasonalEffects?: boolean
-        // KumoBox's look from before 2.0.
+        // Moviko's look from before 2.0.
         classicLook?: boolean
     }
     discord: { richPresence: boolean; clientId: string }
@@ -548,20 +548,20 @@ export type Status = {
     scanning: boolean
     dataDir: string
     listenAddr: string
-    lanUrls?: string[] | null // where devices on the home network open KumoBox
+    lanUrls?: string[] | null // where devices on the home network open Moviko
     // A mediaserver's movies side: where its dashboard is (on the same host).
     server?: { dashboardPort: number }
-    paired?: string[] | null // the KumoBoxes this one is paired with (library sharing): Home's Sync
+    paired?: string[] | null // the Movikos this one is paired with (library sharing): Home's Sync
     // The computers sharing their library with this one that don't answer
     // (asleep or off), and whether they can be woken up from here.
     asleep?: { id: string; name: string; canWake: boolean; waking: boolean }[] | null
-    // Home's questions about the other KumoBox apps (only for this computer):
+    // Home's questions about the other Moviko apps (only for this computer):
     // share with a new one ("new"), or update one of the two ("older": its
-    // KumoBox is older than this one, "newer": this one is).
+    // Moviko is older than this one, "newer": this one is).
     devicePrompts?: DevicePrompt[] | null
     keptAwake?: boolean // another device is playing this computer's files, so it stays awake
     webUiForced: boolean
-    setupRunning?: boolean // Windows: the window installing KumoBox's programs is open
+    setupRunning?: boolean // Windows: the window installing Moviko's programs is open
     settings: Settings
 }
 
@@ -1034,7 +1034,7 @@ export type FolderInfo = {
     problem?: string // why it has nothing to match (still downloading, unreadable…)
 }
 
-// KumoBox's own updates (GET /api/update, and the "update-status" event).
+// Moviko's own updates (GET /api/update, and the "update-status" event).
 // beta: a pre-release (or, on Linux, the default branch's head).
 export type UpdateVersion = { version: string; commit: string; date?: string; url?: string; beta?: boolean }
 
@@ -1061,7 +1061,7 @@ export type UpdateStatus = {
     installFile?: string // Android: the downloaded APK the app installs
 }
 
-// Library sharing with other KumoBox apps on the network.
+// Library sharing with other Moviko apps on the network.
 export type SharingPeer = {
     id: string
     name: string
@@ -1069,8 +1069,8 @@ export type SharingPeer = {
     online: boolean
     lastSeen: number
     version: string
-    allowed: boolean // this KumoBox shares its library with it
-    shares: boolean // it shares its library with this KumoBox
+    allowed: boolean // this Moviko shares its library with it
+    shares: boolean // it shares its library with this Moviko
     files: number
     manual: boolean
     error?: string
@@ -1078,7 +1078,7 @@ export type SharingPeer = {
     // shares): downloading there.
     downloads: boolean
     takesDownloads: boolean
-    // It shares with this KumoBox and has said how to wake it up (Wake-on-LAN);
+    // It shares with this Moviko and has said how to wake it up (Wake-on-LAN);
     // waking: a wake-up was just sent.
     canWake?: boolean
     waking?: boolean

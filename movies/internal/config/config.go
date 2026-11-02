@@ -1,4 +1,4 @@
-// Package config holds the user settings and resolves the XDG paths KumoBox uses.
+// Package config holds the user settings and resolves the XDG paths Moviko uses.
 package config
 
 import (
@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	AppName = "KumoBox"
+	AppName = "Moviko"
 
 	DefaultPort           = 43311
 	DefaultMarketplaceURL = "https://raw.githubusercontent.com/Bas1874/Seanime-Marketplace/refs/heads/main/Marketplace/Main.json"
 
-	// UpdateRepo is the GitHub repository KumoBox looks for updates in
-	// ($KUMOBOX_UPDATE_REPO overrides it), asked for by its number
+	// UpdateRepo is the GitHub repository Moviko looks for updates in
+	// ($MOVIKO_UPDATE_REPO overrides it), asked for by its number
 	// (UpdateRepoID): should it be renamed, the old name could be taken by
 	// anyone, who would then make the updates.
 	UpdateRepo   = "v0-0x/kumobox-movies"
@@ -35,11 +35,11 @@ var (
 	// AppVersion is 2.0.<commits since 2.0.0's> in those builds (1.0.<number
 	// of commits> before it; see update.VersionOf).
 	AppVersion = "1.0.0"
-	// Commit is the git commit KumoBox was built from; see BuildCommit.
+	// Commit is the git commit Moviko was built from; see BuildCommit.
 	Commit = ""
 )
 
-// BuildCommit is the commit KumoBox was built from: Commit, or else the one Go
+// BuildCommit is the commit Moviko was built from: Commit, or else the one Go
 // stamps into builds made inside a git checkout, or "" when unknown (e.g.
 // built from a source zip).
 func BuildCommit() string {
@@ -79,7 +79,7 @@ type Settings struct {
 	Notify       NotifySettings       `json:"notify"`
 	Updates      UpdateSettings       `json:"updates"`
 
-	// KumoBox (kumobox.go)
+	// Moviko (moviko.go)
 	TMDB           TMDBSettings          `json:"tmdb"`
 	Letterboxd     LetterboxdSettings    `json:"letterboxd"`
 	Providers      ProviderSettings      `json:"providers"`
@@ -96,7 +96,7 @@ type UpdateSettings struct {
 // UpdateChannels are the values UpdateSettings.Channel takes.
 var UpdateChannels = []string{"stable", "beta"}
 
-// NotifySettings: what KumoBox tells about as it happens (package notify).
+// NotifySettings: what Moviko tells about as it happens (package notify).
 type NotifySettings struct {
 	// NewEpisodes: an episode of a show being watched aired.
 	NewEpisodes bool `json:"newEpisodes"`
@@ -170,7 +170,7 @@ type DownloadSettings struct {
 	// Dir is the download folder. Empty = the library folder.
 	Dir string `json:"dir"`
 	// Downloader is auto | yt-dlp | ffmpeg. Video files and HLS streams are
-	// always fetched by KumoBox (HLS with ffmpeg); yt-dlp downloads the
+	// always fetched by Moviko (HLS with ffmpeg); yt-dlp downloads the
 	// videos of web pages, unless this is "ffmpeg".
 	Downloader string `json:"downloader"`
 }
@@ -208,20 +208,20 @@ type TorrentClientConfig struct {
 	UseHTTPS   bool   `json:"useHttps"`
 }
 
-// SharingSettings: library sharing with other KumoBox apps on the home network
+// SharingSettings: library sharing with other Moviko apps on the home network
 // (package share). Which ones this one shares its library with is kept
-// with the KumoBoxes it knows, not here.
+// with the Movikos it knows, not here.
 type SharingSettings struct {
 	Enabled bool `json:"enabled"`
-	// Name: what the others call this KumoBox (empty: the computer's name).
+	// Name: what the others call this Moviko (empty: the computer's name).
 	Name string `json:"name"`
-	// DownloadTo: the KumoBox this one's downloads and torrents go to (its ID;
+	// DownloadTo: the Moviko this one's downloads and torrents go to (its ID;
 	// empty: saved here). Set when one allows it (package share).
 	DownloadTo string `json:"downloadTo,omitempty"`
 	// KeepAwake: this computer doesn't go to sleep while other devices play
 	// its files (package awake).
 	KeepAwake bool `json:"keepAwake"`
-	// AutoSync: Continue watching is synced with the paired KumoBoxes when they
+	// AutoSync: Continue watching is synced with the paired Movikos when they
 	// come back, without pressing Sync.
 	AutoSync bool `json:"autoSync"`
 }
@@ -229,7 +229,7 @@ type SharingSettings struct {
 type ServerSettings struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
-	// When true KumoBox listens on every interface so other devices on the home
+	// When true Moviko listens on every interface so other devices on the home
 	// network can use it. Requests from public (non-private) addresses are
 	// always refused.
 	AllowLAN bool `json:"allowLan"`
@@ -255,7 +255,7 @@ type UISettings struct {
 	ColorTheme      string `json:"colorTheme"`
 	Seasonal        string `json:"seasonal"`
 	SeasonalEffects bool   `json:"seasonalEffects"`
-	// KumoBox's look from before 2.0 (its components, sidebar and holiday
+	// Moviko's look from before 2.0 (its components, sidebar and holiday
 	// themes), with the same color themes.
 	ClassicLook bool `json:"classicLook"`
 }
@@ -389,7 +389,8 @@ func NewStore(d *db.DB) (*Store, error) {
 		return nil, err
 	}
 	if ok {
-		migrated := migrate(&merged)
+		migrated := movedPaths(&merged)
+		migrated = migrate(&merged) || migrated
 		s.current = sanitize(merged)
 		if migrated {
 			if err := d.SetKV(settingsKey, s.current); err != nil {
@@ -574,7 +575,7 @@ func sanitize(s Settings) Settings {
 	if s.Playback.DefaultPlayer != "mpv" {
 		s.Playback.DefaultPlayer = "builtin"
 	}
-	sanitizeKumoBox(&s)
+	sanitizeMoviko(&s)
 	return s
 }
 
@@ -610,18 +611,19 @@ func ExpandHome(p string) string { return expandHome(p) }
 
 // Paths -----------------------------------------------------------------
 
-// DataDir is ~/.local/share/kumobox on Linux, ~/Library/Application
-// Support/KumoBox on macOS and %APPDATA%\KumoBox on Windows, or $KUMOBOX_DATA_DIR.
+// DataDir is ~/.local/share/moviko on Linux, ~/Library/Application
+// Support/Moviko on macOS and %APPDATA%\Moviko on Windows, or $MOVIKO_DATA_DIR.
+// KumoBox's folder (Moviko's old name) moves there the first time.
 func DataDir() string {
 	if d := Getenv("DATA_DIR"); d != "" {
 		return d
 	}
-	return defaultDataDir()
+	return MoveOld(oldDataDir(), defaultDataDir())
 }
 
 // RuntimeDir holds the server's address, the desktop window's token and
-// other temporary files: $XDG_RUNTIME_DIR/kumobox on Linux, $TMPDIR/kumobox on
-// macOS, %LOCALAPPDATA%\KumoBox\run on Windows.
+// other temporary files: $XDG_RUNTIME_DIR/moviko on Linux, $TMPDIR/moviko on
+// macOS, %LOCALAPPDATA%\Moviko\run on Windows.
 func RuntimeDir() string {
 	dir := runtimeDir()
 	_ = os.MkdirAll(dir, 0o700)

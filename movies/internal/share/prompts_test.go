@@ -8,7 +8,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/config"
 )
 
-// Home asks about an KumoBox new on the network (one sharing with this one
+// Home asks about a Moviko new on the network (one sharing with this one
 // isn't new) until it's shared with or the answer is "not now" (kept), and
 // about a paired one on another version.
 func TestPrompts(t *testing.T) {
@@ -82,7 +82,7 @@ func TestPrompts(t *testing.T) {
 	}
 	s.mu.Unlock()
 	if got := s.Prompts(); len(got) != 0 {
-		t.Errorf("prompts about KumoBoxes not around: %+v", got)
+		t.Errorf("prompts about Movikos not around: %+v", got)
 	}
 
 	// Sharing off: nothing.

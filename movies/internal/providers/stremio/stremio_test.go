@@ -126,7 +126,7 @@ func testClient(t *testing.T) (*Client, *fakeAddons, *httptest.Server) {
 
 func newTestStore(t *testing.T, c *Client) (*Store, *db.DB) {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -49,7 +49,7 @@ export function NuvioTab() {
                             Add
                         </Button>
                     </div>
-                    <p className="text-xs text-subtle">Nuvio providers are JavaScript scrapers; KumoBox runs them in its extension sandbox, which can't reach this computer or your network.</p>
+                    <p className="text-xs text-subtle">Nuvio providers are JavaScript scrapers; Moviko runs them in its extension sandbox, which can't reach this computer or your network.</p>
                 </div>
             )}
             {repos.length === 0 ? (

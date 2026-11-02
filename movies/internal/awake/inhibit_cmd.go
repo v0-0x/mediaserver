@@ -15,8 +15,8 @@ type cmdInhibitor struct {
 	mu   sync.Mutex
 	args []string
 	cmd  *exec.Cmd
-	// stdin: its input is a pipe from KumoBox, open while it runs (closed when
-	// KumoBox ends, however it ends).
+	// stdin: its input is a pipe from Moviko, open while it runs (closed when
+	// Moviko ends, however it ends).
 	stdin bool
 	pipe  *os.File
 }

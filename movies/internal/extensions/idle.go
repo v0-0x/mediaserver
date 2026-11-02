@@ -10,7 +10,7 @@ import (
 //
 // A provider's runtime (torrent and online streaming extensions, Nuvio
 // providers) holds its compiled code and everything its JavaScript set up:
-// a few megabytes each, for as long as KumoBox runs, while most are only
+// a few megabytes each, for as long as Moviko runs, while most are only
 // used when streams or torrents are looked for. A runtime nobody used for
 // defaultIdleAfter is closed; the next call starts it again (Loaded.Runtime),
 // with the same $store and $storage. Plugins keep running: their UI and hooks

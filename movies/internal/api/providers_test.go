@@ -27,10 +27,10 @@ import (
 const testInfoHash = "0123456789abcdef0123456789abcdef01234567"
 
 // testVideoHash is the OpenSubtitles hash of the fake addon's video.mkv
-// (327680 bytes of "KumoBox!").
+// (327680 bytes of "Moviko!!").
 var testVideoHash = func() string {
 	word := uint64(0)
-	for i, c := range []byte("KumoBox!") {
+	for i, c := range []byte("Moviko!!") {
 		word |= uint64(c) << (8 * i)
 	}
 	h := strconv.FormatUint(327680+2*8192*word, 16)
@@ -77,7 +77,7 @@ func newFakeAddon(t *testing.T) *fakeAddon {
 			_, _ = io.WriteString(w, `{"subtitles":[{"id":"2","url":"https://subs.example/dk.en.srt","lang":"eng"}]}`)
 		case "/video.mkv":
 			// A video file the subtitles are matched with (by its hash).
-			http.ServeContent(w, r, "video.mkv", time.Time{}, strings.NewReader(strings.Repeat("KumoBox!", 40<<10)))
+			http.ServeContent(w, r, "video.mkv", time.Time{}, strings.NewReader(strings.Repeat("Moviko!!", 40<<10)))
 		case "/subtitles/movie/tt0468569/filename=The.Dark.Knight.mkv&videoHash=" + testVideoHash + "&videoSize=327680.json":
 			_, _ = io.WriteString(w, `{"subtitles":[{"id":"3","url":"https://subs.example/dk.fr.matched.srt","lang":"fre"},
 				{"id":"4","url":"https://subs.example/dk.en.matched.srt","lang":"eng","label":"English (this release)"}]}`)
@@ -561,7 +561,7 @@ func TestProviderSubtitles(t *testing.T) {
 		t.Errorf("not a stream: %d", w.Code)
 	}
 	if w := do(s, "GET", "/api/providers/subtitles?mediaId=155&remote="+url.QueryEscape(stream.RemotePrefix+"0123456789abcdef01234567"), local, "", nil); w.Code != http.StatusNotFound {
-		t.Errorf("a stream KumoBox doesn't know: %d", w.Code)
+		t.Errorf("a stream Moviko doesn't know: %d", w.Code)
 	}
 }
 

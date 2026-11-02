@@ -43,7 +43,7 @@ export function AddFromLibraryDialog({ open, onOpenChange, media }: { open: bool
 }
 
 // The files matched to a movie or show, for moving them elsewhere: this
-// computer's, not those another KumoBox shares (it matches its own).
+// computer's, not those another Moviko shares (it matches its own).
 export function entryFiles(entry: EntryView): LocalFile[] {
     const out = new Map<string, LocalFile>()
     for (const e of [...(entry.episodes ?? []), ...(entry.specials ?? []), ...(entry.others ?? [])]) if (e.file && !e.file.host) out.set(e.file.path, e.file)

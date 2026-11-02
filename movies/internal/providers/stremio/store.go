@@ -28,7 +28,7 @@ const storeSchema = `CREATE TABLE IF NOT EXISTS stremio_addons(
 
 // Errors of Store.
 var (
-	ErrUnsupportedAddon = errors.New("this addon has no streams or subtitles for movies or series (catalog and metadata addons are of no use to KumoBox)")
+	ErrUnsupportedAddon = errors.New("this addon has no streams or subtitles for movies or series (catalog and metadata addons are of no use to Moviko)")
 	ErrAdultAddon       = errors.New("this addon is flagged as adult content: confirm to install it anyway")
 	ErrNotInstalled     = errors.New("this addon is not installed")
 )
@@ -179,7 +179,7 @@ func (s *Store) Collection(ctx context.Context, rawURL string) ([]Addon, error) 
 }
 
 // Install fetches an addon's manifest and installs it (or updates it, when
-// it's installed already). It refuses addons KumoBox can't use (no streams
+// it's installed already). It refuses addons Moviko can't use (no streams
 // or subtitles for movies or series), addons that must be configured
 // first (*ConfigurationError), and, unless opts allows them, adult addons
 // (ErrAdultAddon) and addons on this computer or the LAN (ErrLocalAddon).

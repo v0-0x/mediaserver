@@ -90,7 +90,7 @@ func groupExport(ex *Export, withWatchlist bool) (map[string]*exportFilm, []stri
 	return films, keys
 }
 
-// Import brings a data export into KumoBox: watched films become Watched
+// Import brings a data export into Moviko: watched films become Watched
 // (COMPLETED), ratings scores, diary entries (and the reviews written with
 // them) diary entries, likes likes, and with Settings.Letterboxd.
 // ImportWatchlist the watchlist's films that aren't on the list go on the

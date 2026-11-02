@@ -332,7 +332,7 @@ const unstickAfter = time.Second
 // unstick runs after a call into the extension was given up on (its time
 // ran out): when the event loop doesn't get to a job soon, the code it runs
 // is stuck in an endless loop, which would keep a core busy and the
-// extension unusable until KumoBox quits; it is interrupted.
+// extension unusable until Moviko quits; it is interrupted.
 func (r *Runtime) unstick() {
 	ran := make(chan struct{})
 	if !r.RunOnLoop(func(*goja.Runtime) { close(ran) }) {

@@ -93,13 +93,13 @@ export function Shown({ text, children }: { text: string; children: React.ReactN
     return <div data-setting>{children}</div>
 }
 
-// Settings only the computer KumoBox runs on may change (from a device on the
+// Settings only the computer Moviko runs on may change (from a device on the
 // network the server keeps them as they are): shown, not editable there.
 export function Locked({ children }: { children: React.ReactNode }) {
     const { data: status } = useStatus()
     if (status?.client !== "lan") return <>{children}</>
     return (
-        <fieldset disabled title="Only the computer KumoBox runs on can change this" className="m-0 min-w-0 border-0 p-0 opacity-55">
+        <fieldset disabled title="Only the computer Moviko runs on can change this" className="m-0 min-w-0 border-0 p-0 opacity-55">
             {children}
         </fieldset>
     )
@@ -133,7 +133,7 @@ export function useLan() {
 
 // Said under those fields on a device of the network.
 export function LanOnly() {
-    return <p className="px-4 py-3 text-xs text-amber-200/80">Changed on the computer KumoBox runs on.</p>
+    return <p className="px-4 py-3 text-xs text-amber-200/80">Changed on the computer Moviko runs on.</p>
 }
 
 export function Collapsible({ title, children }: { title: string; children: React.ReactNode }) {
@@ -289,7 +289,7 @@ export function ListInput({ value, onChange, placeholder, addLabel = "Add" }: { 
     )
 }
 
-// A link out of KumoBox, in settings' help texts.
+// A link out of Moviko, in settings' help texts.
 export function Ext({ href, children }: { href: string; children: React.ReactNode }) {
     return (
         <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-strong hover:underline">

@@ -307,7 +307,7 @@ function Extras({ entry, extras }: { entry: EntryView; extras: EpisodeView[] }) 
     )
 }
 
-// A movie's file in the library (or another KumoBox's), and its extras.
+// A movie's file in the library (or another Moviko's), and its extras.
 export function MovieLibrary({ entry, onStream, onTorrents }: { entry: EntryView; onStream: () => void; onTorrents: () => void }) {
     const media = entry.media
     const { data: status } = useStatus()

@@ -22,7 +22,7 @@ import (
 // features (list progress) off and mpv replaced by fakes.
 func newTestManager(t *testing.T, edit func(*config.Settings)) (*Manager, *fakeLauncher) {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -671,7 +671,7 @@ func TestMpvChoosesTracksBySettings(t *testing.T) {
 	cases := []struct {
 		name      string
 		edit      func(*config.Settings)
-		aid, sid  any // set by KumoBox; nil: not set
+		aid, sid  any // set by Moviko; nil: not set
 		wantNotes []string
 	}{
 		// Japanese audio (the file's first) isn't the user's language:

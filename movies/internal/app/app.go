@@ -72,8 +72,8 @@ type App struct {
 	Trash *library.Trash
 	// Notify tells about aired episodes and episodes ready in the library.
 	Notify *notify.Service
-	// Exits ends KumoBox from inside, e.g. to restart it after an update;
-	// cmd/kumobox waits for it, next to the signals.
+	// Exits ends Moviko from inside, e.g. to restart it after an update;
+	// cmd/moviko waits for it, next to the signals.
 	Exits *lifecycle.Exits
 
 	// ShellToken authenticates the desktop window (see api middleware).
@@ -145,7 +145,9 @@ func New(dataDir string) (*App, error) {
 	log.SetOutput(logs)
 	log.SetFlags(log.LstdFlags)
 
-	d, err := db.Open(filepath.Join(dataDir, "kumobox.db"))
+	// KumoBox's database (Moviko's old name) takes Moviko's name first.
+	config.MoveOldFiles(dataDir)
+	d, err := db.Open(filepath.Join(dataDir, "moviko.db"))
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
@@ -184,7 +186,7 @@ func New(dataDir string) (*App, error) {
 	if a.Share, err = share.New(d, settings, files, hub); err != nil {
 		return nil, fmt.Errorf("library sharing: %w", err)
 	}
-	// Libraries other KumoBox apps share with this one show with its own.
+	// Libraries other Moviko apps share with this one show with its own.
 	lib.Remote = a.Share.RemoteFiles
 	a.ShellToken = randomToken()
 	if err := a.wireProviders(); err != nil {
@@ -203,7 +205,7 @@ func New(dataDir string) (*App, error) {
 // (gone when they're done).
 func torrentStreamDir(dataDir string) string {
 	if dir, err := os.UserCacheDir(); err == nil {
-		return filepath.Join(dir, "kumobox", "torrent-stream")
+		return filepath.Join(dir, "moviko", "torrent-stream")
 	}
 	return filepath.Join(dataDir, "torrent-stream")
 }
@@ -212,7 +214,7 @@ func torrentStreamDir(dataDir string) string {
 // folder, not in /tmp, which is in memory on most Linux systems.
 func hlsDir(dataDir string) string {
 	if dir, err := os.UserCacheDir(); err == nil {
-		return filepath.Join(dir, "kumobox", "hls")
+		return filepath.Join(dir, "moviko", "hls")
 	}
 	return filepath.Join(dataDir, "hls")
 }
@@ -224,7 +226,7 @@ func randomToken() string {
 }
 
 // WriteShellToken stores the desktop-window token where only this user can
-// read it ($XDG_RUNTIME_DIR/kumobox/shell-token).
+// read it ($XDG_RUNTIME_DIR/moviko/shell-token).
 func (a *App) WriteShellToken() string {
 	p := filepath.Join(config.RuntimeDir(), "shell-token")
 	_ = os.WriteFile(p, []byte(a.ShellToken), 0o600)
@@ -234,20 +236,20 @@ func (a *App) WriteShellToken() string {
 func (a *App) wire() {
 	a.wireLetterboxd()
 	// Titles with files get all their data, also those shared with this
-	// KumoBox (prefetch.go).
+	// Moviko (prefetch.go).
 	a.Scanner.OnScanned = a.prefetchLibrary
 	a.Scanner.OnNewFiles = a.Notify.NewFiles
 	a.Downloads.Done = func(it downloads.Item) bool {
 		return a.Notify.Downloaded(it.MediaID, it.Episode, it.Title, it.Output)
 	}
 	a.Share.OnFiles = a.prefetchLibrary
-	// KumoBoxes on the same Letterboxd account keep their watch histories
+	// Movikos on the same Letterboxd account keep their watch histories
 	// in step, as positions are saved, and so their lists: an episode
 	// finished on another one moves this one's progress on too.
 	a.Share.History = a.History
 	a.History.OnChange = a.Share.HistoryChanged
 	a.Share.OnWatchedElsewhere = a.progressFromHistory
-	// The auto downloader sends what it finds where this KumoBox's downloads
+	// The auto downloader sends what it finds where this Moviko's downloads
 	// go (a TV's computer), like a torrent added by hand.
 	a.AutoDL.Send = func(ctx context.Context, mediaID int, uris []string) (bool, error) {
 		host, err := a.Share.SendDownload(ctx, share.DownloadTorrent, share.TorrentDownload{MediaID: mediaID, URIs: uris})
@@ -398,7 +400,7 @@ func (a *App) Start() {
 func (a *App) Shutdown() {
 	a.cancel()
 	// The player first: it saves where it stopped, which sharing then sends
-	// to the other KumoBoxes before it stops.
+	// to the other Movikos before it stops.
 	a.Player.Stop()
 	a.Images.Close()
 	a.TorrentStream.Close()
@@ -437,9 +439,9 @@ func (a *App) warmDiscover() {
 	}
 }
 
-// progressFromHistory moves the list on for the episodes another KumoBox
+// progressFromHistory moves the list on for the episodes another Moviko
 // on the same account says were finished there (their positions came with
-// its watch history): each KumoBox keeps its own list.
+// its watch history): each Moviko keeps its own list.
 func (a *App) progressFromHistory(finished []history.Entry) {
 	ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
 	defer cancel()

@@ -11,7 +11,7 @@ import (
 
 // ipcAddress is where mpv listens for commands: a named pipe.
 func ipcAddress(name string) string {
-	return `\\.\pipe\kumobox-` + name
+	return `\\.\pipe\moviko-` + name
 }
 
 // mpvProgram picks mpv.exe for "mpv": the program search finds mpv.com, a

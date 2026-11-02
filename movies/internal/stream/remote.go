@@ -72,7 +72,7 @@ var remotes = struct {
 // RegisterRemote names a stream's link (and the headers it needs) for the
 // in-app player's conversion endpoints: the "remote:" path it returns is
 // as good as a library file's path there. The name is unguessable, so
-// nobody can have KumoBox fetch other links through it.
+// nobody can have Moviko fetch other links through it.
 func RegisterRemote(link string, headers map[string]string) string {
 	return register(link, headers, false, "")
 }
@@ -167,8 +167,8 @@ func remoteSourceOf(path string) (*remoteSource, string, bool) {
 	return s, id, true
 }
 
-// ErrRemoteGone: the player asked for a stream KumoBox no longer knows
-// (forgotten, or KumoBox restarted): it asks the provider again.
+// ErrRemoteGone: the player asked for a stream Moviko no longer knows
+// (forgotten, or Moviko restarted): it asks the provider again.
 var ErrRemoteGone = errors.New("this stream has expired, play it again")
 
 // remoteInput is the relay URL ffmpeg reads an online stream from. An HLS

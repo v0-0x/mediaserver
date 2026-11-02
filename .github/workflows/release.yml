@@ -1,5 +1,5 @@
 # Builds mediaserver (cmd/mediaserver: the anime side for the Aniko apps and
-# the movies side for the KumoBox apps, in one program) and publishes it as
+# the movies side for the Moviko apps, in one program) and publishes it as
 # the GitHub Release "mediaserver <version>", tagged server-v<version> on
 # the commit it built: one archive per processor,
 # mediaserver-<version>-linux-<arm64|arm|amd64>.tar.gz, each a folder with
@@ -100,7 +100,7 @@ jobs:
             web/movies/package-lock.json
 
       # Each side's pages: the dashboard (Aniko's web UI, which shows it on
-      # a server) and KumoBox's.
+      # a server) and Moviko's.
       - name: Build the pages
         run: |
           for side in anime movies; do
@@ -208,7 +208,7 @@ jobs:
           beta=""
           [ "$CHANNEL" = beta ] && beta=" --beta"
           cat > "$notes" <<EOF
-          **mediaserver $VERSION**: the home server for the Aniko, KumoBox and Utako apps, for a Raspberry Pi (Pi 4 or 5) or any Linux computer that stays on. Its anime side shares its library with the Aniko apps on your network and keeps each AniList account's progress, list and theme in step on all of them; its movies side shares movies and shows with the KumoBox apps; its music side shares songs with the Utako apps and keeps the settings and logins one of them sends for the others. Each side has its own library, devices and logins. The dashboard, in a browser, shows what it's streaming to whom, the devices and the Pi's CPU, memory, temperature and disks.
+          **mediaserver $VERSION**: the home server for the Aniko, Moviko and Utako apps, for a Raspberry Pi (Pi 4 or 5) or any Linux computer that stays on. Its anime side shares its library with the Aniko apps on your network and keeps each AniList account's progress, list and theme in step on all of them; its movies side shares movies and shows with the Moviko apps; its music side shares songs with the Utako apps and keeps the settings and logins one of them sends for the others. Each side has its own library, devices and logins. The dashboard, in a browser, shows what it's streaming to whom, the devices and the Pi's CPU, memory, temperature and disks.
 
           **Install** (on the Pi, as your usual user, with Raspberry Pi OS 64-bit best):
 

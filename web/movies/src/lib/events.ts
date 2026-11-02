@@ -50,7 +50,7 @@ export function connectEvents(qc: QueryClient) {
                 qc.invalidateQueries({ queryKey: ["status"] })
                 break
             case "history-updated":
-                // Watched on another KumoBox sharing its library: Continue
+                // Watched on another Moviko sharing its library: Continue
                 // watching, the episodes' positions and what's unwatched in
                 // the Local library.
                 qc.invalidateQueries({ queryKey: ["collection"] })
@@ -187,7 +187,7 @@ export function connectEvents(qc: QueryClient) {
     connect()
 
     // The app shown again (a TV's, back from its home screen; a tab): watch
-    // history synced with the paired KumoBoxes, if that's on (the server skips
+    // history synced with the paired Movikos, if that's on (the server skips
     // those synced a moment ago). Only this computer's app asks.
     const resumed = () => {
         if (qc.getQueryData<Status>(["status"])?.client === "lan") return
@@ -195,13 +195,13 @@ export function connectEvents(qc: QueryClient) {
     }
     const onVisible = () => document.visibilityState === "visible" && resumed()
     document.addEventListener("visibilitychange", onVisible)
-    window.kumoboxResumed = resumed // the Android app's onResume
+    window.movikoResumed = resumed // the Android app's onResume
     return () => {
         closed = true
         if (retry) clearTimeout(retry)
         es?.close()
         document.removeEventListener("visibilitychange", onVisible)
-        delete window.kumoboxResumed
+        delete window.movikoResumed
     }
 }
 

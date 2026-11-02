@@ -1,13 +1,13 @@
 # mediaserver
 
-mediaserver is the home server for the Aniko, KumoBox and Utako apps, for a
+mediaserver is the home server for the Aniko, Moviko and Utako apps, for a
 computer that stays on: a Raspberry Pi 4 or 5, or any Linux computer. One
 program, one service, one install and one updater, with a side for each app:
 
 | Side | For | Port |
 |---|---|---|
 | **Anime** | the Aniko apps | 43211 |
-| **Movies & TV** | the KumoBox apps | 43311 |
+| **Movies & TV** | the Moviko apps (called KumoBox until 2.0.9) | 43311 |
 | **Music** | the Utako apps | 43411 |
 
 All are managed from one dashboard, `http://<your Pi>.local:43211`: the
@@ -15,13 +15,13 @@ slider at its top switches between **Anime**, **Movies**, **TV** and
 **Music**.
 
 The sides are kept apart: each has its own library folders, its own
-devices (an Aniko app only ever sees the anime side, a KumoBox app only the
+devices (an Aniko app only ever sees the anime side, a Moviko app only the
 movies side, a Utako app only the music side), its own logins (AniList for
 anime, Letterboxd for movies) and its own data
 (`~/.local/share/mediaserver/anime`, `…/movies` and `…/music`). What they
 share is the program, its updates, and the dashboard. Movies and TV are the
 same side seen apart: their own titles, the same devices, folders and
-settings. (KumoBox's own pages, at port 43311 with the same sign-in, are
+settings. (Moviko's own pages, at port 43311 with the same sign-in, are
 there for what the dashboard doesn't do, like fixing a match.)
 
 The anime side does what Aniko Hub did:
@@ -37,8 +37,8 @@ The anime side does what Aniko Hub did:
   what it's streaming to whom, its devices and logins, its library and
   disks, and the Pi's CPU, memory, temperature and network.
 
-The movies side is a KumoBox that plays nothing: it shares its library of
-movies and shows with the KumoBox apps you allow, streams to them (converting
+The movies side is a Moviko that plays nothing: it shares its library of
+movies and shows with the Moviko apps you allow, streams to them (converting
 what they can't play), and takes their downloads when you let them.
 
 The music side is Utako's server, and the dashboard's simplest: it shares
@@ -108,14 +108,14 @@ Hub's.
    it is. For a TV that isn't logged in, turn on **Give it an AniList
    login** for it on the dashboard.
 
-**Movies & TV (the KumoBox apps):**
+**Movies & TV (the Moviko apps):**
 
 6. Slide to **Movies** (or **TV**) at the top of the dashboard. In
    **Settings**, add a TMDB key (free, from themoviedb.org: movies and shows
    are matched and get their posters with it); in **Library**, add the
    folders your movies and shows are in. A movies folder added to the anime
    side by mistake has **Move to Movies & TV** next to it there.
-7. On each computer, TV or phone with KumoBox, turn on **Settings › Other
+7. On each computer, TV or phone with Moviko, turn on **Settings › Other
    devices › Library sharing**. The device shows up in **Movies › Devices**:
    turn on **Share the library** for it (and **Let it download here** to let
    it download and upload onto the server).
@@ -142,10 +142,10 @@ folders (they keep their names):
 
 - **In a browser:** the dashboard's **Library › Upload**, under Anime,
   Movies, TV or Music.
-- **From the Aniko and KumoBox apps:** **Local library › Upload**, or
+- **From the Aniko and Moviko apps:** **Local library › Upload**, or
   **Upload** by the server in **Settings › Other devices**. The server lets
   that device download there first (the dashboard's **Devices** for Aniko,
-  the movies side's **Settings › Other devices** for KumoBox: **Let it
+  the movies side's **Settings › Other devices** for Moviko: **Let it
   download here**).
 - **From Utako:** **Settings › Media server › Upload a folder…** or
   **Upload a song…**, once **Music › Devices** lets it (**Let it upload
@@ -170,11 +170,11 @@ once. **Beta updates** there offers the betas too.
 - **The dashboard doesn't open:** check the service runs
   (`systemctl status mediaserver`) and use the Pi's address instead of its
   name.
-- **KumoBox's own pages (port 43311) send you to the dashboard:** sign in
+- **Moviko's own pages (port 43311) send you to the dashboard:** sign in
   there first, with the same address (name or IP).
 - **A device doesn't show up:** some routers keep devices from finding each
   other. In the device's settings, **Add by address** with the Pi's address
-  and port 43211 (Aniko) or 43311 (KumoBox); in Utako, type the Pi's
+  and port 43211 (Aniko) or 43311 (Moviko); in Utako, type the Pi's
   address in **Settings › Media server › Address** (it adds port 43411
   itself).
 - **Episodes or movies don't show:** the folder must be readable by the user

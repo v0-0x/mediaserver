@@ -149,7 +149,7 @@ var autoNow = time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
 
 func newAutoTest(t *testing.T, sources ...Source) *autoTest {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -547,9 +547,9 @@ func TestRules(t *testing.T) {
 	}
 }
 
-// Where this KumoBox's downloads go elsewhere (a TV's computer), the releases
+// Where this Moviko's downloads go elsewhere (a TV's computer), the releases
 // go there, not to a torrent client here (there's none), and are recorded;
-// when that KumoBox can't take them, nothing is.
+// when that Moviko can't take them, nothing is.
 func TestAutoDownloaderSendsElsewhere(t *testing.T) {
 	show := severance()
 	run := func(send func(context.Context, int, []string) (bool, error)) (*autoTest, *RunReport) {

@@ -8,7 +8,7 @@ import { tv } from "@/lib/tv"
 
 // The holiday theme's animation over the pages (snow, bats...): never over a
 // video, stopped while the window is hidden, and not
-// with Reduce motion (this device's or KumoBox's).
+// with Reduce motion (this device's or Moviko's).
 export function HolidayEffects({ effect, reduceMotion }: { effect: Effect | null; reduceMotion: boolean }) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const playing = useStore(playerStore, p => !!p)

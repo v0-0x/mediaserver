@@ -11,7 +11,7 @@ import (
 // Tokens
 //
 // The links of a server's videos carry no token: they're listed to every
-// device, handed to the browser and to mpv. KumoBox adds the token when it
+// device, handed to the browser and to mpv. Moviko adds the token when it
 // fetches one of them itself (stream proxy, relay, mpv, downloads), and
 // only for the server's video paths: the stream proxy fetches what devices
 // on the LAN ask it to, and must not become a way to call the server's API

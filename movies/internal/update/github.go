@@ -248,9 +248,9 @@ var releaseVersion = regexp.MustCompile(`^\d+(\.\d+)*$`)
 //
 // git's credential helpers aren't asked: on Windows that can open Git
 // Credential Manager's "CredentialHelperSelector" window, and with updates
-// looked for each time KumoBox opens it kept coming back.
+// looked for each time Moviko opens it kept coming back.
 func githubToken(ctx context.Context) string {
-	for _, name := range []string{"KUMOBOX_GITHUB_TOKEN", "KUMOBOX_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"} {
+	for _, name := range []string{"MOVIKO_GITHUB_TOKEN", "MOVIKO_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"} {
 		if tok := strings.TrimSpace(os.Getenv(name)); tok != "" {
 			return tok
 		}

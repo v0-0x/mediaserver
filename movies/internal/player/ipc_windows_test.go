@@ -16,7 +16,7 @@ func listenIPC(addr string) (net.Listener, error) { return winio.ListenPipe(addr
 
 // testIPCAddress is a named pipe unique to the test directory.
 func testIPCAddress(dir, name string) string {
-	return fmt.Sprintf(`\\.\pipe\kumobox-test-%d-%d-%s-%s`, os.Getpid(), time.Now().UnixNano(), filepath.Base(dir), name)
+	return fmt.Sprintf(`\\.\pipe\moviko-test-%d-%d-%s-%s`, os.Getpid(), time.Now().UnixNano(), filepath.Base(dir), name)
 }
 
 // leftoverIPC: named pipes go away with their last handle.

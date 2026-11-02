@@ -120,7 +120,7 @@ func newTestPlatform(t *testing.T, f *fakeTMDB) *Platform {
 
 func newTestPlatformSettings(t *testing.T, f *fakeTMDB, edit func(*config.Settings)) (*Platform, *config.Store) {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

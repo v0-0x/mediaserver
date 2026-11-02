@@ -303,7 +303,7 @@ var errLocalPage = errors.New("this link is a page on this computer or the local
 
 // checkPublicPage refuses a web page on this computer or the LAN, by its
 // name (localhost, a private address, a local domain) or the addresses
-// it resolves to: yt-dlp fetches it by itself, past KumoBox's guard.
+// it resolves to: yt-dlp fetches it by itself, past Moviko's guard.
 func checkPublicPage(ctx context.Context, link string) error {
 	u, err := url.Parse(link)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {

@@ -430,7 +430,7 @@ func writeTrashNote(dir string) {
 	if _, err := os.Stat(p); err == nil {
 		return
 	}
-	_ = os.WriteFile(p, []byte("KumoBox's trash: episodes removed in KumoBox's Library tools › Clean up.\n"+
+	_ = os.WriteFile(p, []byte("Moviko's trash: episodes removed in Moviko's Library tools › Clean up.\n"+
 		"Put them back or delete them for good there. They're deleted by themselves 30 days after.\n"), 0o644)
 }
 

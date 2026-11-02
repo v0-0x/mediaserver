@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// hostWithSharing is an KumoBox with sharing on, to check requests made to it.
+// hostWithSharing is a Moviko with sharing on, to check requests made to it.
 func hostWithSharing(t *testing.T) *Service {
 	t.Helper()
 	s := newService(t, openDB(t))
@@ -45,7 +45,7 @@ func call(t *testing.T, host *Service, guest *Identity, method, target, from str
 }
 
 // mpv's tickets are repeated for hours, maybe from another address: they
-// don't move where the KumoBox is reached.
+// don't move where the Moviko is reached.
 func TestTicketsKeepTheAddress(t *testing.T) {
 	host := hostWithSharing(t)
 	guest := newGuest(t)
@@ -64,19 +64,19 @@ func TestTicketsKeepTheAddress(t *testing.T) {
 	}
 }
 
-// Anyone on the network can make up KumoBoxes: only a few unknown ones are
+// Anyone on the network can make up Movikos: only a few unknown ones are
 // kept, and none of them gets a large body read.
 func TestStrangersAreKeptFew(t *testing.T) {
 	host := hostWithSharing(t)
 	for i := 0; i < maxStrangers+10; i++ {
 		g := newGuest(t)
-		host.heard(beacon{KumoBox: protocol, ID: g.ID, Name: "x", Port: 43311, Key: g.PublicKey()}, net.ParseIP("192.168.1.30"))
+		host.heard(beacon{Moviko: protocol, ID: g.ID, Name: "x", Port: 43311, Key: g.PublicKey()}, net.ParseIP("192.168.1.30"))
 	}
 	host.mu.Lock()
 	n := len(host.peers)
 	host.mu.Unlock()
 	if n > maxStrangers {
-		t.Errorf("%d KumoBoxes kept", n)
+		t.Errorf("%d Movikos kept", n)
 	}
 
 	g := newGuest(t)
@@ -103,7 +103,7 @@ func TestFailingHostFollowsItsBeacon(t *testing.T) {
 	p.pub, _ = parsePublicKey(host.ID, host.PublicKey())
 	guest.peers[host.ID] = p
 	guest.mu.Unlock()
-	guest.heard(beacon{KumoBox: protocol, ID: host.ID, Name: "PC", Port: 43311, Key: host.PublicKey()}, net.ParseIP("192.168.1.42"))
+	guest.heard(beacon{Moviko: protocol, ID: host.ID, Name: "PC", Port: 43311, Key: host.PublicKey()}, net.ParseIP("192.168.1.42"))
 	guest.mu.Lock()
 	addr, asked := p.addr.String(), p.asked
 	guest.mu.Unlock()
@@ -114,7 +114,7 @@ func TestFailingHostFollowsItsBeacon(t *testing.T) {
 	guest.mu.Lock()
 	p.fails, p.verified, p.manual = 0, time.Now(), ""
 	guest.mu.Unlock()
-	guest.heard(beacon{KumoBox: protocol, ID: host.ID, Name: "PC", Port: 43311, Key: host.PublicKey()}, net.ParseIP("192.168.1.99"))
+	guest.heard(beacon{Moviko: protocol, ID: host.ID, Name: "PC", Port: 43311, Key: host.PublicKey()}, net.ParseIP("192.168.1.99"))
 	guest.mu.Lock()
 	addr = p.addr.String()
 	guest.mu.Unlock()

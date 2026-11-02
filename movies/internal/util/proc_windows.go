@@ -23,11 +23,11 @@ const (
 	processSuspendResume   = 0x0800
 )
 
-// BindChildren puts KumoBox in a job object that ends every process in it when
-// it closes, which it does when KumoBox exits, also when it's killed (the
+// BindChildren puts Moviko in a job object that ends every process in it when
+// it closes, which it does when Moviko exits, also when it's killed (the
 // desktop app can't do anything else on Windows) or crashes: the ffmpeg,
 // yt-dlp and mpv processes it started end with it. The handle stays open
-// for as long as KumoBox runs. Detached programs (a torrent client, Explorer)
+// for as long as Moviko runs. Detached programs (a torrent client, Explorer)
 // break away from the job.
 func BindChildren() error {
 	job, err := windows.CreateJobObject(nil, nil)
@@ -55,7 +55,7 @@ func detachAttrs(cmd *exec.Cmd) {
 }
 
 // startDetached starts a detached command, and returns the one started.
-// Breaking away from KumoBox's job fails when a job KumoBox runs in doesn't allow
+// Breaking away from Moviko's job fails when a job Moviko runs in doesn't allow
 // it: then it starts in the job.
 func startDetached(cmd *exec.Cmd) (*exec.Cmd, error) {
 	err := cmd.Start()

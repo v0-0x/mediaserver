@@ -60,14 +60,14 @@ func makeZip(t *testing.T, entries ...zipEntry) []byte {
 // newMacApp is the zip of the new version, like electron-builder makes it.
 func newMacApp(t *testing.T) []byte {
 	return makeZip(t,
-		zipEntry{name: "KumoBox.app/"},
-		zipEntry{name: "KumoBox.app/Contents/Info.plist", data: "<plist>1.0.10</plist>", mode: 0o644},
-		zipEntry{name: "KumoBox.app/Contents/MacOS/KumoBox", data: "new shell", mode: 0o755},
-		zipEntry{name: "KumoBox.app/Contents/Resources/kumobox", data: "new server", mode: 0o755},
-		zipEntry{name: "KumoBox.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework", data: "framework", mode: 0o755},
-		zipEntry{name: "KumoBox.app/Contents/Frameworks/Electron Framework.framework/Versions/Current", link: "A"},
-		zipEntry{name: "KumoBox.app/Contents/Frameworks/Electron Framework.framework/Electron Framework", link: "Versions/Current/Electron Framework"},
-		zipEntry{name: "__MACOSX/KumoBox.app/._Info.plist", data: "resource fork", mode: 0o644},
+		zipEntry{name: "Moviko.app/"},
+		zipEntry{name: "Moviko.app/Contents/Info.plist", data: "<plist>1.0.10</plist>", mode: 0o644},
+		zipEntry{name: "Moviko.app/Contents/MacOS/Moviko", data: "new shell", mode: 0o755},
+		zipEntry{name: "Moviko.app/Contents/Resources/moviko", data: "new server", mode: 0o755},
+		zipEntry{name: "Moviko.app/Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework", data: "framework", mode: 0o755},
+		zipEntry{name: "Moviko.app/Contents/Frameworks/Electron Framework.framework/Versions/Current", link: "A"},
+		zipEntry{name: "Moviko.app/Contents/Frameworks/Electron Framework.framework/Electron Framework", link: "Versions/Current/Electron Framework"},
+		zipEntry{name: "__MACOSX/Moviko.app/._Info.plist", data: "resource fork", mode: 0o644},
 	)
 }
 
@@ -79,9 +79,9 @@ func macReleases(app []byte) []map[string]any {
 			"tag_name": tag, "html_url": "https://github.com/o/r/releases/tag/" + tag,
 			"target_commitish": headSHA, "published_at": "2026-10-08T08:00:00Z",
 			"assets": []map[string]any{
-				{"id": 51, "name": "KumoBox-" + v + "-macos-universal.dmg", "size": 10, "digest": "sha256:00"},
-				{"id": 52, "name": "KumoBox-" + v + "-macos-universal.zip", "size": len(app), "digest": "sha256:" + hex.EncodeToString(sum[:])},
-				{"id": 53, "name": "KumoBox-Setup-" + v + "-windows-x64.exe", "size": 10, "digest": "sha256:00"},
+				{"id": 51, "name": "Moviko-" + v + "-macos-universal.dmg", "size": 10, "digest": "sha256:00"},
+				{"id": 52, "name": "Moviko-" + v + "-macos-universal.zip", "size": len(app), "digest": "sha256:" + hex.EncodeToString(sum[:])},
+				{"id": 53, "name": "Moviko-Setup-" + v + "-windows-x64.exe", "size": 10, "digest": "sha256:00"},
 			},
 		}
 	}
@@ -97,8 +97,8 @@ func macReleases(app []byte) []map[string]any {
 // Applications folder), and returns the app.
 func installedMac(t *testing.T, c *Checker) string {
 	t.Helper()
-	app := filepath.Join(t.TempDir(), "Applications", "KumoBox.app")
-	for name, data := range map[string]string{"Contents/MacOS/KumoBox": "old shell", "Contents/Resources/kumobox": "old server"} {
+	app := filepath.Join(t.TempDir(), "Applications", "Moviko.app")
+	for name, data := range map[string]string{"Contents/MacOS/Moviko": "old shell", "Contents/Resources/moviko": "old server"} {
 		p := filepath.Join(app, name)
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)
@@ -108,7 +108,7 @@ func installedMac(t *testing.T, c *Checker) string {
 		}
 	}
 	c.GOOS, c.Version = "darwin", "1.0.9"
-	c.Executable = func() (string, error) { return filepath.Join(app, "Contents", "Resources", "kumobox"), nil }
+	c.Executable = func() (string, error) { return filepath.Join(app, "Contents", "Resources", "moviko"), nil }
 	return app
 }
 
@@ -121,7 +121,7 @@ func TestCheckMacPicksNewestRelease(t *testing.T) {
 	if st.Error != "" || !st.Available || st.Latest == nil || st.Latest.Version != "1.0.10" || st.Latest.URL != "https://github.com/o/r/releases/tag/macos-v1.0.10" {
 		t.Fatalf("error %q, available %v, latest %+v", st.Error, st.Available, st.Latest)
 	}
-	if c.asset == nil || c.asset.ID != 52 || c.asset.Name != "KumoBox-1.0.10-macos-universal.zip" {
+	if c.asset == nil || c.asset.ID != 52 || c.asset.Name != "Moviko-1.0.10-macos-universal.zip" {
 		t.Fatalf("app %+v", c.asset)
 	}
 	if !st.CanApply {
@@ -145,12 +145,12 @@ func TestMacApplyable(t *testing.T) {
 		exe, note    string
 		ok, writable bool
 	}{
-		{"/Applications/KumoBox.app/Contents/Resources/kumobox", "puts it in this one's place", true, true},
-		{"/Users/me/Applications/KumoBox.app/Contents/Resources/kumobox", "puts it in this one's place", true, true},
-		{"/Users/me/kumobox/dist/kumobox", "isn't the macOS app", false, true},
-		{"/private/var/folders/x/T/AppTranslocation/1234/d/KumoBox.app/Contents/Resources/kumobox", "Applications folder", false, false},
-		{"/Volumes/KumoBox 1.0.10/KumoBox.app/Contents/Resources/kumobox", "disk image", false, false},
-		{"/Applications/KumoBox.app/Contents/Resources/kumobox", "can't write to /Applications", false, false},
+		{"/Applications/Moviko.app/Contents/Resources/moviko", "puts it in this one's place", true, true},
+		{"/Users/me/Applications/Moviko.app/Contents/Resources/moviko", "puts it in this one's place", true, true},
+		{"/Users/me/moviko/dist/moviko", "isn't the macOS app", false, true},
+		{"/private/var/folders/x/T/AppTranslocation/1234/d/Moviko.app/Contents/Resources/moviko", "Applications folder", false, false},
+		{"/Volumes/Moviko 1.0.10/Moviko.app/Contents/Resources/moviko", "disk image", false, false},
+		{"/Applications/Moviko.app/Contents/Resources/moviko", "can't write to /Applications", false, false},
 	} {
 		writable = tc.writable
 		c.Executable = func() (string, error) { return tc.exe, nil }
@@ -184,7 +184,7 @@ func TestApplyMac(t *testing.T) {
 	select {
 	case exit = <-c.Exits.C():
 	case <-time.After(10 * time.Second):
-		t.Fatalf("KumoBox wasn't asked to quit: %+v", c.Status())
+		t.Fatalf("Moviko wasn't asked to quit: %+v", c.Status())
 	}
 	if exit.Code != lifecycle.CodeInstalling || exit.Restart || exit.Before == nil {
 		t.Fatalf("exit %+v", exit)
@@ -192,18 +192,18 @@ func TestApplyMac(t *testing.T) {
 	if st := waitState(t, c); st.State != StateInstalling {
 		t.Fatalf("state %q: %s", st.State, st.Message)
 	}
-	// Until KumoBox has shut down, the old app stays.
-	if b, _ := os.ReadFile(filepath.Join(installed, "Contents", "Resources", "kumobox")); string(b) != "old server" || helper != nil {
-		t.Fatalf("the app was replaced before KumoBox quit (server %q, helper %q)", b, helper)
+	// Until Moviko has shut down, the old app stays.
+	if b, _ := os.ReadFile(filepath.Join(installed, "Contents", "Resources", "moviko")); string(b) != "old server" || helper != nil {
+		t.Fatalf("the app was replaced before Moviko quit (server %q, helper %q)", b, helper)
 	}
 	staging := macStaging(installed)
 	if err := exit.Before(); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(filepath.Join(installed, "Contents", "Resources", "kumobox")); string(b) != "new server" {
+	if b, _ := os.ReadFile(filepath.Join(installed, "Contents", "Resources", "moviko")); string(b) != "new server" {
 		t.Fatalf("server %q after the update", b)
 	}
-	if st, err := os.Stat(filepath.Join(installed, "Contents", "Resources", "kumobox")); err != nil || st.Mode().Perm()&0o111 == 0 {
+	if st, err := os.Stat(filepath.Join(installed, "Contents", "Resources", "moviko")); err != nil || st.Mode().Perm()&0o111 == 0 {
 		t.Fatalf("the new server isn't executable: %v %v", st.Mode(), err)
 	}
 	framework := filepath.Join(installed, "Contents", "Frameworks", "Electron Framework.framework")
@@ -216,10 +216,10 @@ func TestApplyMac(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(staging, "__MACOSX")); !os.IsNotExist(err) {
 		t.Fatalf("__MACOSX unpacked: %v", err)
 	}
-	if b, _ := os.ReadFile(filepath.Join(staging, "old.app", "Contents", "Resources", "kumobox")); string(b) != "old server" {
+	if b, _ := os.ReadFile(filepath.Join(staging, "old.app", "Contents", "Resources", "moviko")); string(b) != "old server" {
 		t.Fatalf("old app: %q", b)
 	}
-	want := []string{"/bin/sh", "-c", reopen, "kumobox-update", "4321", installed, staging}
+	want := []string{"/bin/sh", "-c", reopen, "moviko-update", "4321", installed, staging}
 	if !slices.Equal(helper, want) {
 		t.Fatalf("helper %q, want %q", helper, want)
 	}
@@ -249,7 +249,7 @@ func TestApplyMac(t *testing.T) {
 }
 
 // When the new app can't take the old one's place, the old one stays and
-// KumoBox restarts into it, then says what happened.
+// Moviko restarts into it, then says what happened.
 func TestApplyMacSwapFails(t *testing.T) {
 	app := newMacApp(t)
 	gh := newFakeGitHub(t)
@@ -265,13 +265,13 @@ func TestApplyMacSwapFails(t *testing.T) {
 	exit := <-c.Exits.C()
 	waitState(t, c)
 	// Something took the new app away meanwhile.
-	if err := os.RemoveAll(filepath.Join(macStaging(installed), "KumoBox.app")); err != nil {
+	if err := os.RemoveAll(filepath.Join(macStaging(installed), "Moviko.app")); err != nil {
 		t.Fatal(err)
 	}
 	if err := exit.Before(); err == nil {
 		t.Fatal("Before succeeded")
 	}
-	if b, _ := os.ReadFile(filepath.Join(installed, "Contents", "Resources", "kumobox")); string(b) != "old server" {
+	if b, _ := os.ReadFile(filepath.Join(installed, "Contents", "Resources", "moviko")); string(b) != "old server" {
 		t.Fatalf("the old app isn't back: server %q", b)
 	}
 	if _, err := os.Stat(macStaging(installed)); !os.IsNotExist(err) {
@@ -287,17 +287,17 @@ func TestApplyMacSwapFails(t *testing.T) {
 
 func TestUnzipAppRefusesUnsafeZips(t *testing.T) {
 	for name, z := range map[string][]byte{
-		"link out of the app": makeZip(t, zipEntry{name: "KumoBox.app/Contents/Resources/kumobox", data: "x", mode: 0o755}, zipEntry{name: "KumoBox.app/evil", link: "../../etc"}),
-		"absolute link":       makeZip(t, zipEntry{name: "KumoBox.app/evil", link: "/etc/passwd"}),
+		"link out of the app": makeZip(t, zipEntry{name: "Moviko.app/Contents/Resources/moviko", data: "x", mode: 0o755}, zipEntry{name: "Moviko.app/evil", link: "../../etc"}),
+		"absolute link":       makeZip(t, zipEntry{name: "Moviko.app/evil", link: "/etc/passwd"}),
 		// Each link points inside, but one through the other goes out.
 		"links through links": makeZip(t,
-			zipEntry{name: "KumoBox.app/Contents/Resources/kumobox", data: "x", mode: 0o755},
-			zipEntry{name: "KumoBox.app/Contents/Resources/b", link: "../.."},
-			zipEntry{name: "KumoBox.app/Contents/Resources/b/c", link: "../../.."},
-			zipEntry{name: "KumoBox.app/Contents/Resources/b/c/PWNED.txt", data: "x", mode: 0o644}),
+			zipEntry{name: "Moviko.app/Contents/Resources/moviko", data: "x", mode: 0o755},
+			zipEntry{name: "Moviko.app/Contents/Resources/b", link: "../.."},
+			zipEntry{name: "Moviko.app/Contents/Resources/b/c", link: "../../.."},
+			zipEntry{name: "Moviko.app/Contents/Resources/b/c/PWNED.txt", data: "x", mode: 0o644}),
 		"path out of it": makeZip(t, zipEntry{name: "../evil", data: "x", mode: 0o644}),
-		"two apps":       makeZip(t, zipEntry{name: "KumoBox.app/a", data: "x", mode: 0o644}, zipEntry{name: "Other.app/a", data: "x", mode: 0o644}),
-		"no app":         makeZip(t, zipEntry{name: "KumoBox/a", data: "x", mode: 0o644}),
+		"two apps":       makeZip(t, zipEntry{name: "Moviko.app/a", data: "x", mode: 0o644}, zipEntry{name: "Other.app/a", data: "x", mode: 0o644}),
+		"no app":         makeZip(t, zipEntry{name: "Moviko/a", data: "x", mode: 0o644}),
 	} {
 		dir := t.TempDir()
 		archive := filepath.Join(dir, "app.zip")
@@ -317,9 +317,9 @@ func TestUnzipAppRefusesUnsafeZips(t *testing.T) {
 // does and checks that macOS still takes its signature, and that its server
 // runs. The macOS release workflow runs it on the zip it made.
 func TestReleasedMacApp(t *testing.T) {
-	archive := os.Getenv("KUMOBOX_MAC_APP_ZIP")
+	archive := os.Getenv("MOVIKO_MAC_APP_ZIP")
 	if archive == "" {
-		t.Skip("KUMOBOX_MAC_APP_ZIP isn't set")
+		t.Skip("MOVIKO_MAC_APP_ZIP isn't set")
 	}
 	app, err := unzipApp(archive, filepath.Join(t.TempDir(), "out"))
 	if err != nil {
@@ -330,12 +330,12 @@ func TestReleasedMacApp(t *testing.T) {
 			t.Fatalf("codesign --verify: %v\n%s", err, out)
 		}
 	}
-	out, err := exec.Command(filepath.Join(app, "Contents", "Resources", "kumobox"), "--version").CombinedOutput()
+	out, err := exec.Command(filepath.Join(app, "Contents", "Resources", "moviko"), "--version").CombinedOutput()
 	if err != nil {
-		t.Fatalf("kumobox --version: %v\n%s", err, out)
+		t.Fatalf("moviko --version: %v\n%s", err, out)
 	}
-	if want := os.Getenv("KUMOBOX_MAC_APP_VERSION"); want != "" && strings.TrimSpace(string(out)) != "KumoBox "+want {
-		t.Fatalf("kumobox --version says %q, want KumoBox %s", out, want)
+	if want := os.Getenv("MOVIKO_MAC_APP_VERSION"); want != "" && strings.TrimSpace(string(out)) != "Moviko "+want {
+		t.Fatalf("moviko --version says %q, want Moviko %s", out, want)
 	}
 	t.Logf("%s", out)
 }

@@ -32,7 +32,7 @@ export function Diary({ mediaId }: { mediaId: number }) {
                 )}
             </div>
             {entries.length === 0 ? (
-                <p className="card px-4 py-3.5 text-sm text-muted">Not logged yet. Watched to the end in KumoBox, the movie gets a diary entry, ready to send to Letterboxd.</p>
+                <p className="card px-4 py-3.5 text-sm text-muted">Not logged yet. Watched to the end in Moviko, the movie gets a diary entry, ready to send to Letterboxd.</p>
             ) : (
                 <div className="card divide-y divide-line">
                     {entries.map(d => (
@@ -47,7 +47,7 @@ export function Diary({ mediaId }: { mediaId: number }) {
                                             <Repeat2 className="size-3.5" /> Rewatch
                                         </span>
                                     )}
-                                    <Badge tone={d.source === "letterboxd" ? "green" : "gray"}>{d.source === "letterboxd" ? "From Letterboxd" : "Watched in KumoBox"}</Badge>
+                                    <Badge tone={d.source === "letterboxd" ? "green" : "gray"}>{d.source === "letterboxd" ? "From Letterboxd" : "Watched in Moviko"}</Badge>
                                     {d.source !== "letterboxd" && (d.exportedAt ? <Badge tone="blue">On Letterboxd</Badge> : <Badge tone="amber">Not on Letterboxd yet</Badge>)}
                                 </div>
                                 {d.review && <p className="mt-1.5 line-clamp-3 text-sm whitespace-pre-line text-muted">{d.review}</p>}

@@ -119,7 +119,7 @@ export default function HomePage() {
         letterboxd.sync.mutate(undefined, { onSuccess: r => toast.success(`Synced with Letterboxd: ${resultSummary(r)}`, { id }), onError: () => toast.dismiss(id) })
     }
 
-    // Paired with another KumoBox (a TV, a computer): Sync brings the watch
+    // Paired with another Moviko (a TV, a computer): Sync brings the watch
     // history from each to the other now, so Continue watching goes on from
     // where it stopped on any of them.
     const paired = status?.paired ?? []
@@ -437,7 +437,7 @@ function Hero({
                 ) : (
                     <div className="rise-in">
                         <p className="text-sm font-medium text-white/65">Welcome to</p>
-                        <h1 className="mt-1 text-4xl font-semibold tracking-tight">KumoBox</h1>
+                        <h1 className="mt-1 text-4xl font-semibold tracking-tight">Moviko</h1>
                     </div>
                 )}
             </div>
@@ -582,7 +582,7 @@ function Welcome({ tmdb, letterboxd, hasDir, onLetterboxd }: { tmdb: boolean; le
             done: hasDir,
             icon: <FolderOpen className="size-5" />,
             title: "Choose your library folder",
-            text: "KumoBox scans it, matches every movie and episode, and grabs artwork and descriptions.",
+            text: "Moviko scans it, matches every movie and episode, and grabs artwork and descriptions.",
             action: (
                 <Link to="/settings?tab=library">
                     <Button size="sm">Open settings</Button>

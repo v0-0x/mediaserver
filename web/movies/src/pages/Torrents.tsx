@@ -29,7 +29,7 @@ export default function TorrentsPage() {
         queryFn: () => api.get<{ client: string; connected: boolean; version: string; error?: string; needsAuth?: boolean; host?: string }>("/api/torrent-client/status"),
         refetchInterval: 15000,
     })
-    // When downloads go to another KumoBox (a TV's to its computer), these are
+    // When downloads go to another Moviko (a TV's to its computer), these are
     // its torrents, in its client.
     const host = clientStatus?.host
     const clientName = host ? clientStatus.client : status?.settings.torrent.defaultClient
@@ -117,12 +117,12 @@ export default function TorrentsPage() {
 
             {host && !hostDown && clientName === "none" && (
                 <EmptyState icon={<Magnet className="size-6" />} title={`Set up a torrent client on ${host}`}>
-                    This device's downloads go to {host}. Choose qBittorrent or Transmission in KumoBox's settings there, and its torrents show up here.
+                    This device's downloads go to {host}. Choose qBittorrent or Transmission in Moviko's settings there, and its torrents show up here.
                 </EmptyState>
             )}
             {!host && (!clientName || clientName === "none") && (
                 <EmptyState icon={<Magnet className="size-6" />} title="Connect a torrent client" action={<Link to="/settings?tab=torrents"><Button variant="primary">Open settings</Button></Link>}>
-                    KumoBox works with qBittorrent (Web UI) and Transmission to download movies and shows straight into your library.
+                    Moviko works with qBittorrent (Web UI) and Transmission to download movies and shows straight into your library.
                 </EmptyState>
             )}
             {/* Why it can't be reached, and where it's set up. */}

@@ -9,7 +9,7 @@ import (
 )
 
 // Library tools › Clean up: how full the library's drive is, the episodes
-// watched (to put away), the episodes there twice, and KumoBox's trash.
+// watched (to put away), the episodes there twice, and Moviko's trash.
 
 type cleanupFile struct {
 	Path       string `json:"path"`

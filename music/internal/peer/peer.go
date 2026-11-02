@@ -1,5 +1,5 @@
 // Package peer is the music side's half of the peer protocol every side of
-// mediaserver speaks with its apps (the Aniko and KumoBox apps' "share"
+// mediaserver speaks with its apps (the Aniko and Moviko apps' "share"
 // protocol, anime/internal/share): the server's X25519 key pair, whose
 // fingerprint is its ID; requests a device signs with a secret only it and
 // the server can make, checked here; answers signed back; settings sealed so

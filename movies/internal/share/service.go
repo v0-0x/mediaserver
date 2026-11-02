@@ -34,19 +34,19 @@ import (
 
 const (
 	beaconEvery = 5 * time.Second
-	// An KumoBox not heard from for this long is offline.
+	// A Moviko not heard from for this long is offline.
 	onlineFor = 16 * time.Second
 	// How often a guest asks a host whether its library changed.
 	askEvery = 30 * time.Second
-	// An KumoBox that proved who it is this lately keeps its address: beacons
+	// A Moviko that proved who it is this lately keeps its address: beacons
 	// don't move it (see heard).
 	verifiedFor = time.Minute
 	// How often Settings (open) has the others asked again (they answer
 	// from their library's version, read at most every few seconds).
 	refreshEvery = 3 * time.Second
-	// How many KumoBoxes only heard of (not paired, not added by hand) are kept.
+	// How many Movikos only heard of (not paired, not added by hand) are kept.
 	maxStrangers = 64
-	// The largest request body read from an KumoBox that isn't paired.
+	// The largest request body read from a Moviko that isn't paired.
 	maxUnpairedBody = 1 << 20
 	// Failed requests in a row after which a host's library is gone.
 	maxFails = 3
@@ -59,7 +59,7 @@ type Library interface {
 }
 
 // History is the watch history (where each episode was stopped), which
-// KumoBoxes on the same Letterboxd account keep in step (see syncHistory).
+// Movikos on the same Letterboxd account keep in step (see syncHistory).
 type History interface {
 	Since(t int64, limit int) []*history.Entry
 	Get(mediaID, episode int) *history.Entry
@@ -78,16 +78,16 @@ type Service struct {
 	media    *http.Client // forwarded video: no time limit
 	slow     *http.Client // requests a host takes long to answer (ani-cli)
 
-	// OnFiles runs when the files shared with this KumoBox change (in the
+	// OnFiles runs when the files shared with this Moviko change (in the
 	// background).
 	OnFiles func()
-	// User is the Letterboxd account this KumoBox is connected to (0: none),
-	// and History its watch history: kept in step with the KumoBoxes it
+	// User is the Letterboxd account this Moviko is connected to (0: none),
+	// and History its watch history: kept in step with the Movikos it
 	// shares with on the same account. Both nil: not kept in step.
 	User    func() int
 	History History
-	// OnWatchedElsewhere runs with the episodes another KumoBox on the
-	// account says were finished there (each KumoBox keeps its own list:
+	// OnWatchedElsewhere runs with the episodes another Moviko on the
+	// account says were finished there (each Moviko keeps its own list:
 	// they move it on).
 	OnWatchedElsewhere func(finished []history.Entry)
 	// Server: this is mediaserver's movies side, which tells the others it
@@ -130,11 +130,11 @@ type peer struct {
 	seen              time.Time // last heard from (beacon, request or answer)
 	lastSeen          time.Time // before this run: when it was last around
 	manual            string    // the address it was added with by hand
-	allowed           bool      // this KumoBox shares its library with it
-	// And with it (allowed), downloading onto this KumoBox.
+	allowed           bool      // this Moviko shares its library with it
+	// And with it (allowed), downloading onto this Moviko.
 	downloads bool
 
-	// As a host: whether it shares its library with this KumoBox, and its files.
+	// As a host: whether it shares its library with this Moviko, and its files.
 	shares   bool
 	files    []*library.LocalFile
 	filesVer string
@@ -142,18 +142,18 @@ type peer struct {
 	asking   bool
 	fails    int
 	// historySeq: the last of its history entries (in the order it stored
-	// them) this KumoBox has; pushedSeq: the last of this KumoBox's it sent it.
+	// them) this Moviko has; pushedSeq: the last of this Moviko's it sent it.
 	historySeq, pushedSeq int64
 	// user: the Letterboxd account it's connected to, as it told (it shares
-	// with this KumoBox).
+	// with this Moviko).
 	user int
-	// hostDownloads: this KumoBox may download onto it.
+	// hostDownloads: this Moviko may download onto it.
 	hostDownloads bool
 	// verified: when it last proved who it is (a request or an answer
 	// signed); offset: how far its clock is ahead of this one's.
 	verified time.Time
 	offset   time.Duration
-	// callerUser: the Letterboxd account it said it's on, asking this KumoBox.
+	// callerUser: the Letterboxd account it said it's on, asking this Moviko.
 	callerUser int
 	// wakeMACs: its network cards (it shares), what wakes it (wake.go);
 	// wakeUntil: it's being woken up until then.
@@ -161,12 +161,12 @@ type peer struct {
 	wakeUntil time.Time
 	// autoSynced: when the watch history was last synced with it by itself.
 	autoSynced time.Time
-	// declined: asked whether to share this KumoBox's library with it, the
+	// declined: asked whether to share this Moviko's library with it, the
 	// answer was "not now" (Home doesn't ask again).
 	declined bool
 }
 
-// paired: this KumoBox shares its library with it, or it with this one.
+// paired: this Moviko shares its library with it, or it with this one.
 func (p *peer) paired() bool { return p.allowed || p.shares }
 
 // displayName is its name, or what it is when it has none.
@@ -174,14 +174,14 @@ func (p *peer) displayName() string {
 	if p.name != "" {
 		return p.name
 	}
-	return "Another KumoBox"
+	return "Another Moviko"
 }
 
-// online: heard from lately. A host that shares with this KumoBox is asked
+// online: heard from lately. A host that shares with this Moviko is asked
 // every askEvery, and its answer counts until the next one is due: also when
 // its beacons don't come through (the Wi-Fi of some TVs drops them), it
 // doesn't look gone half of the time. The same the other way: a device this
-// KumoBox shares with asks it as often (a hub's devices, which it never asks).
+// Moviko shares with asks it as often (a hub's devices, which it never asks).
 func (p *peer) online(now time.Time) bool {
 	d := now.Sub(p.seen)
 	return d < onlineFor || ((p.shares && p.fails == 0) || p.allowed) && d < askEvery+onlineFor
@@ -198,7 +198,7 @@ func (p *peer) baseURL() string {
 	return "http://" + net.JoinHostPort(p.addr.String(), strconv.Itoa(p.port))
 }
 
-// New loads this KumoBox's identity and the KumoBoxes it knows.
+// New loads this Moviko's identity and the Movikos it knows.
 func New(d *db.DB, settings *config.Store, lib Library, hub *events.Hub) (*Service, error) {
 	id, err := LoadIdentity(d)
 	if err != nil {
@@ -220,10 +220,10 @@ func New(d *db.DB, settings *config.Store, lib Library, hub *events.Hub) (*Servi
 	return s, nil
 }
 
-// ID is this KumoBox's ID.
+// ID is this Moviko's ID.
 func (s *Service) ID() string { return s.id.ID }
 
-// Name is what the others call this KumoBox.
+// Name is what the others call this Moviko.
 func (s *Service) Name() string {
 	if n := cleanName(s.settings.Get().Sharing.Name); n != "" {
 		return n
@@ -241,7 +241,7 @@ func Hostname() string {
 	h, _ := os.Hostname()
 	h, _, _ = strings.Cut(h, ".")
 	if h == "" {
-		return "KumoBox"
+		return "Moviko"
 	}
 	return h
 }
@@ -262,7 +262,7 @@ type savedPeer struct {
 	Seen    int64  `json:"seen"`
 	// Granted to it (allowed): downloading here.
 	Downloads bool `json:"downloads,omitempty"`
-	// It takes this KumoBox's downloads (it shares, see downloads.go).
+	// It takes this Moviko's downloads (it shares, see downloads.go).
 	TakesDownloads bool `json:"takesDownloads,omitempty"`
 	// Its Letterboxd account, as it told; where the watch histories are at.
 	User       int   `json:"user,omitempty"`
@@ -295,7 +295,7 @@ func (s *Service) load() {
 	}
 }
 
-// save keeps the KumoBoxes worth knowing next time: those this one shares with,
+// save keeps the Movikos worth knowing next time: those this one shares with,
 // those that share with it, and those added by hand. Must be called with
 // s.mu held.
 func (s *Service) save() {
@@ -335,7 +335,7 @@ func (s *Service) Start() {
 	})
 }
 
-// Stop ends sharing (KumoBox is quitting).
+// Stop ends sharing (Moviko is quitting).
 func (s *Service) Stop() {
 	s.flushPush()
 	s.apply(config.Settings{})
@@ -365,8 +365,8 @@ func (s *Service) apply(cfg config.Settings) {
 	r := &run{cancel: cancel, wake: make(chan struct{}, 1), done: make(chan struct{})}
 	disc, err := listen()
 	if err != nil {
-		// KumoBoxes added by address still work.
-		log.Printf("sharing: can't listen for other KumoBox apps on the network: %v", err)
+		// Movikos added by address still work.
+		log.Printf("sharing: can't listen for other Moviko apps on the network: %v", err)
 	} else {
 		r.disc = disc
 		go disc.read(s.heard)
@@ -417,7 +417,7 @@ func (s *Service) loop(ctx context.Context, r *run) {
 
 func (s *Service) beacon() beacon {
 	cfg := s.settings.Get()
-	return beacon{KumoBox: protocol, ID: s.id.ID, Name: s.Name(), Port: cfg.Server.Port, Key: s.id.PublicKey(), Version: config.AppVersion, Platform: s.platform()}
+	return beacon{Moviko: protocol, ID: s.id.ID, Name: s.Name(), Port: cfg.Server.Port, Key: s.id.PublicKey(), Version: config.AppVersion, Platform: s.platform()}
 }
 
 func (s *Service) announce(r *run) {
@@ -438,7 +438,7 @@ func (s *Service) wake() {
 	}
 }
 
-// heard handles a beacon from another KumoBox.
+// heard handles a beacon from another Moviko.
 func (s *Service) heard(b beacon, from net.IP) {
 	if b.ID == s.id.ID || !isLocalNetwork(from) || b.Port <= 0 || b.Port > 65535 {
 		return
@@ -498,23 +498,23 @@ func (s *Service) heard(b beacon, from net.IP) {
 // ---------------------------------------------------------------------------
 // The host's side: who asks
 
-// Caller is another KumoBox that made a request, checked.
+// Caller is another Moviko that made a request, checked.
 type Caller struct {
 	ID, Name string
-	// Allowed: this KumoBox shares its library with it.
+	// Allowed: this Moviko shares its library with it.
 	Allowed bool
 	// SameUser: it's connected to the same Letterboxd account as this one.
 	SameUser bool
-	// Downloads: it may download onto this KumoBox (only with Allowed).
+	// Downloads: it may download onto this Moviko (only with Allowed).
 	Downloads bool
-	// Paired: Allowed, or it shares its library with this KumoBox.
+	// Paired: Allowed, or it shares its library with this Moviko.
 	Paired bool
 	// User: the Letterboxd account it says it's on (0: none).
 	User int
 }
 
-// Verify checks a request from another KumoBox, and notes it as seen. The
-// answer (w) gets what proves it comes from this KumoBox.
+// Verify checks a request from another Moviko, and notes it as seen. The
+// answer (w) gets what proves it comes from this Moviko.
 func (s *Service) Verify(w http.ResponseWriter, r *http.Request) (Caller, error) {
 	if !s.settings.Get().Sharing.Enabled {
 		return Caller{}, errors.New("library sharing is off")
@@ -523,7 +523,7 @@ func (s *Service) Verify(w http.ResponseWriter, r *http.Request) (Caller, error)
 	if !isLocalNetwork(ip) {
 		return Caller{}, errors.New("not from the local network")
 	}
-	// A large body is read (to check it) only from an KumoBox paired with this
+	// A large body is read (to check it) only from a Moviko paired with this
 	// one: anyone else could have it read megabytes for nothing.
 	if r.ContentLength > maxUnpairedBody || r.ContentLength < 0 && r.Body != nil && r.Body != http.NoBody {
 		s.mu.Lock()
@@ -594,7 +594,7 @@ func (s *Service) user() int {
 	return s.User()
 }
 
-// HistorySince is this KumoBox's watch history after t, for another KumoBox on
+// HistorySince is this Moviko's watch history after t, for another Moviko on
 // the same account (checked by the caller).
 func (s *Service) HistorySince(c Caller, t int64) []*history.Entry {
 	h := s.History
@@ -608,8 +608,8 @@ func (s *Service) HistorySince(c Caller, t int64) []*history.Entry {
 	return out
 }
 
-// HistoryAfter is this KumoBox's watch history stored after seq (see
-// history.Store.After), for another KumoBox on the same account.
+// HistoryAfter is this Moviko's watch history stored after seq (see
+// history.Store.After), for another Moviko on the same account.
 func (s *Service) HistoryAfter(c Caller, seq int64) []*history.Entry {
 	h := s.History
 	if h == nil {
@@ -622,7 +622,7 @@ func (s *Service) HistoryAfter(c Caller, seq int64) []*history.Entry {
 	return out
 }
 
-// HistoryLatest is the latest of this KumoBox's watch history (Sync).
+// HistoryLatest is the latest of this Moviko's watch history (Sync).
 func (s *Service) HistoryLatest(c Caller) []*history.Entry {
 	h := s.History
 	if h == nil {
@@ -649,7 +649,7 @@ func remoteIP(r *http.Request) net.IP {
 // PlatformServer is the platform mediaserver's movies side says it runs on.
 const PlatformServer = "mediaserver"
 
-// platform is what this KumoBox tells the others it runs on.
+// platform is what this Moviko tells the others it runs on.
 func (s *Service) platform() string {
 	if s.Server {
 		return PlatformServer
@@ -661,7 +661,7 @@ type Hello struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Key     string `json:"key"`
-	Version string `json:"version"` // KumoBox's
+	Version string `json:"version"` // Moviko's
 	// Platform: what it runs on (runtime.GOOS: "android" on a TV).
 	Platform string `json:"platform,omitempty"`
 	Shares   bool   `json:"shares"`
@@ -688,13 +688,13 @@ func (s *Service) Hello(c Caller) Hello {
 	return h
 }
 
-// Whoami is what anyone on the network may ask: who this KumoBox is (what its
+// Whoami is what anyone on the network may ask: who this Moviko is (what its
 // beacons say).
 func (s *Service) Whoami() Hello {
 	return Hello{ID: s.id.ID, Name: s.Name(), Key: s.id.PublicKey(), Version: config.AppVersion, Platform: s.platform()}
 }
 
-// SharedFiles are the library's files this KumoBox shares: those matched to a
+// SharedFiles are the library's files this Moviko shares: those matched to a
 // movie or show.
 func (s *Service) SharedFiles() ([]*library.LocalFile, error) {
 	all, err := s.library.All()
@@ -711,7 +711,7 @@ func (s *Service) SharedFiles() ([]*library.LocalFile, error) {
 }
 
 // sharedVersion is filesVersion of SharedFiles, read again at most every
-// few seconds: each KumoBox it shares with asks for it.
+// few seconds: each Moviko it shares with asks for it.
 func (s *Service) sharedVersion() string {
 	s.versionMu.Lock()
 	defer s.versionMu.Unlock()
@@ -723,7 +723,7 @@ func (s *Service) sharedVersion() string {
 	return s.version
 }
 
-// Shares reports a file this KumoBox shares (see SharedFiles).
+// Shares reports a file this Moviko shares (see SharedFiles).
 func (s *Service) Shares(path string) bool {
 	if path == "" || IsRemote(path) {
 		return false
@@ -773,7 +773,7 @@ func (s *Service) askHosts(ctx context.Context) {
 	}
 }
 
-// ask asks a host whether it shares its library with this KumoBox, and for its
+// ask asks a host whether it shares its library with this Moviko, and for its
 // files when they changed.
 func (s *Service) ask(ctx context.Context, p *peer) {
 	h, err := s.hello(ctx, p)
@@ -823,7 +823,7 @@ func (s *Service) ask(ctx context.Context, p *peer) {
 	back := p.fails > 0 || !p.online(time.Now())
 	visible = back || p.shares != h.Shares || (p.name != h.Name && h.Name != "") || p.waking(time.Now())
 	p.fails, p.seen, p.wakeUntil = 0, time.Now(), time.Time{}
-	// Its cards, to wake it later (an older KumoBox doesn't say).
+	// Its cards, to wake it later (an older Moviko doesn't say).
 	if cards := cleanMACs(h.Wake); h.Shares && len(cards) > 0 && strings.Join(cards, ",") != strings.Join(p.wakeMACs, ",") {
 		p.wakeMACs = cards
 		s.save()
@@ -859,7 +859,7 @@ func (s *Service) ask(ctx context.Context, p *peer) {
 		takes = h.Downloads
 	}
 	// Another account there now: its history is asked for from the start
-	// (where this KumoBox was is the other account's).
+	// (where this Moviko was is the other account's).
 	if p.user != was && p.user > 0 && was > 0 {
 		p.historySeq, p.pushedSeq = 0, 0
 		s.save()
@@ -883,7 +883,7 @@ func (s *Service) ask(ctx context.Context, p *peer) {
 	}
 }
 
-// HistoryChanged sends a position this KumoBox saved to the KumoBoxes that share
+// HistoryChanged sends a position this Moviko saved to the Movikos that share
 // with it on the same Letterboxd account (the one whose files are played,
 // most of all), as it happens: their Continue watching goes on from it.
 // Gathered for 2 seconds; at once when the episode is over.
@@ -945,7 +945,7 @@ func (s *Service) pushHistory() {
 	wg.Wait()
 }
 
-// flushPush sends the positions waiting to go (pushHistory) now: KumoBox is
+// flushPush sends the positions waiting to go (pushHistory) now: Moviko is
 // closing, and the last one saved would be lost otherwise.
 func (s *Service) flushPush() {
 	s.pushMu.Lock()
@@ -959,9 +959,9 @@ func (s *Service) flushPush() {
 	}
 }
 
-// pushMissed sends a host on the same account what this KumoBox stored since
+// pushMissed sends a host on the same account what this Moviko stored since
 // the last it sent it: what didn't reach it as it was saved (it was away),
-// or came from another KumoBox.
+// or came from another Moviko.
 func (s *Service) pushMissed(ctx context.Context, p *peer) {
 	if s.History == nil {
 		return
@@ -983,7 +983,7 @@ func (s *Service) pushMissed(ctx context.Context, p *peer) {
 	s.mu.Unlock()
 }
 
-// sendHistory sends positions (JSON) to an KumoBox on the same account.
+// sendHistory sends positions (JSON) to a Moviko on the same account.
 func (s *Service) sendHistory(ctx context.Context, p *peer, body []byte) error {
 	req, err := s.request(ctx, p, http.MethodPost, "/api/peer/history", bytes.NewReader(body))
 	if err != nil {
@@ -998,7 +998,7 @@ func (s *Service) sendHistory(ctx context.Context, p *peer, body []byte) error {
 	return answerError(resp)
 }
 
-// answerError is what an KumoBox's answer (not OK) says went wrong, in words.
+// answerError is what a Moviko's answer (not OK) says went wrong, in words.
 func answerError(resp *http.Response) error {
 	if resp.StatusCode == http.StatusOK {
 		return nil
@@ -1013,7 +1013,7 @@ func answerError(resp *http.Response) error {
 	return errors.New(e.Error)
 }
 
-// Paired names the KumoBoxes this one is paired with (it shares its library
+// Paired names the Movikos this one is paired with (it shares its library
 // with them, or they with it), with sharing on.
 func (s *Service) Paired() []string {
 	if !s.settings.Get().Sharing.Enabled {
@@ -1033,8 +1033,8 @@ func (s *Service) Paired() []string {
 
 // SyncResult is what SyncNow did.
 type SyncResult struct {
-	// Devices: the KumoBoxes synced with. Unreachable: those that couldn't be
-	// (why, after the name). Skipped: paired KumoBoxes not synced with (why).
+	// Devices: the Movikos synced with. Unreachable: those that couldn't be
+	// (why, after the name). Skipped: paired Movikos not synced with (why).
 	Devices     []string `json:"devices"`
 	Unreachable []string `json:"unreachable"`
 	Skipped     []string `json:"skipped"`
@@ -1042,7 +1042,7 @@ type SyncResult struct {
 	Updated int `json:"updated"`
 }
 
-// SyncNow brings this KumoBox's watch history in step with the KumoBoxes it's
+// SyncNow brings this Moviko's watch history in step with the Movikos it's
 // paired with on the same Letterboxd account, both ways, now: each takes what
 // the other has newer (the latest stored on each), and Continue watching
 // goes on from where an episode was stopped on any of them. As it goes, a
@@ -1113,7 +1113,7 @@ func (s *Service) SyncNow(ctx context.Context) (SyncResult, error) {
 	return res, nil
 }
 
-// syncable: whether this KumoBox's watch history can be synced with a paired
+// syncable: whether this Moviko's watch history can be synced with a paired
 // one (this one on Letterboxd account me): why not (skip), or why it can't be
 // reached. Must be called with mu held.
 func syncable(p *peer, me int) (skip, away string) {
@@ -1123,7 +1123,7 @@ func syncable(p *peer, me int) (skip, away string) {
 	}
 	switch {
 	case user == 0:
-		return "it hasn't said its Letterboxd account yet: open KumoBox there", ""
+		return "it hasn't said its Letterboxd account yet: open Moviko there", ""
 	case user != me:
 		return "another Letterboxd account", ""
 	case p.addr == nil || p.port <= 0:
@@ -1132,7 +1132,7 @@ func syncable(p *peer, me int) (skip, away string) {
 	return "", ""
 }
 
-// syncWith takes a paired KumoBox's latest positions and sends it this one's
+// syncWith takes a paired Moviko's latest positions and sends it this one's
 // (body), and returns how many changed here.
 func (s *Service) syncWith(ctx context.Context, p *peer, body []byte) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -1147,10 +1147,10 @@ func (s *Service) syncWith(ctx context.Context, p *peer, body []byte) (int, erro
 	return s.merge(theirs), nil
 }
 
-// How often at most a paired KumoBox is synced with by itself (autoSync).
+// How often at most a paired Moviko is synced with by itself (autoSync).
 const autoSyncEvery = 2 * time.Minute
 
-// autoSync syncs the watch history with a paired KumoBox that came back (it
+// autoSync syncs the watch history with a paired Moviko that came back (it
 // answered again, or asked), as Sync would, unless that's turned off or it
 // was done a moment ago: Continue watching goes on from where it was left on
 // it, without pressing Sync.
@@ -1187,7 +1187,7 @@ func (s *Service) autoSync(p *peer) {
 	}()
 }
 
-// Gone marks another KumoBox as not heard from for a while (tests: as if it
+// Gone marks another Moviko as not heard from for a while (tests: as if it
 // had been away).
 func (s *Service) Gone(id string) {
 	s.mu.Lock()
@@ -1197,7 +1197,7 @@ func (s *Service) Gone(id string) {
 	}
 }
 
-// AutoSyncAll syncs with every paired KumoBox by itself (autoSync), as when
+// AutoSyncAll syncs with every paired Moviko by itself (autoSync), as when
 // the app is opened again.
 func (s *Service) AutoSyncAll() {
 	s.mu.Lock()
@@ -1213,14 +1213,14 @@ func (s *Service) AutoSyncAll() {
 	}
 }
 
-// plainError says what went wrong talking to another KumoBox, in a few words.
+// plainError says what went wrong talking to another Moviko, in a few words.
 func plainError(err error) string {
 	var ne net.Error
 	switch {
 	case errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &ne) && ne.Timeout()):
 		return "it didn't answer in time"
 	case errors.Is(err, syscall.ECONNREFUSED):
-		return "KumoBox isn't running there"
+		return "Moviko isn't running there"
 	case errors.Is(err, syscall.EHOSTUNREACH) || errors.Is(err, syscall.ENETUNREACH):
 		return "it isn't on the network"
 	}
@@ -1239,7 +1239,7 @@ func plainError(err error) string {
 	return err.Error()
 }
 
-// TakeHistory merges positions another KumoBox on the same account sent
+// TakeHistory merges positions another Moviko on the same account sent
 // (checked by the caller), the newer ones.
 func (s *Service) TakeHistory(c Caller, entries []history.Entry) {
 	if s.History == nil {
@@ -1256,14 +1256,14 @@ func (s *Service) TakeHistory(c Caller, entries []history.Entry) {
 const finishedAt = 0.85
 
 // watchedElsewhere tells the app about episodes finished on another
-// KumoBox, if any.
+// Moviko, if any.
 func (s *Service) watchedElsewhere(finished []history.Entry) {
 	if len(finished) > 0 && s.OnWatchedElsewhere != nil {
 		go s.OnWatchedElsewhere(finished)
 	}
 }
 
-// merge takes positions from another KumoBox, the newer ones, and says how
+// merge takes positions from another Moviko, the newer ones, and says how
 // many changed here. The episodes finished there move the list on here
 // (watchedElsewhere).
 func (s *Service) merge(entries []*history.Entry) int {
@@ -1278,7 +1278,7 @@ func (s *Service) merge(entries []*history.Entry) int {
 	return len(merged)
 }
 
-// mergeAll takes the entries newer than this KumoBox's, and reports the
+// mergeAll takes the entries newer than this Moviko's, and reports the
 // ones taken and, of those, the ones that finished a viewing: the episode
 // wasn't finished here yet, or was by an earlier viewing (finished longer
 // ago than the episode lasts). The positions sent while the end credits play
@@ -1314,7 +1314,7 @@ func (s *Service) mergeAll(entries []history.Entry) (merged, finished []history.
 // and when it was watched. Continue watching then goes on from there, to the
 // second, and the episodes finished there move the list on. It asks for
 // what the host stored after the last it took, whatever their times (one
-// from another KumoBox comes late with an older time).
+// from another Moviko comes late with an older time).
 func (s *Service) syncHistory(ctx context.Context, p *peer) {
 	if s.History == nil {
 		return
@@ -1375,7 +1375,7 @@ type signed struct {
 	offset time.Duration
 }
 
-// sign signs a request for a host, by its clock as far as this KumoBox knows it.
+// sign signs a request for a host, by its clock as far as this Moviko knows it.
 func (s *Service) sign(req *http.Request, p *peer) (*http.Request, error) {
 	s.mu.Lock()
 	host, pub, off := p.id, p.pub, p.offset
@@ -1407,7 +1407,7 @@ func (s *Service) do(c *http.Client, req *http.Request) (*http.Response, error) 
 		want, err := sr.sig.reply(date)
 		if err != nil || resp.Header.Get(HeaderReply) == "" || !hmac.Equal([]byte(want), []byte(resp.Header.Get(HeaderReply))) {
 			resp.Body.Close()
-			return nil, fmt.Errorf("the answer can't be checked as %s's (is the latest KumoBox running there, with library sharing on?)", s.nameOf(sr.p))
+			return nil, fmt.Errorf("the answer can't be checked as %s's (is the latest Moviko running there, with library sharing on?)", s.nameOf(sr.p))
 		}
 		// The host dates its answer as it gets the request (Verify), however
 		// long the answer then takes (a file read from a sleeping disk):
@@ -1436,7 +1436,7 @@ func (s *Service) do(c *http.Client, req *http.Request) (*http.Response, error) 
 	}
 }
 
-// Sign signs a request to the KumoBox with that ID and public key (as its
+// Sign signs a request to the Moviko with that ID and public key (as its
 // whoami tells them).
 func (s *Service) Sign(req *http.Request, hostID, hostKey string) error {
 	pub, err := parsePublicKey(hostID, hostKey)
@@ -1473,9 +1473,9 @@ func (s *Service) hello(ctx context.Context, p *peer) (*Hello, error) {
 	if err := s.getJSON(ctx, p, "/api/peer/hello", &h); err != nil {
 		return nil, err
 	}
-	// Another KumoBox at that address now (a new IP address from the router).
+	// Another Moviko at that address now (a new IP address from the router).
 	if h.ID != p.id {
-		return nil, fmt.Errorf("another KumoBox (%s) answers there", h.Name)
+		return nil, fmt.Errorf("another Moviko (%s) answers there", h.Name)
 	}
 	return &h, nil
 }
@@ -1515,7 +1515,7 @@ const scheme = "kumobox://"
 // RemotePath is the path of a host's file.
 func RemotePath(host, path string) string { return scheme + host + "/" + path }
 
-// IsRemote reports a path of another KumoBox's file.
+// IsRemote reports a path of another Moviko's file.
 func IsRemote(path string) bool { return strings.HasPrefix(path, scheme) }
 
 // ParsePath splits a shared file's path into its host and its path there.
@@ -1534,7 +1534,7 @@ func ParsePath(path string) (host, onHost string, ok bool) {
 // ---------------------------------------------------------------------------
 // What the app shows
 
-// PeerView is another KumoBox on the network, for Settings.
+// PeerView is another Moviko on the network, for Settings.
 type PeerView struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -1544,14 +1544,14 @@ type PeerView struct {
 	Version  string `json:"version"`
 	// Platform: what it runs on ("android": a TV; "" when it didn't say).
 	Platform string `json:"platform,omitempty"`
-	// Allowed: this KumoBox shares its library with it.
+	// Allowed: this Moviko shares its library with it.
 	Allowed bool `json:"allowed"`
-	// Shares: it shares its library with this KumoBox (Files of them).
+	// Shares: it shares its library with this Moviko (Files of them).
 	Shares bool   `json:"shares"`
 	Files  int    `json:"files"`
 	Manual bool   `json:"manual"`
 	Error  string `json:"error,omitempty"`
-	// Granted to it (with Allowed): downloading onto this KumoBox.
+	// Granted to it (with Allowed): downloading onto this Moviko.
 	Downloads bool `json:"downloads"`
 	// Granted by it (it shares): downloading onto it.
 	TakesDownloads bool `json:"takesDownloads"`
@@ -1580,13 +1580,13 @@ func (s *Service) view(p *peer, now time.Time) PeerView {
 	return v
 }
 
-// shownName is a peer's name as KumoBox shows it, in lists and in what it
+// shownName is a peer's name as Moviko shows it, in lists and in what it
 // says: two named alike (two Fire TVs) are told apart. Must be called with
 // mu held.
 func (s *Service) shownName(p *peer) string {
 	name := p.name
 	if name == "" {
-		return "KumoBox " + p.id[:6]
+		return "Moviko " + p.id[:6]
 	}
 	for _, o := range s.peers {
 		if o != p && o.name != "" && strings.EqualFold(o.name, p.name) {
@@ -1602,10 +1602,10 @@ type Status struct {
 	ID      string     `json:"id"`
 	Name    string     `json:"name"`
 	Peers   []PeerView `json:"peers"`
-	// Listening: other KumoBoxes can find this one (the network port could be
+	// Listening: other Movikos can find this one (the network port could be
 	// opened).
 	Listening bool `json:"listening"`
-	// Addresses: where the others reach this KumoBox (to add it by hand).
+	// Addresses: where the others reach this Moviko (to add it by hand).
 	Addresses []string `json:"addresses"`
 }
 
@@ -1645,8 +1645,8 @@ func addresses(port int) []string {
 	return out
 }
 
-// Grants is what this KumoBox shares with another one: its library, and with
-// it downloading onto this KumoBox. Nil: unchanged.
+// Grants is what this Moviko shares with another one: its library, and with
+// it downloading onto this Moviko. Nil: unchanged.
 type Grants struct {
 	Allowed   *bool `json:"allowed"`
 	Downloads *bool `json:"downloads"`
@@ -1654,12 +1654,12 @@ type Grants struct {
 	Declined *bool `json:"declined"`
 }
 
-// SetAllowed shares this KumoBox's library with another one, or stops.
+// SetAllowed shares this Moviko's library with another one, or stops.
 func (s *Service) SetAllowed(id string, allowed bool) error {
 	return s.SetGrants(id, Grants{Allowed: &allowed})
 }
 
-// SetGrants changes what this KumoBox shares with another one.
+// SetGrants changes what this Moviko shares with another one.
 func (s *Service) SetGrants(id string, g Grants) error {
 	s.mu.Lock()
 	p, ok := s.peers[id]
@@ -1686,7 +1686,7 @@ func (s *Service) SetGrants(id string, g Grants) error {
 	}
 	s.mu.Unlock()
 	if !ok {
-		return errors.New("no KumoBox app with that ID")
+		return errors.New("no Moviko app with that ID")
 	}
 	s.hub.Publish("sharing-updated", nil)
 	// Tell it to ask again now (it does every 30s anyway).
@@ -1715,7 +1715,7 @@ func (s *Service) Refresh() {
 	s.wake()
 }
 
-// resolveManual finds an KumoBox added by name (not an address) again.
+// resolveManual finds a Moviko added by name (not an address) again.
 func (s *Service) resolveManual(p *peer) {
 	s.mu.Lock()
 	manual := p.manual
@@ -1741,7 +1741,7 @@ func (s *Service) resolveManual(p *peer) {
 	s.wake()
 }
 
-// makeRoom keeps the KumoBoxes this one only heard of to a few: anyone on the
+// makeRoom keeps the Movikos this one only heard of to a few: anyone on the
 // network can make up new ones. Must be called with mu held.
 func (s *Service) makeRoom() {
 	var strangers []*peer
@@ -1762,7 +1762,7 @@ func (s *Service) makeRoom() {
 	delete(s.peers, oldest.id)
 }
 
-// Forget removes an KumoBox from the list (one added by hand, or gone).
+// Forget removes a Moviko from the list (one added by hand, or gone).
 func (s *Service) Forget(id string) {
 	s.mu.Lock()
 	p, ok := s.peers[id]
@@ -1785,7 +1785,7 @@ func (s *Service) Forget(id string) {
 	s.hub.Publish("sharing-updated", nil)
 }
 
-// Connect adds an KumoBox by its address, for networks where they can't find
+// Connect adds a Moviko by its address, for networks where they can't find
 // each other by themselves (it needs sharing on too).
 func (s *Service) Connect(ctx context.Context, address string) (PeerView, error) {
 	address = strings.TrimSpace(address)
@@ -1814,15 +1814,15 @@ func (s *Service) Connect(ctx context.Context, address string) (PeerView, error)
 	}
 	resp, err := s.api.Do(req)
 	if err != nil {
-		return PeerView{}, fmt.Errorf("no answer from %s: is KumoBox open there, with library sharing on?", address)
+		return PeerView{}, fmt.Errorf("no answer from %s: is Moviko open there, with library sharing on?", address)
 	}
 	defer resp.Body.Close()
 	var h Hello
 	if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(&h) != nil {
-		return PeerView{}, fmt.Errorf("%s isn't an KumoBox app with library sharing on", address)
+		return PeerView{}, fmt.Errorf("%s isn't a Moviko app with library sharing on", address)
 	}
 	if h.ID == s.id.ID {
-		return PeerView{}, errors.New("that's this KumoBox")
+		return PeerView{}, errors.New("that's this Moviko")
 	}
 	pub, err := parsePublicKey(h.ID, h.Key)
 	if err != nil {
@@ -1854,7 +1854,7 @@ type SharedLibrary struct {
 	Files []*library.LocalFile `json:"files"`
 }
 
-// Libraries are the libraries shared with this KumoBox.
+// Libraries are the libraries shared with this Moviko.
 func (s *Service) Libraries() []SharedLibrary {
 	now := time.Now()
 	s.mu.Lock()
@@ -1869,7 +1869,7 @@ func (s *Service) Libraries() []SharedLibrary {
 	return out
 }
 
-// RemoteFiles are all the files shared with this KumoBox.
+// RemoteFiles are all the files shared with this Moviko.
 func (s *Service) RemoteFiles() []*library.LocalFile {
 	s.mu.Lock()
 	defer s.mu.Unlock()

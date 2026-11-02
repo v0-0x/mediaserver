@@ -1,4 +1,4 @@
-// Tiny fetch wrapper for the KumoBox API.
+// Tiny fetch wrapper for the Moviko API.
 
 export class ApiError extends Error {
     status: number
@@ -153,5 +153,5 @@ export type DesktopBridge = {
 export type DesktopPrefs = { keepRunning: boolean; freeWhenLocked: boolean; startAtLogin?: boolean }
 
 export function desktop(): DesktopBridge | null {
-    return (window as any).kumoboxDesktop ?? null
+    return (window as any).movikoDesktop ?? null
 }

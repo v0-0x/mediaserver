@@ -91,7 +91,7 @@ func TestMain(m *testing.M) {
 func newTestManager(t *testing.T, mutate func(*config.Settings)) (*Manager, string) {
 	t.Helper()
 	dir := t.TempDir()
-	d, err := db.Open(filepath.Join(dir, "kumobox.db"))
+	d, err := db.Open(filepath.Join(dir, "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +380,7 @@ while [ $# -gt 0 ]; do
 	shift
 done
 yes 'WARNING: [generic] Falling back on generic information extractor' | head -n 30000 >&2
-echo 'KUMOBOX| 42.0%|1.50MiB/s|00:07'
+echo 'MOVIKO| 42.0%|1.50MiB/s|00:07'
 printf 'partial' > "$out.part"
 printf 'fragment' > "$out.part-Frag1"
 `

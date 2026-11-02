@@ -2,7 +2,7 @@ package config
 
 import "strings"
 
-// Settings KumoBox adds to Kumo's: the movie and show catalog (TMDB),
+// Settings Moviko adds to Kumo's: the movie and show catalog (TMDB),
 // Letterboxd, the streaming providers and the torrent search sources.
 
 // DefaultStremioCatalog is the official Stremio addon collection: the
@@ -25,8 +25,8 @@ type TMDBSettings struct {
 }
 
 // LetterboxdSettings connect a Letterboxd account. With only a username
-// KumoBox reads the member's public diary (RSS) and imports their watched
-// films and ratings; what's watched in KumoBox is exported as a CSV that
+// Moviko reads the member's public diary (RSS) and imports their watched
+// films and ratings; what's watched in Moviko is exported as a CSV that
 // letterboxd.com/import takes. With API access (granted by Letterboxd on
 // request) it logs straight to the account: APIClientID and
 // APIClientSecret are the app's credentials, the member signs in from the
@@ -37,10 +37,10 @@ type LetterboxdSettings struct {
 	AutoSync    bool `json:"autoSync"`
 	SyncMinutes int  `json:"syncMinutes"`
 	// LogWatched adds a diary entry when a movie is watched to the end in
-	// KumoBox (to export, or to send with API access).
+	// Moviko (to export, or to send with API access).
 	LogWatched bool `json:"logWatched"`
 	// ImportWatchlist puts the films of the Letterboxd watchlist (from an
-	// export) on the KumoBox watchlist.
+	// export) on the Moviko watchlist.
 	ImportWatchlist bool   `json:"importWatchlist"`
 	APIClientID     string `json:"apiClientId"`
 	APIClientSecret string `json:"apiClientSecret"`
@@ -49,7 +49,7 @@ type LetterboxdSettings struct {
 // ProviderSettings configure where movies and episodes are streamed from:
 // the built-in Internet Archive provider (public-domain films), the
 // built-in streaming sites of the luffy and FreeFlix apps, Stremio addons,
-// Nuvio provider repositories and KumoBox/Seanime extensions.
+// Nuvio provider repositories and Moviko/Seanime extensions.
 type ProviderSettings struct {
 	// Archive enables the Internet Archive (archive.org) provider.
 	Archive bool `json:"archive"`
@@ -122,7 +122,7 @@ const (
 // MediaServer is a Jellyfin, Emby or Plex server the user streams from.
 // Token is a secret: an API key (Jellyfin, Emby: Dashboard › API Keys) or
 // the account's X-Plex-Token. It's never shown to devices on the LAN, nor
-// put in the links handed to players: KumoBox adds it when it fetches the
+// put in the links handed to players: Moviko adds it when it fetches the
 // server's videos.
 type MediaServer struct {
 	// Kind is MediaServerJellyfin, MediaServerEmby or MediaServerPlex.
@@ -218,8 +218,8 @@ func defaultTorrentSources() TorrentSourceSettings {
 	}
 }
 
-// sanitizeKumoBox fixes the KumoBox settings of s in place.
-func sanitizeKumoBox(s *Settings) {
+// sanitizeMoviko fixes the Moviko settings of s in place.
+func sanitizeMoviko(s *Settings) {
 	d := Defaults()
 	s.TMDB.APIKey = strings.TrimSpace(s.TMDB.APIKey)
 	if s.TMDB.Language == "" {

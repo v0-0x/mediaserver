@@ -22,7 +22,7 @@ type Service struct {
 	Platform *catalog.Platform
 	History  *history.Store
 	DB       *db.DB // items removed from "Continue watching"
-	// Remote: the files other KumoBox apps on the network share with this one
+	// Remote: the files other Moviko apps on the network share with this one
 	// (package share), shown with the local ones; nil without sharing.
 	Remote func() []*LocalFile
 
@@ -79,7 +79,7 @@ type EntryView struct {
 	Others      []*EpisodeView `json:"others"`
 	NextEpisode *EpisodeView   `json:"nextEpisode"`
 	LocalCount  int            `json:"localCount"`
-	// SharedCount: files of it other KumoBox apps share with this one.
+	// SharedCount: files of it other Moviko apps share with this one.
 	SharedCount  int      `json:"sharedCount"`
 	Images       Images   `json:"images"`
 	Mappings     Mappings `json:"mappings"`
@@ -375,7 +375,7 @@ func (s *Service) Episodes(ctx context.Context, mediaID int) (*EpisodesView, err
 	return &EpisodesView{Episodes: v.Episodes, Specials: v.Specials, Others: v.Others, NextEpisode: v.NextEpisode}, nil
 }
 
-// shared are the files other KumoBox apps share with this one.
+// shared are the files other Moviko apps share with this one.
 func (s *Service) shared() []*LocalFile {
 	if s.Remote == nil {
 		return nil
@@ -633,7 +633,7 @@ func (s *Service) continueWatching(ctx context.Context, coll *catalog.Collection
 	}
 
 	// 1) Titles being watched, ordered by most recent activity: on this
-	// computer (or another KumoBox on the same account, whose history comes
+	// computer (or another Moviko on the same account, whose history comes
 	// over), or a change of the list (an episode marked by hand, a sync).
 	var watching []*catalog.ListEntry
 	for _, e := range coll.Entries() {
@@ -754,7 +754,7 @@ func EpisodeFile(files []*LocalFile, episode int) *LocalFile {
 // (rather than one holding several), then the bigger file. A file on this
 // computer always wins.
 func betterFile(f, old *LocalFile) bool {
-	// This computer's file, not one another KumoBox shares.
+	// This computer's file, not one another Moviko shares.
 	if (f.Host == "") != (old.Host == "") {
 		return f.Host == ""
 	}

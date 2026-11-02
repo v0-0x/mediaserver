@@ -12,14 +12,14 @@ import (
 var toolDirs = []string{"/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/local/sbin", "/opt/local/bin", "/opt/local/sbin"}
 
 // Apps opened from the Finder or the Dock get the PATH /usr/bin:/bin:
-// /usr/sbin:/sbin, without the folders of the programs KumoBox uses (ffmpeg, mpv,
-// yt-dlp from Homebrew): KumoBox puts those first on its PATH, like a
+// /usr/sbin:/sbin, without the folders of the programs Moviko uses (ffmpeg, mpv,
+// yt-dlp from Homebrew): Moviko puts those first on its PATH, like a
 // Terminal has them, for its own lookups and the programs it starts.
 func init() {
 	_ = os.Setenv("PATH", withToolDirs(os.Getenv("PATH"), toolDirs, isDir))
 }
 
-// addToolsDir puts KumoBox's own programs folder first on the PATH.
+// addToolsDir puts Moviko's own programs folder first on the PATH.
 func addToolsDir(dir string) {
 	if dir != "" {
 		_ = os.Setenv("PATH", withToolDirs(os.Getenv("PATH"), []string{dir}, func(string) bool { return true }))

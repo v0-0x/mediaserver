@@ -14,9 +14,9 @@ import (
 
 // Keeping extensions' memory in check
 //
-// Extensions are other people's code running in KumoBox's own process, and
+// Extensions are other people's code running in Moviko's own process, and
 // Go has no memory limit per JavaScript VM: one that builds a huge string or
-// array, or reads a huge answer, would take KumoBox's memory (and, past the
+// array, or reads a huge answer, would take Moviko's memory (and, past the
 // soft limit, its CPU, the garbage collector working flat out) with it.
 // Three guards:
 //
@@ -33,7 +33,7 @@ import (
 //     ErrTooMuchMemory; a provider starts afresh on its next call, a plugin
 //     stays stopped until it's turned on again.
 //
-// The heap is the whole process's, so what else KumoBox does during a call
+// The heap is the whole process's, so what else Moviko does during a call
 // counts too: the budget (half the soft limit) is far above what a call
 // normally makes the heap grow by, a few megabytes. Code an extension runs
 // outside a call (a timer it left behind) isn't watched; one native
@@ -122,15 +122,15 @@ var memoryBudgetForTests uint64
 
 const (
 	// defaultSoftLimit is the server's soft memory limit when none is set
-	// (cmd/kumobox's default, KUMOBOX_MEMORY_LIMIT_MB=0 turns it off).
+	// (cmd/moviko's default, MOVIKO_MEMORY_LIMIT_MB=0 turns it off).
 	defaultSoftLimit = 256 << 20
 	// minMemoryBudget keeps a tiny GOMEMLIMIT from stopping every call.
 	minMemoryBudget = 32 << 20
 )
 
 // memoryBudget is how much the Go heap may grow during a call into an
-// extension: half the soft memory limit (128 MB with KumoBox's 256), so a
-// single call can't take KumoBox past it.
+// extension: half the soft memory limit (128 MB with Moviko's 256), so a
+// single call can't take Moviko past it.
 func memoryBudget() uint64 {
 	if memoryBudgetForTests > 0 {
 		return memoryBudgetForTests
@@ -223,7 +223,7 @@ const maxStringLength = 32 << 20
 // String.prototype.repeat, padStart and padEnd would make over
 // maxStringLength characters: each builds its result in one native call,
 // which the watchdog can't interrupt halfway, so "x".repeat(1e10) would
-// have KumoBox allocate gigabytes at once (or crash for lack of memory).
+// have Moviko allocate gigabytes at once (or crash for lack of memory).
 // V8 refuses strings past about 512 M characters the same way. The
 // originals stay out of the extension's reach.
 const allocationGuards = `

@@ -107,15 +107,15 @@ export function invalidateList(qc: QueryClient, mediaId?: number) {
     qc.invalidateQueries({ queryKey: ["letterboxd"] })
 }
 
-// Has the KumoBox apps sharing their libraries asked again what they share
+// Has the Moviko apps sharing their libraries asked again what they share
 // and where they are in what they watch (their answers come as events). A
 // POST, as GET requests only read; sent alongside the query that wants it.
 function refreshSharing() {
     api.post("/api/sharing/refresh").catch(() => {})
 }
 
-// The list with what the library has, asked again when KumoBox's window
-// comes back to the front: what was watched on another KumoBox sharing its
+// The list with what the library has, asked again when Moviko's window
+// comes back to the front: what was watched on another Moviko sharing its
 // library shows up in Continue watching.
 export function useCollection() {
     return useQuery({
@@ -313,7 +313,7 @@ export function useDiscover(enabled = true) {
     })
 }
 
-// Library sharing: the KumoBox apps on the network (asked again while shown).
+// Library sharing: the Moviko apps on the network (asked again while shown).
 export function useSharing(enabled = true) {
     return useQuery({
         queryKey: ["sharing", "status"],
@@ -326,7 +326,7 @@ export function useSharing(enabled = true) {
     })
 }
 
-// The libraries other KumoBox apps share with this one.
+// The libraries other Moviko apps share with this one.
 export function useSharedLibraries() {
     return useQuery({
         queryKey: ["sharing", "libraries"],
@@ -385,7 +385,7 @@ export function useLibraryFiles() {
 }
 
 // The Local library page: the movies and shows with files, this computer's
-// (host "") or a sharing KumoBox's, each summed up by the server.
+// (host "") or a sharing Moviko's, each summed up by the server.
 export function useLibraryTitles(host = "") {
     return useQuery({
         queryKey: ["library", "titles", host],
@@ -612,13 +612,13 @@ export function useLetterboxd() {
     }
 }
 
-// KumoBox's own updates. The "update-status" event keeps ["update"] current
+// Moviko's own updates. The "update-status" event keeps ["update"] current
 // (lib/events.ts), also while one is being installed.
 export function useUpdateStatus() {
     return useQuery({ queryKey: ["update"], queryFn: () => api.get<UpdateStatus>("/api/update"), staleTime: 5 * 60_000 })
 }
 
-// KumoBox opened (started, its window opened again, back in front, the TV app
+// Moviko opened (started, its window opened again, back in front, the TV app
 // reopened): a check for updates, unless one ran in the last 10 minutes.
 // Unlike Check for updates, an update put off with Later stays put off.
 export function useCheckOnOpen(enabled: boolean) {
@@ -631,7 +631,7 @@ export function useCheckOnOpen(enabled: boolean) {
             running = true
             try {
                 const u = await api.get<UpdateStatus>("/api/update")
-                // Never checked yet: KumoBox has just started and checks by
+                // Never checked yet: Moviko has just started and checks by
                 // itself in a moment.
                 if (u.checking || !u.checkedAt || Date.now() / 1000 - u.checkedAt < 600) return
                 qc.setQueryData(["update"], await api.post<UpdateStatus>("/api/update/check"))

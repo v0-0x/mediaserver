@@ -10,8 +10,8 @@ import (
 const createNewConsole = 0x00000010
 
 // StartInConsole starts a console program in a window of its own, where the
-// user follows it and answers it. It keeps running when KumoBox quits: it
-// breaks away from KumoBox's job (see BindChildren) when that's allowed.
+// user follows it and answers it. It keeps running when Moviko quits: it
+// breaks away from Moviko's job (see BindChildren) when that's allowed.
 func StartInConsole(name string, args ...string) (*exec.Cmd, error) {
 	cmd := exec.Command(name, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: createNewConsole | createBreakawayFromJob}

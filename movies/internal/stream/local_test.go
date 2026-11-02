@@ -22,7 +22,7 @@ import (
 func newTestLocal(t *testing.T, ffmpeg string) (*Local, string) {
 	t.Helper()
 	dir := t.TempDir()
-	d, err := db.Open(filepath.Join(dir, "kumobox.db"))
+	d, err := db.Open(filepath.Join(dir, "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

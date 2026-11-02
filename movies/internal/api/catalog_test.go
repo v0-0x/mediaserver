@@ -45,7 +45,7 @@ func newCountingCatalogServer(t *testing.T) (*Server, func(path string) int) {
 		_, _ = w.Write(raw)
 	}))
 	t.Cleanup(tmdb.Close)
-	t.Setenv("KUMOBOX_TMDB_URL", tmdb.URL)
+	t.Setenv("MOVIKO_TMDB_URL", tmdb.URL)
 	s := newTestServer(t)
 	cfg := s.app.Settings.Get()
 	cfg.TMDB.APIKey = testTMDBKey

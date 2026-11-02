@@ -10,7 +10,7 @@ import (
 )
 
 // Every movie and show with files, this computer's or shared with it by
-// another KumoBox, gets all its data downloaded once: its TMDB page, its
+// another Moviko, gets all its data downloaded once: its TMDB page, its
 // seasons' episode titles and synopses, its artwork and episode stills. Its
 // page then opens at once, also offline. One title a second when they have
 // to be fetched, which leaves room under TMDB's rate limit for the rest of
@@ -61,7 +61,7 @@ func (a *App) PrefetchMedia(ids ...int) {
 }
 
 // prefetchLibrary queues every title with files: after a scan, when the
-// libraries shared with this KumoBox change, at startup. Nothing without a
+// libraries shared with this Moviko change, at startup. Nothing without a
 // TMDB key.
 func (a *App) prefetchLibrary() {
 	if !a.Platform.Configured() {
@@ -81,7 +81,7 @@ func (a *App) prefetchLibrary() {
 }
 
 // runPrefetch downloads the queued titles' data, one at a time, until
-// KumoBox stops.
+// Moviko stops.
 func (a *App) runPrefetch(ctx context.Context) {
 	p := a.prefetch
 	for {

@@ -4,7 +4,7 @@ import "fmt"
 
 // Media IDs
 //
-// KumoBox gives every movie and show one integer id, so the rest of the app
+// Moviko gives every movie and show one integer id, so the rest of the app
 // (library files, watch history, list entries, track preferences...) can
 // keep using a plain int: a movie is its TMDB movie id, a show is ShowBase
 // plus its TMDB TV id. TMDB numbers movies and shows separately (movie 1399

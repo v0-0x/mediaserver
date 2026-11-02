@@ -1,6 +1,6 @@
 package catalog
 
-// TMDB's JSON, as far as KumoBox reads it. One type, tmdbItem, holds a
+// TMDB's JSON, as far as Moviko reads it. One type, tmdbItem, holds a
 // movie or a show, in a list (search, discover, trending, recommendations)
 // or with its whole page (details with appended credits, videos...): the
 // fields of the other kind simply stay empty.

@@ -283,7 +283,7 @@ export function LibraryFolders() {
                             ) : r.kind === "heading" ? (
                                 <div className="pt-2">
                                     <h3 className="font-semibold">Nothing to match yet</h3>
-                                    <p className="text-sm text-muted">KumoBox found these folders, but nothing in them it can play.</p>
+                                    <p className="text-sm text-muted">Moviko found these folders, but nothing in them it can play.</p>
                                 </div>
                             ) : (
                                 <ProblemRow folder={r.f} trusted={trusted} />

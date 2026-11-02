@@ -19,18 +19,18 @@ import (
 //
 // The addons installed on a Stremio account are its addon collection, read
 // from Stremio's API once signed in (login, then addonCollectionGet).
-// KumoBox installs the ones it can use, as Store.Install decides for any
+// Moviko installs the ones it can use, as Store.Install decides for any
 // addon, and says why it left the others out. It signs in for that only:
 // the password and the session's key are used for those two requests and
 // forgotten, never saved nor logged.
 
-// DefaultAPIURL is Stremio's API. $KUMOBOX_STREMIO_API_URL overrides it
+// DefaultAPIURL is Stremio's API. $MOVIKO_STREMIO_API_URL overrides it
 // (tests, offline demos).
 const DefaultAPIURL = "https://api.strem.io"
 
 // APIURL is the address of Stremio's API.
 func APIURL() string {
-	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("KUMOBOX_STREMIO_API_URL")), "/"); u != "" {
+	if u := strings.TrimRight(strings.TrimSpace(os.Getenv("MOVIKO_STREMIO_API_URL")), "/"); u != "" {
 		return u
 	}
 	return DefaultAPIURL
@@ -135,10 +135,10 @@ const (
 	skipLocal       = "runs on this computer or the local network: install it by its URL to confirm"
 	skipAdult       = "flagged as adult content: install it by its URL to confirm"
 	skipConfigure   = "needs configuring first"
-	skipUnsupported = "no streams or subtitles KumoBox can use"
+	skipUnsupported = "no streams or subtitles Moviko can use"
 )
 
-// Import installs the addons KumoBox can use among addons (a Stremio
+// Import installs the addons Moviko can use among addons (a Stremio
 // account's), as Install does without any confirmation: those on this
 // computer or the LAN, adult ones and those to configure are left out (to
 // install by hand, confirming), as are those already installed, in this

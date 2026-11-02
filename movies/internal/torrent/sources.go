@@ -2,7 +2,7 @@ package torrent
 
 // Torrent search sources for movies and shows
 //
-// KumoBox finds torrents of a movie, an episode, a season or a whole show
+// Moviko finds torrents of a movie, an episode, a season or a whole show
 // on public sites (YTS, EZTV, The Pirate Bay, Torrents-CSV, the Internet
 // Archive) and on the user's own indexers (Jackett, Prowlarr, any Torznab
 // feed). A Source knows how to ask one of them; SearchAll asks them all at

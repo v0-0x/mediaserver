@@ -10,19 +10,19 @@ import (
 	"time"
 )
 
-// Uploads: a KumoBox that takes this one's downloads (it shares its library
+// Uploads: a Moviko that takes this one's downloads (it shares its library
 // with it and lets it download there: a server, say) takes the files and
 // folders sent from it too, into its library (package upload). This one
 // only passes them on, a piece at a time, signed like any request to it.
 
-// UploadHost is a KumoBox this one may upload to.
+// UploadHost is a Moviko this one may upload to.
 type UploadHost struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
 	Online bool   `json:"online"`
 }
 
-// UploadHosts are the KumoBoxes this one may upload to, by name.
+// UploadHosts are the Movikos this one may upload to, by name.
 func (s *Service) UploadHosts() []UploadHost {
 	now := time.Now()
 	s.mu.Lock()
@@ -37,7 +37,7 @@ func (s *Service) UploadHosts() []UploadHost {
 	return out
 }
 
-// AskUpload passes a request about an upload on to the KumoBox id (GET: its
+// AskUpload passes a request about an upload on to the Moviko id (GET: its
 // folders, or where a file stands; POST: a piece of a file), and returns
 // its answer as it is: the status and the body.
 func (s *Service) AskUpload(ctx context.Context, id, method, query string, piece []byte) (int, []byte, error) {

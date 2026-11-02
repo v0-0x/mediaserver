@@ -8,11 +8,11 @@ import (
 
 // mediaserver's movies side: a browser on the network signed in to the
 // dashboard may do what this computer may; one that isn't is sent there.
-// Other KumoBox apps (/api/peer/) are checked as always, not by sign-in.
+// Other Moviko apps (/api/peer/) are checked as always, not by sign-in.
 func TestOwnerSignIn(t *testing.T) {
 	s := newTestServer(t)
 	cfg := s.app.Settings.Get()
-	cfg.Server.AllowLAN, cfg.Server.Password = true, "kumobox's own"
+	cfg.Server.AllowLAN, cfg.Server.Password = true, "moviko's own"
 	if _, err := s.app.Settings.Save(cfg); err != nil {
 		t.Fatal(err)
 	}
@@ -38,10 +38,10 @@ func TestOwnerSignIn(t *testing.T) {
 	if w.Code != http.StatusUnauthorized || !strings.Contains(w.Body.String(), host+":43211") {
 		t.Fatalf("API, not signed in: %d %s", w.Code, w.Body)
 	}
-	// KumoBox's own network password doesn't let one in.
-	w = do(s, "POST", "/api/auth/server-login", lan, `{"password":"kumobox's own"}`, at)
+	// Moviko's own network password doesn't let one in.
+	w = do(s, "POST", "/api/auth/server-login", lan, `{"password":"moviko's own"}`, at)
 	if w.Code != http.StatusUnauthorized {
-		t.Fatalf("KumoBox's password, not signed in: %d", w.Code)
+		t.Fatalf("Moviko's password, not signed in: %d", w.Code)
 	}
 
 	w = do(s, "GET", "/api/status", lan, "", signedIn)
@@ -59,10 +59,10 @@ func TestOwnerSignIn(t *testing.T) {
 	if w := do(s, "GET", "/api/status", local, "", nil); w.Code != http.StatusOK {
 		t.Fatalf("this computer: %d", w.Code)
 	}
-	// Another KumoBox: its own checks (unsigned: refused by them, not sent
+	// Another Moviko: its own checks (unsigned: refused by them, not sent
 	// to the dashboard).
 	w = do(s, "GET", "/api/peer/hello", lan, "", at)
 	if w.Code == http.StatusSeeOther || strings.Contains(w.Body.String(), "dashboard") {
-		t.Fatalf("a KumoBox app was sent to the dashboard: %d %s", w.Code, w.Body)
+		t.Fatalf("a Moviko app was sent to the dashboard: %d %s", w.Code, w.Body)
 	}
 }

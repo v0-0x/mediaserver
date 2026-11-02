@@ -17,7 +17,7 @@ func TestRuntimeDirInSharedTmp(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", "")
 	t.Setenv("TMPDIR", tmp)
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
-	shared := filepath.Join(tmp, "kumobox")
+	shared := filepath.Join(tmp, "moviko")
 
 	t.Run("own folder, open to others", func(t *testing.T) {
 		if err := os.Mkdir(shared, 0o777); err != nil {

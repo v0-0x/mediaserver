@@ -16,13 +16,13 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/stream"
 )
 
-// Library sharing with other KumoBox apps on the home network (package share).
+// Library sharing with other Moviko apps on the home network (package share).
 //
-// As a host, this KumoBox answers the others under /api/peer/: who it is, its
+// As a host, this Moviko answers the others under /api/peer/: who it is, its
 // shared files, and playing them. Those requests are checked by servePeer,
 // apart from the browsers': no login or Web UI needed, but a valid token
-// from an KumoBox, and only from the home network. Playing a shared file on the
-// other KumoBox updates that KumoBox's list and history only: the host just sends
+// from a Moviko, and only from the home network. Playing a shared file on the
+// other Moviko updates that Moviko's list and history only: the host just sends
 // the video.
 //
 // As a guest, its own player plays the files shared with it (kumobox:// paths)
@@ -30,7 +30,7 @@ import (
 
 type peerKey struct{}
 
-// servePeer checks a request from another KumoBox.
+// servePeer checks a request from another Moviko.
 func (s *Server) servePeer(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	ip := clientIP(r)
 	if !s.app.Settings.Get().Sharing.Enabled || ip == nil || !(ip.IsLoopback() || isLANIP(ip)) {
@@ -41,7 +41,7 @@ func (s *Server) servePeer(w http.ResponseWriter, r *http.Request, next http.Han
 		http.Error(w, "invalid host", http.StatusForbidden)
 		return
 	}
-	// KumoBox apps don't send it; websites in a browser do.
+	// Moviko apps don't send it; websites in a browser do.
 	if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "same-origin" && site != "none" {
 		http.Error(w, "cross-site request refused", http.StatusForbidden)
 		return
@@ -54,7 +54,7 @@ func (s *Server) servePeer(w http.ResponseWriter, r *http.Request, next http.Han
 	}
 	c, err := s.app.Share.Verify(w, r)
 	if err != nil {
-		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "not an KumoBox app this one knows: " + err.Error()})
+		writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "not a Moviko app this one knows: " + err.Error()})
 		return
 	}
 	// Another device: never this computer (isTrusted).
@@ -68,10 +68,10 @@ func peerOf(r *http.Request) share.Caller {
 	return c
 }
 
-// peerAllowed reports an KumoBox this one shares its library with.
+// peerAllowed reports a Moviko this one shares its library with.
 func peerAllowed(r *http.Request) bool { return peerOf(r).Allowed }
 
-// shared wraps the endpoints only the KumoBoxes this one shares with may use.
+// shared wraps the endpoints only the Movikos this one shares with may use.
 func shared(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !peerAllowed(r) {
@@ -82,7 +82,7 @@ func shared(fn http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// sharedFile wraps the endpoints about a file (?path=): one this KumoBox
+// sharedFile wraps the endpoints about a file (?path=): one this Moviko
 // shares, not any of its library's (an ignored one, say).
 func (s *Server) sharedFile(fn http.HandlerFunc) http.HandlerFunc {
 	return shared(func(w http.ResponseWriter, r *http.Request) {
@@ -99,13 +99,13 @@ func (s *Server) peerRoutes() {
 	m.HandleFunc("GET /api/peer/whoami", h(func(r *http.Request) (any, error) { return s.app.Share.Whoami(), nil }))
 	m.HandleFunc("GET /api/peer/hello", h(func(r *http.Request) (any, error) { return s.app.Share.Hello(peerOf(r)), nil }))
 	m.HandleFunc("GET /api/peer/files", shared(h(func(r *http.Request) (any, error) { return s.app.Share.SharedFiles() })))
-	// The watch history, for a KumoBox it's paired with (it shares its library
+	// The watch history, for a Moviko it's paired with (it shares its library
 	// with it, or that one with it) on the same Letterboxd account: Continue
 	// watching goes on there where it stopped here.
 	paired := func(fn http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			if !peerOf(r).Paired {
-				writeJSON(w, http.StatusForbidden, map[string]any{"error": "this KumoBox isn't paired with yours"})
+				writeJSON(w, http.StatusForbidden, map[string]any{"error": "this Moviko isn't paired with yours"})
 				return
 			}
 			fn(w, r)
@@ -124,11 +124,11 @@ func (s *Server) peerRoutes() {
 			after, _ := strconv.ParseInt(q.Get("after"), 10, 64)
 			return s.app.Share.HistoryAfter(c, after), nil
 		}
-		// An older KumoBox asks by time.
+		// An older Moviko asks by time.
 		since, _ := strconv.ParseInt(q.Get("since"), 10, 64)
 		return s.app.Share.HistorySince(c, since), nil
 	})))
-	// And where it's watching (this KumoBox's files, or any), as it happens.
+	// And where it's watching (this Moviko's files, or any), as it happens.
 	m.HandleFunc("POST /api/peer/history", paired(h(func(r *http.Request) (any, error) {
 		if !peerOf(r).SameUser {
 			return nil, forbidden("not connected to the same Letterboxd account")
@@ -140,12 +140,12 @@ func (s *Server) peerRoutes() {
 		s.app.Share.TakeHistory(peerOf(r), entries)
 		return nil, nil
 	})))
-	// The torrent client, for an KumoBox allowed to download onto this one: its
+	// The torrent client, for a Moviko allowed to download onto this one: its
 	// downloads go here, its torrent page shows this one's.
 	torrents := func(fn http.HandlerFunc) http.HandlerFunc {
 		return shared(func(w http.ResponseWriter, r *http.Request) {
 			if !peerOf(r).Downloads {
-				writeJSON(w, http.StatusForbidden, map[string]any{"error": "this KumoBox doesn't take downloads from yours"})
+				writeJSON(w, http.StatusForbidden, map[string]any{"error": "this Moviko doesn't take downloads from yours"})
 				return
 			}
 			fn(w, r)
@@ -155,7 +155,7 @@ func (s *Server) peerRoutes() {
 	m.HandleFunc("GET /api/peer/torrents/list", torrents(h(s.torrentList)))
 	m.HandleFunc("POST /api/peer/torrents/action", torrents(h(s.torrentAction)))
 	m.HandleFunc("POST /api/peer/torrents/start", torrents(h(func(r *http.Request) (any, error) { return nil, s.app.Torrents.StartClient(r.Context()) })))
-	// Downloads from an KumoBox allowed to download onto this one, and the
+	// Downloads from a Moviko allowed to download onto this one, and the
 	// list of them (its Downloads page shows this one's).
 	m.HandleFunc("POST /api/peer/downloads/{kind}", shared(h(s.peerDownload)))
 	m.HandleFunc("GET /api/peer/downloads/list", torrents(h(func(r *http.Request) (any, error) { return s.app.Downloads.List(), nil })))
@@ -197,7 +197,7 @@ func (s *Server) peerRoutes() {
 		return nil, nil
 	})))
 
-	// This KumoBox's settings and the libraries shared with it.
+	// This Moviko's settings and the libraries shared with it.
 	m.HandleFunc("GET /api/sharing", h(func(r *http.Request) (any, error) { return s.app.Share.Status(), nil }))
 	m.HandleFunc("GET /api/sharing/libraries", h(func(r *http.Request) (any, error) { return s.app.Share.Libraries(), nil }))
 	// The pages showing them (Settings, Local library, Home's Continue
@@ -221,7 +221,7 @@ func (s *Server) peerRoutes() {
 		return s.app.Share.Status(), nil
 	}))
 	// The app opened again (a TV's, brought back from its home screen):
-	// Continue watching synced with the paired KumoBoxes, if that's on (and not
+	// Continue watching synced with the paired Movikos, if that's on (and not
 	// done a moment ago).
 	m.HandleFunc("POST /api/sharing/autosync", h(func(r *http.Request) (any, error) {
 		s.app.Share.AutoSyncAll()
@@ -254,7 +254,7 @@ func (s *Server) peerRoutes() {
 		s.app.Share.Forget(r.PathValue("id"))
 		return s.app.Share.Status(), nil
 	}))
-	// Sync, from Home: the watch history with the KumoBoxes this one is paired
+	// Sync, from Home: the watch history with the Movikos this one is paired
 	// with, now, and the AniList list (Continue watching from both).
 	m.HandleFunc("POST /api/sharing/sync", h(func(r *http.Request) (any, error) {
 		ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
@@ -287,9 +287,9 @@ func (s *Server) peerRoutes() {
 	}))
 }
 
-// peerDownload downloads what an KumoBox allowed to download onto this one asks
+// peerDownload downloads what a Moviko allowed to download onto this one asks
 // for, into this one's library (which it shares back).
-// What an KumoBox may download onto this one in one go.
+// What a Moviko may download onto this one in one go.
 const (
 	maxPeerEpisodes = 200
 	maxPeerTorrents = 50
@@ -298,11 +298,11 @@ const (
 func (s *Server) peerDownload(r *http.Request) (any, error) {
 	c := peerOf(r)
 	if !c.Downloads {
-		return nil, forbidden("this KumoBox doesn't take downloads from yours")
+		return nil, forbidden("this Moviko doesn't take downloads from yours")
 	}
 	from := c.Name
 	if from == "" {
-		from = "Another KumoBox"
+		from = "Another Moviko"
 	}
 	switch r.PathValue("kind") {
 	case share.DownloadStream:
@@ -355,7 +355,7 @@ func (s *Server) forwardShared(w http.ResponseWriter, r *http.Request, endpoint 
 	return true
 }
 
-// The in-app player's endpoints, for this KumoBox's files (and its guests').
+// The in-app player's endpoints, for this Moviko's files (and its guests').
 
 // awakeFor keeps this computer from sleeping while another device (a TV,
 // a phone) plays its file (see package awake): until release.
@@ -422,11 +422,11 @@ func (s *Server) localSubtitle(w http.ResponseWriter, r *http.Request) {
 }
 
 // playShared opens a shared file: in mpv, which plays it from the host, or
-// in the in-app player. Progress and history are this KumoBox's.
+// in the in-app player. Progress and history are this Moviko's.
 func (s *Server) playShared(r *http.Request, body playLocalBody) (any, error) {
 	f, ok := s.app.Share.File(body.Path)
 	if !ok {
-		return nil, notFound("that library isn't shared with this KumoBox any more")
+		return nil, notFound("that library isn't shared with this Moviko any more")
 	}
 	if body.MediaID == 0 {
 		body.MediaID, body.Episode = f.MediaID, f.Episode

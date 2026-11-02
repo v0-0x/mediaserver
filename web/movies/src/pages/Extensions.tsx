@@ -61,7 +61,7 @@ export default function ExtensionsPage() {
     const { data: status } = useStatus()
     const [manualOpen, setManualOpen] = useState(false)
     // From another device on the network: what's installed is shown, but only
-    // the computer KumoBox runs on installs and sets up extensions.
+    // the computer Moviko runs on installs and sets up extensions.
     const lan = status?.client === "lan"
     const exts = (installed ?? []).filter(e => e.manifest.type !== "nuvio-provider")
     const nuvio = (installed ?? []).filter(e => e.manifest.type === "nuvio-provider")
@@ -79,7 +79,7 @@ export default function ExtensionsPage() {
                     </Button>
                 )}
             </div>
-            {lan && <p className="mb-6 rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-muted">Extensions are installed and set up on the computer KumoBox runs on; from here you can see them.</p>}
+            {lan && <p className="mb-6 rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-muted">Extensions are installed and set up on the computer Moviko runs on; from here you can see them.</p>}
             <Tabs
                 variant="underline"
                 className="mb-8"
@@ -227,7 +227,7 @@ function InstalledCard({ ext, update, onChange }: { ext: ExtensionInfo; update?:
             <div className="flex flex-wrap gap-1.5">
                 <Badge>{m.language === "typescript" ? "TS" : "JS"}</Badge>
                 {m.lang && <Badge className="uppercase">{m.lang}</Badge>}
-                {!ext.supported && <Badge tone="amber">Not supported by KumoBox yet</Badge>}
+                {!ext.supported && <Badge tone="amber">Not supported by Moviko yet</Badge>}
                 {ext.error && <Badge tone="red">Error</Badge>}
                 {ext.configError && <Badge tone="amber">Needs configuration</Badge>}
                 {needsGrant && <Badge tone="amber">Permissions needed</Badge>}
@@ -362,11 +362,11 @@ function GrantDialog({ open, onOpenChange, ext, onDone }: { open: boolean; onOpe
                         <p className="flex items-center gap-2 font-semibold">
                             <ShieldAlert className="size-4" /> Page modification
                         </p>
-                        <p className="mt-1 text-xs">This plugin wants to modify the app’s pages. KumoBox doesn’t allow that, so those features won’t work.</p>
+                        <p className="mt-1 text-xs">This plugin wants to modify the app’s pages. Moviko doesn’t allow that, so those features won’t work.</p>
                     </div>
                 )}
                 <p className="text-xs text-subtle">
-                    KumoBox never gives plugins access to your files, terminal or local network. {scopes.includes("anilist-token") && "This plugin asks for an account token KumoBox doesn't have: those features won't work."}
+                    Moviko never gives plugins access to your files, terminal or local network. {scopes.includes("anilist-token") && "This plugin asks for an account token Moviko doesn't have: those features won't work."}
                 </p>
             </div>
         </Dialog>

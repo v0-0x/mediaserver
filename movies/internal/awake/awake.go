@@ -94,7 +94,7 @@ func (k *Keeper) Active() bool {
 	return k.on
 }
 
-// Close lets the computer sleep again (KumoBox is quitting).
+// Close lets the computer sleep again (Moviko is quitting).
 func (k *Keeper) Close() {
 	if k == nil {
 		return
@@ -121,7 +121,7 @@ func (f funcs) start() error { return f.startFn() }
 func (f funcs) stop()        { f.stopFn() }
 
 // WithFuncs is a Keeper that keeps the computer awake with start and stop
-// (tests, or a system KumoBox has no way for).
+// (tests, or a system Moviko has no way for).
 func WithFuncs(enabled func() bool, start func() error, stop func()) *Keeper {
 	return &Keeper{Enabled: enabled, Linger: 15 * time.Minute, impl: funcs{start, stop}}
 }

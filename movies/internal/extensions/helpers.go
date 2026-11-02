@@ -82,7 +82,7 @@ const jsPrelude = `
   FormData.prototype.values = function(){ return this._entries.map(function(e){ return e[1]; }); };
   g.FormData = FormData;
 
-  var notSupported = function(){ return Promise.reject(new Error('ChromeDP is not supported in KumoBox')); };
+  var notSupported = function(){ return Promise.reject(new Error('ChromeDP is not supported in Moviko')); };
   g.ChromeDP = { scrape: notSupported, screenshot: notSupported, evaluate: notSupported, newBrowser: notSupported };
   g.$torrentUtils = { getMagnetLinkFromTorrentData: function(){ throw new Error('not supported'); } };
   g.$waitGroup = function(){ return { add: function(){}, done: function(){}, wait: function(){} }; };

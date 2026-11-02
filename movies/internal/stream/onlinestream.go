@@ -844,7 +844,7 @@ func (s *Service) SetMatch(provider string, mediaID int, id, title string) error
 // Episode numbers
 //
 // Streaming sites number a show's episodes from its first one (1, 2, … 24);
-// KumoBox by key (see catalog); a movie is episode 1.
+// Moviko by key (see catalog); a movie is episode 1.
 
 // ProviderEpisode is a provider's number for the episode key of media.
 func ProviderEpisode(media *catalog.Media, key int) float64 {

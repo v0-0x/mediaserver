@@ -61,7 +61,7 @@ export function TypeBadges({ types }: { types: string[] }) {
 export function LanNote() {
     return (
         <p className="rounded-lg bg-white/[0.03] px-4 py-3 text-sm text-muted">
-            Providers and extensions are installed, updated, set up, turned on or off and removed on the computer KumoBox runs on.
+            Providers and extensions are installed, updated, set up, turned on or off and removed on the computer Moviko runs on.
         </p>
     )
 }

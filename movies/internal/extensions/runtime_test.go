@@ -26,11 +26,11 @@ func loadSample(t *testing.T, dir string) (*Manifest, string) {
 	return &m, payload
 }
 
-// KUMOBOX_EXT_SAMPLES points at a folder laid out as <type>/<id>/{manifest.json,payload.src}.
+// MOVIKO_EXT_SAMPLES points at a folder laid out as <type>/<id>/{manifest.json,payload.src}.
 func TestMarketplaceProvidersLoad(t *testing.T) {
-	root := os.Getenv("KUMOBOX_EXT_SAMPLES")
+	root := os.Getenv("MOVIKO_EXT_SAMPLES")
 	if root == "" {
-		t.Skip("KUMOBOX_EXT_SAMPLES not set")
+		t.Skip("MOVIKO_EXT_SAMPLES not set")
 	}
 	for _, typ := range []string{TypeOnlineStream, TypeTorrent} {
 		dirs, _ := os.ReadDir(filepath.Join(root, typ))
@@ -64,9 +64,9 @@ func TestMarketplaceProvidersLoad(t *testing.T) {
 }
 
 func TestPluginsStart(t *testing.T) {
-	root := os.Getenv("KUMOBOX_EXT_SAMPLES")
+	root := os.Getenv("MOVIKO_EXT_SAMPLES")
 	if root == "" {
-		t.Skip("KUMOBOX_EXT_SAMPLES not set")
+		t.Skip("MOVIKO_EXT_SAMPLES not set")
 	}
 	mgr := newTestManager(t)
 	mgr.Host = PluginHostServices{

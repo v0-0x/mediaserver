@@ -533,7 +533,7 @@ func (s *Server) saveTracks(r *http.Request) (any, error) {
 }
 
 // skips are the parts of a file (?path=, of the library or shared by
-// another KumoBox) that its chapters name as an intro, a recap, the credits
+// another Moviko) that its chapters name as an intro, a recap, the credits
 // or a preview: the players offer to skip them. Streams have none.
 func (s *Server) skips(r *http.Request) (any, error) {
 	path := r.URL.Query().Get("path")
@@ -643,7 +643,7 @@ func (s *Server) marketplace(r *http.Request) (any, error) {
 }
 
 // refreshMarketplace is POST /api/extensions/marketplace/refresh {url}: the
-// index downloaded again. A POST, as everything that makes KumoBox fetch
+// index downloaded again. A POST, as everything that makes Moviko fetch
 // again rather than read: other sites can't send one (middleware).
 func (s *Server) refreshMarketplace(r *http.Request) (any, error) {
 	var body struct {

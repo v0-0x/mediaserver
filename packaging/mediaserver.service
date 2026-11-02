@@ -2,7 +2,7 @@
 # Raspberry Pi), before anyone logs in, and again if it stops. install.sh
 # fills in the user it runs as and where its program is.
 [Unit]
-Description=mediaserver (anime for the Aniko apps, movies and shows for the KumoBox apps)
+Description=mediaserver (anime for the Aniko apps, movies and shows for the Moviko apps)
 After=network-online.target local-fs.target
 Wants=network-online.target
 

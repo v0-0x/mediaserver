@@ -12,7 +12,7 @@ import (
 
 // With API access (Settings.Letterboxd.APIClientID and APIClientSecret,
 // granted by Letterboxd) a member signs in once; the tokens are kept in the
-// database and what's logged in KumoBox is sent to their diary.
+// database and what's logged in Moviko is sent to their diary.
 
 // newAPIClient returns a client with the app's credentials.
 func (s *Sync) newAPIClient(set config.LetterboxdSettings, accessToken string) *APIClient {
@@ -97,7 +97,7 @@ func (s *Sync) apiClient(ctx context.Context, forceRefresh bool) (*APIClient, er
 	return c, nil
 }
 
-// Push sends the diary entries logged in KumoBox (and not sent yet) to the
+// Push sends the diary entries logged in Moviko (and not sent yet) to the
 // member's Letterboxd diary, and marks them exported. It needs API access
 // (ErrNoAPIAccess otherwise). Entries of films Letterboxd doesn't have are
 // skipped (and stay pending, to export as CSV).
@@ -132,7 +132,7 @@ func (s *Sync) push(ctx context.Context) (*Result, error) {
 		if err := ctx.Err(); err != nil {
 			return res, err
 		}
-		if e == nil || e.Source != SourceKumoBox {
+		if e == nil || e.Source != SourceMoviko {
 			continue
 		}
 		m := media.get(ctx, e)

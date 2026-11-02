@@ -9,7 +9,7 @@ import (
 
 // Provider health
 //
-// Providers come and go: sites close, addons move, scrapers break. KumoBox
+// Providers come and go: sites close, addons move, scrapers break. Moviko
 // keeps, for each provider, how its last searches went, so the user can see
 // which ones work (Settings › Providers), and so a provider that keeps
 // failing stops slowing down the automatic picks (the Play button, auto
@@ -73,7 +73,7 @@ func NewHealth() *Health {
 // Record notes a provider's answer: err nil is a success (even with no
 // streams: the provider worked, it just had nothing). Errors marked with
 // Skip (the provider had no way to look the title up) and cancellations
-// (KumoBox shutting down) say nothing about the provider and aren't
+// (Moviko shutting down) say nothing about the provider and aren't
 // counted.
 func (h *Health) Record(id string, err error, took time.Duration) {
 	if h == nil || id == "" || IsSkip(err) || errors.Is(err, context.Canceled) {
@@ -136,7 +136,7 @@ func (h *Health) All() map[string]HealthStat {
 	return out
 }
 
-// Load replaces the stats with saved ones (when KumoBox starts).
+// Load replaces the stats with saved ones (when Moviko starts).
 func (h *Health) Load(stats map[string]HealthStat) {
 	if h == nil {
 		return

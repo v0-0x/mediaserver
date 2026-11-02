@@ -15,7 +15,7 @@ export function networkIsOpen(status?: Status) {
 }
 
 // Shown at the top of Settings while LAN access is on with no password:
-// anyone on the network can then use KumoBox as if they were at this
+// anyone on the network can then use Moviko as if they were at this
 // computer.
 export function OpenNetworkNotice({ onSetPassword }: { onSetPassword: () => void }) {
     return (
@@ -24,7 +24,7 @@ export function OpenNetworkNotice({ onSetPassword }: { onSetPassword: () => void
             <div className="min-w-0 flex-1 text-sm">
                 <p className="font-semibold text-amber-200">Devices on your network don't need a password</p>
                 <p className="mt-0.5 text-muted">
-                    Anyone on your network — guests on your Wi-Fi, a shared flat, a smart TV — can open KumoBox and use it without signing in: browse your library, play and
+                    Anyone on your network — guests on your Wi-Fi, a shared flat, a smart TV — can open Moviko and use it without signing in: browse your library, play and
                     download, change your list and settings. Set a network password: each device asks for it once.
                 </p>
             </div>

@@ -19,7 +19,7 @@ export function ProviderHealthGroup({ lan }: { lan: boolean }) {
     return (
         <Group
             title="Provider health"
-            description="How each provider's searches went lately. One failing 3 times in a row is listed last and skipped when KumoBox picks a stream by itself, until it answers again. Test asks it for Night of the Living Dead (1968), a public-domain film."
+            description="How each provider's searches went lately. One failing 3 times in a row is listed last and skipped when Moviko picks a stream by itself, until it answers again. Test asks it for Night of the Living Dead (1968), a public-domain film."
         >
             {list.length === 0 && <p className="px-4 py-3.5 text-sm text-subtle">No streaming provider is enabled.</p>}
             {list.map(p => (

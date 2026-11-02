@@ -344,7 +344,7 @@ func TestLetterboxdExport(t *testing.T) {
 	}
 
 	w := do(s, "GET", "/api/letterboxd/export.csv?all=0", local, "", nil)
-	wantName := "kumobox-letterboxd-" + time.Now().Format("2006-01-02") + ".csv"
+	wantName := "moviko-letterboxd-" + time.Now().Format("2006-01-02") + ".csv"
 	if w.Code != http.StatusOK || !strings.HasPrefix(w.Header().Get("Content-Type"), "text/csv") ||
 		!strings.Contains(w.Header().Get("Content-Disposition"), "attachment") || !strings.Contains(w.Header().Get("Content-Disposition"), wantName) ||
 		w.Header().Get("X-Diary-Ids") != strconv.FormatInt(d[0].ID, 10) {
@@ -400,7 +400,7 @@ func TestLetterboxdExport(t *testing.T) {
 	wantCode(t, do(s, "POST", "/api/media/27205/entry", local, `{"status":"PLANNING"}`, nil), http.StatusOK, "watchlist")
 	w = do(s, "GET", "/api/letterboxd/watchlist.csv", local, "", nil)
 	if w.Code != http.StatusOK || w.Header().Get("X-Film-Count") != "1" || !strings.Contains(w.Body.String(), "Inception,2010,27205,tt1375666") ||
-		!strings.Contains(w.Header().Get("Content-Disposition"), "kumobox-watchlist-") {
+		!strings.Contains(w.Header().Get("Content-Disposition"), "moviko-watchlist-") {
 		t.Errorf("watchlist: %d %v\n%s", w.Code, w.Header(), w.Body.String())
 	}
 }
@@ -414,7 +414,7 @@ func fakeLetterboxdAPI(t *testing.T, logged *[]map[string]any) *httptest.Server 
 		switch {
 		case r.URL.Path == "/auth/token":
 			_ = r.ParseForm()
-			if r.Form.Get("client_id") != "kumobox" || r.Form.Get("password") != "right" {
+			if r.Form.Get("client_id") != "moviko" || r.Form.Get("password") != "right" {
 				w.WriteHeader(http.StatusBadRequest)
 				_, _ = w.Write([]byte(`{"error":"invalid_grant","error_description":"Bad credentials"}`))
 				return
@@ -452,7 +452,7 @@ func TestLetterboxdAPI(t *testing.T) {
 	wantCode(t, do(s, "POST", "/api/letterboxd/api-login", local, `{"username":"davevis","password":"right"}`, nil), http.StatusConflict, "sign in without credentials")
 
 	cfg := s.app.Settings.Get()
-	cfg.Letterboxd.APIClientID, cfg.Letterboxd.APIClientSecret = "kumobox", "secret"
+	cfg.Letterboxd.APIClientID, cfg.Letterboxd.APIClientSecret = "moviko", "secret"
 	if _, err := s.app.Settings.Save(cfg); err != nil {
 		t.Fatal(err)
 	}

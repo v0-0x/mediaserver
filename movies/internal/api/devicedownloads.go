@@ -12,7 +12,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/share"
 )
 
-// A device whose downloads go to another KumoBox (a TV's, to the computer
+// A device whose downloads go to another Moviko (a TV's, to the computer
 // it uses: Settings › Devices) sends its provider downloads and torrents
 // there, and its torrent page shows that one's client. The computer queues
 // them (peerDownload, sharing.go).
@@ -63,7 +63,7 @@ func (s *Server) queueStreamDownload(ctx context.Context, body share.StreamDownl
 	return items, nil
 }
 
-// sendDownload sends downloads where this KumoBox's go when it isn't here:
+// sendDownload sends downloads where this Moviko's go when it isn't here:
 // sent is false when they're this one's.
 func (s *Server) sendDownload(ctx context.Context, kind string, body any) (any, bool, error) {
 	host, err := s.app.Share.SendDownload(ctx, kind, body)
@@ -90,7 +90,7 @@ func (s *Server) addTorrents(ctx context.Context, mediaID int, uris []string) (s
 	return save, s.app.Torrents.Add(ctx, uris, save)
 }
 
-// hostTorrents forwards a torrent client request (op) to the KumoBox this
+// hostTorrents forwards a torrent client request (op) to the Moviko this
 // one's downloads go to; ok is false when they're this one's. A POST's body
 // goes along.
 func (s *Server) hostTorrents(r *http.Request, op string) (json.RawMessage, bool, error) {
@@ -115,7 +115,7 @@ func (s *Server) hostTorrents(r *http.Request, op string) (json.RawMessage, bool
 	return raw, ok, nil
 }
 
-// hostTorrentStatus is the status of the torrent client of the KumoBox this
+// hostTorrentStatus is the status of the torrent client of the Moviko this
 // one's downloads go to, with its name (host).
 func (s *Server) hostTorrentStatus(r *http.Request) (map[string]any, bool) {
 	raw, host, ok, err := s.app.Share.TorrentsHost(r.Context(), "status", nil)

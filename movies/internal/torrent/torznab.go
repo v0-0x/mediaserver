@@ -4,14 +4,14 @@ package torrent
 //
 // Torznab is the Newznab API for torrents, served by Jackett and Prowlarr
 // for each of the hundreds of trackers they reach (public and private), and
-// by a few sites themselves. KumoBox asks a feed what it can search
+// by a few sites themselves. Moviko asks a feed what it can search
 // (t=caps), then searches movies by IMDb/TMDB id (t=movie), episodes by
 // IMDb/TVDB/TMDB id, season and episode (t=tvsearch), and falls back on
 // text (t=search) when the feed can't search by id or finds nothing that
 // way. Spec: https://torznab.github.io/spec-1.3-draft/
 //
 // Assumptions (Jackett 0.2x, Prowlarr 1.x):
-//   - the configured URL is the feed's API endpoint (…/api); KumoBox adds
+//   - the configured URL is the feed's API endpoint (…/api); Moviko adds
 //     /api when it's missing, as Sonarr and Radarr do with their "API
 //     path";
 //   - ids go without "tt" (imdbid=0133093), as Newznab defines them; both

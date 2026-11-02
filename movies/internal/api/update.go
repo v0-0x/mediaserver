@@ -9,7 +9,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/update"
 )
 
-// Updates of KumoBox itself (see package update). Devices on the LAN see the
+// Updates of Moviko itself (see package update). Devices on the LAN see the
 // status, but only this computer checks, installs and restarts.
 
 func (s *Server) updateStatus(r *http.Request) (any, error) {
@@ -47,9 +47,9 @@ func (s *Server) applyUpdate(r *http.Request) (any, error) {
 	return s.app.Update.Status(), nil
 }
 
-// restartKumoBox restarts KumoBox into the version an update installed: it
-// answers, then shuts down and starts again (see cmd/kumobox).
-func (s *Server) restartKumoBox(w http.ResponseWriter, r *http.Request) {
+// restartMoviko restarts Moviko into the version an update installed: it
+// answers, then shuts down and starts again (see cmd/moviko).
+func (s *Server) restartMoviko(w http.ResponseWriter, r *http.Request) {
 	if !isTrusted(r) {
 		writeJSON(w, http.StatusForbidden, map[string]string{"error": "only available on this computer"})
 		return

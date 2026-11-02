@@ -40,7 +40,7 @@ func (f fakeLibrary) Get(path string) (*library.LocalFile, error) {
 
 func openDB(t *testing.T) *db.DB {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestIdentityStaysAndTokensCheck(t *testing.T) {
 	}
 	b, _ := LoadIdentity(openDB(t))
 	if b.ID == a.ID {
-		t.Fatal("two KumoBoxes with one ID")
+		t.Fatal("two Movikos with one ID")
 	}
 
 	// a asks b: b checks it's a.
@@ -119,7 +119,7 @@ func TestIdentityStaysAndTokensCheck(t *testing.T) {
 	third, _ := LoadIdentity(openDB(t))
 	impostor := &signature{id: third, peerPub: aPub, guest: a.ID, host: b.ID, nonce: sig.nonce}
 	if forged, _ := impostor.reply(date); forged == got {
-		t.Error("another KumoBox answered for b")
+		t.Error("another Moviko answered for b")
 	}
 
 	// Sent again: refused.
@@ -169,7 +169,7 @@ func TestIdentityStaysAndTokensCheck(t *testing.T) {
 		t.Error("a ticket for something else than a file passed")
 	}
 
-	// A third KumoBox can't pass for a, nor a's token be used with another key.
+	// A third Moviko can't pass for a, nor a's token be used with another key.
 	req, _ = signed("GET", "http://x/api/peer/hello", "", now, false)
 	forged := received(req)
 	forged.Header.Set(headerKey, third.PublicKey())
@@ -180,17 +180,17 @@ func TestIdentityStaysAndTokensCheck(t *testing.T) {
 	forged.Header.Set(headerID, third.ID)
 	forged.Header.Set(headerKey, third.PublicKey())
 	if _, _, err := b.verify(forged, now); err == nil {
-		t.Error("a's token passed for another KumoBox")
+		t.Error("a's token passed for another Moviko")
 	}
-	// Made for b, it means nothing to a third KumoBox.
+	// Made for b, it means nothing to a third Moviko.
 	if _, _, err := third.verify(received(req), now); err == nil {
 		t.Error("a token for b passed with another host")
 	}
-	// An older KumoBox's request: told so.
+	// An older Moviko's request: told so.
 	old := received(req)
 	old.Header.Del(headerTime)
 	if _, _, err := b.verify(old, now); !errors.Is(err, errOldPeer) {
-		t.Errorf("older KumoBox: %v", err)
+		t.Errorf("older Moviko: %v", err)
 	}
 }
 
@@ -221,10 +221,10 @@ func TestBeaconsAndPeers(t *testing.T) {
 	d := openDB(t)
 	s := newService(t, d)
 	other, _ := LoadIdentity(openDB(t))
-	b := beacon{KumoBox: protocol, ID: other.ID, Name: "Laptop", Port: 43311, Key: other.PublicKey(), Version: "1.0.90"}
+	b := beacon{Moviko: protocol, ID: other.ID, Name: "Laptop", Port: 43311, Key: other.PublicKey(), Version: "1.0.90"}
 
 	s.heard(b, net.ParseIP("8.8.8.8")) // from the internet
-	s.heard(beacon{KumoBox: protocol, ID: other.ID, Name: "Fake", Port: 43311, Key: s.id.PublicKey()}, net.ParseIP("192.168.1.9"))
+	s.heard(beacon{Moviko: protocol, ID: other.ID, Name: "Fake", Port: 43311, Key: s.id.PublicKey()}, net.ParseIP("192.168.1.9"))
 	own := s.beacon()
 	s.heard(own, net.ParseIP("192.168.1.5"))
 	if st := s.Status(); len(st.Peers) != 0 {
@@ -253,7 +253,7 @@ func TestBeaconsAndPeers(t *testing.T) {
 	// Not useful, not around: not listed after a restart.
 	_ = s.SetAllowed(other.ID, false)
 	if st := newService(t, d).Status(); len(st.Peers) != 0 {
-		t.Errorf("an KumoBox gone and not shared with is listed: %+v", st.Peers)
+		t.Errorf("a Moviko gone and not shared with is listed: %+v", st.Peers)
 	}
 }
 
@@ -292,11 +292,11 @@ func TestSharedFilesAreTheMatchedOnes(t *testing.T) {
 		t.Errorf("hello %+v", h)
 	}
 	if h := s.Hello(Caller{}); h.Shares || h.Files != "" {
-		t.Errorf("hello to an KumoBox not allowed: %+v", h)
+		t.Errorf("hello to a Moviko not allowed: %+v", h)
 	}
 }
 
-// Two KumoBoxes on this computer find each other by multicast, where the
+// Two Movikos on this computer find each other by multicast, where the
 // network allows it.
 func TestDiscovery(t *testing.T) {
 	a, b := newService(t, openDB(t)), newService(t, openDB(t))
@@ -328,7 +328,7 @@ func TestDiscovery(t *testing.T) {
 	}
 }
 
-// A viewing finished on another KumoBox moves the list on here once: the
+// A viewing finished on another Moviko moves the list on here once: the
 // positions it sends while the end credits play aren't new viewings (each
 // one counted a rewatch of a movie). Watched again, it counts again.
 func TestFinishedElsewhereOnceAViewing(t *testing.T) {
@@ -346,7 +346,7 @@ func TestFinishedElsewhereOnceAViewing(t *testing.T) {
 	}
 	// Watched again, from the start.
 	s.TakeHistory(Caller{}, []history.Entry{at(30, 2000), at(590, 2600)})
-	// Watched again while this KumoBox was off: only the end came.
+	// Watched again while this Moviko was off: only the end came.
 	s.TakeHistory(Caller{}, []history.Entry{at(600, 3500)})
 
 	var got []int64
@@ -456,8 +456,8 @@ func TestForwarding(t *testing.T) {
 	}
 }
 
-// Two KumoBoxes named alike are told apart the same way everywhere: in the
-// lists and in what KumoBox says about downloads sent to one.
+// Two Movikos named alike are told apart the same way everywhere: in the
+// lists and in what Moviko says about downloads sent to one.
 func TestShownNameTellsTwinsApart(t *testing.T) {
 	s := &Service{peers: map[string]*peer{}}
 	a := &peer{id: "aaaa1111", name: "Living room"}
@@ -467,7 +467,7 @@ func TestShownNameTellsTwinsApart(t *testing.T) {
 	for _, p := range []*peer{a, b, c, d} {
 		s.peers[p.id] = p
 	}
-	for p, want := range map[*peer]string{a: "Living room (aaaa)", b: "living room (bbbb)", c: "Office", d: "KumoBox dddd44"} {
+	for p, want := range map[*peer]string{a: "Living room (aaaa)", b: "living room (bbbb)", c: "Office", d: "Moviko dddd44"} {
 		if got := s.shownName(p); got != want {
 			t.Errorf("%s: %q, want %q", p.id, got, want)
 		}

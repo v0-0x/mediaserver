@@ -25,7 +25,7 @@ func (s *Server) torrentRoutes() {
 	m.HandleFunc("POST /api/torrents/search", h(s.torrentSearch))
 	m.HandleFunc("POST /api/torrents/download", h(s.torrentDownload))
 
-	// When this KumoBox's downloads go to another (a TV's to its computer), its
+	// When this Moviko's downloads go to another (a TV's to its computer), its
 	// torrents are that one's (hostTorrents).
 	m.HandleFunc("GET /api/torrent-client/status", h(func(r *http.Request) (any, error) {
 		if st, ok := s.hostTorrentStatus(r); ok {

@@ -16,7 +16,7 @@ GO_LDFLAGS ?= -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 
 all: server
 
-# Each side's pages: Aniko's web UI (the dashboard) and KumoBox's.
+# Each side's pages: Aniko's web UI (the dashboard) and Moviko's.
 web:
 	cd web/anime && $(NPM) ci --no-audit --no-fund && $(NPM) run build
 	cd web/movies && $(NPM) ci --no-audit --no-fund && $(NPM) run build

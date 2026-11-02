@@ -10,7 +10,7 @@ import type { StremioAddon, StremioImportResult, StremioManifest } from "@/lib/t
 import { cn } from "@/lib/utils"
 import { ExtIcon, LanNote, TabSection, TypeBadges } from "./parts"
 
-// The resources of an addon KumoBox uses.
+// The resources of an addon Moviko uses.
 function serves(m: StremioManifest) {
     const names = resourceNames(m)
     return { streams: names.includes("stream"), subtitles: names.includes("subtitles") }
@@ -19,7 +19,7 @@ function serves(m: StremioManifest) {
 // Every resource an addon serves (catalog, meta, stream, subtitles…).
 const resourceNames = (m: StremioManifest) => [...new Set((m.resources ?? []).map(r => (typeof r === "string" ? r : r.name)).filter(Boolean))]
 
-// The resources KumoBox doesn't use, said quietly next to the ones it does.
+// The resources Moviko doesn't use, said quietly next to the ones it does.
 function OtherResources({ m }: { m: StremioManifest }) {
     const other = resourceNames(m).filter(r => r !== "stream" && r !== "subtitles")
     if (!other.length) return null
@@ -98,7 +98,7 @@ export function StremioTab() {
     )
 }
 
-// Importing the addons of a Stremio account: KumoBox signs in once, installs
+// Importing the addons of a Stremio account: Moviko signs in once, installs
 // those it can use and says why it left the others out. The password isn't
 // kept (here or on the server).
 function ImportAccount() {
@@ -127,7 +127,7 @@ function ImportAccount() {
             <div className="card flex items-center justify-between gap-4 p-4">
                 <div>
                     <p className="text-sm font-medium">Import from your Stremio account</p>
-                    <p className="text-xs text-subtle">Install the addons you use in Stremio. KumoBox signs in once and doesn't keep your password.</p>
+                    <p className="text-xs text-subtle">Install the addons you use in Stremio. Moviko signs in once and doesn't keep your password.</p>
                 </div>
                 <Button size="sm" icon={<UserRound className="size-4" />} onClick={() => setOpen(true)}>
                     Import
@@ -179,7 +179,7 @@ function ImportAccount() {
 
 function ConfirmDialog({ pending: p, onClose, onConfirm, busy }: { pending: Pending; onClose: () => void; onConfirm: (p: Pending) => void; busy: boolean }) {
     const [ok, setOk] = useState(false)
-    const title = { local: "An addon on your network", adult: "An adult addon", configure: "Configure this addon first", unsupported: "KumoBox can't use this addon" }[p.code]
+    const title = { local: "An addon on your network", adult: "An adult addon", configure: "Configure this addon first", unsupported: "Moviko can't use this addon" }[p.code]
     return (
         <Dialog
             open
@@ -404,7 +404,7 @@ function Browse({ lan, install, busy }: { lan: boolean; install: (url: string, o
     return (
         <TabSection
             title="Browse"
-            description="Addon collections (Settings › Providers lists them). Addons that only offer catalogs or metadata are of no use to KumoBox."
+            description="Addon collections (Settings › Providers lists them). Addons that only offer catalogs or metadata are of no use to Moviko."
             actions={
                 <Button size="sm" icon={<RefreshCw className={cn("size-4", (isFetching || reloading) && "animate-spin")} />} disabled={reloading} onClick={reload}>
                     Reload

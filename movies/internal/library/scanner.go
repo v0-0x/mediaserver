@@ -345,7 +345,7 @@ func (s *Scanner) removedFiles(byPath map[string]*LocalFile, found map[string]fs
 	for _, r := range walked {
 		if foundIn[r] == 0 && knownIn[r] > 0 {
 			log.Printf("scan: %s is empty but %d files were indexed there — is the drive mounted? Keeping them.", r, knownIn[r])
-			s.hub.Error("Library folder " + r + " looks empty — is the drive connected? KumoBox kept its " + itoa(knownIn[r]) + " files.")
+			s.hub.Error("Library folder " + r + " looks empty — is the drive connected? Moviko kept its " + itoa(knownIn[r]) + " files.")
 			continue
 		}
 		trusted = append(trusted, r)
@@ -495,13 +495,13 @@ func (s *Scanner) StartWatcher() {
 		}
 	}
 	// macOS watches a folder by opening every file in it, and those count
-	// against the files KumoBox may have open, its network connections too: a
+	// against the files Moviko may have open, its network connections too: a
 	// library bigger than that is checked for changes every few minutes
 	// instead.
 	polling := false
 	if budget := watchBudget(); budget > 0 {
 		if n, over := overBudget(dirs, budget); over {
-			log.Printf("library watcher: the library has %d+ files, more than macOS lets KumoBox watch (%d): it checks for new episodes every %v instead", n, budget, pollEvery)
+			log.Printf("library watcher: the library has %d+ files, more than macOS lets Moviko watch (%d): it checks for new episodes every %v instead", n, budget, pollEvery)
 			dirs, polling = nil, true
 		}
 	}

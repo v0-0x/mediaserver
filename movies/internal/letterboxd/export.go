@@ -26,7 +26,7 @@ import (
 //	reviews.csv     Date, Name, Year, Letterboxd URI, Rating, Rewatch, Review, Tags, Watched Date
 //	likes/films.csv Date, Name, Year, Letterboxd URI
 //
-// plus files KumoBox has no use for (comments, lists/, deleted/, orphaned/,
+// plus files Moviko has no use for (comments, lists/, deleted/, orphaned/,
 // likes/lists.csv...). "Date" is when the row was made (logged, rated,
 // added), Rating is 0.5-5 stars, Rewatch is "Yes" or empty, Letterboxd URI a
 // boxd.it short link: the film's in watched, ratings, watchlist and likes,
@@ -166,7 +166,7 @@ func ReadExportZip(r io.ReaderAt, size int64) (*Export, error) {
 }
 
 // zipKind is the kind of export file at name, and how deep in folders it
-// is; "" for files KumoBox doesn't read.
+// is; "" for files Moviko doesn't read.
 func zipKind(name string) (string, int) {
 	name = path.Clean(strings.ReplaceAll(name, "\\", "/"))
 	parts := strings.Split(strings.Trim(name, "/"), "/")

@@ -203,7 +203,7 @@ func (m *Manager) load() {
 	}
 }
 
-// Start resumes the downloads that were interrupted when KumoBox last quit.
+// Start resumes the downloads that were interrupted when Moviko last quit.
 // Call it once the resolvers, and the extensions they rely on, are ready;
 // new downloads don't wait for it.
 func (m *Manager) Start() {
@@ -719,14 +719,14 @@ func (m *Manager) folderFor(cfg config.Settings, mediaID int, folderName string)
 	return filepath.Join(baseDir, util.SanitizeFilename(name)), nil
 }
 
-var reYtdlp = regexp.MustCompile(`KUMOBOX\|\s*([\d.]+)%\|([^|]*)\|(.*)$`)
+var reYtdlp = regexp.MustCompile(`MOVIKO\|\s*([\d.]+)%\|([^|]*)\|(.*)$`)
 
 // ytdlp downloads the video of a web page (checkPublicPage first).
 func (m *Manager) ytdlp(r *run, res *Resolved, out string) error {
 	args := []string{
 		"--newline", "--no-colors", "--no-playlist", "--no-mtime",
 		"-N", "8", "--fragment-retries", "20", "--retries", "10",
-		"--progress-template", "download:KUMOBOX|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
+		"--progress-template", "download:MOVIKO|%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s",
 		"--merge-output-format", strings.TrimPrefix(filepath.Ext(out), "."),
 		"-o", strings.ReplaceAll(out, "%", "%%"),
 	}

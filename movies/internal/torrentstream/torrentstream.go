@@ -1,4 +1,4 @@
-// Package torrentstream plays a torrent as it downloads: KumoBox's own
+// Package torrentstream plays a torrent as it downloads: Moviko's own
 // BitTorrent client fetches the file being watched, the pieces about to be
 // played first (a reader's readahead), the rest after, and serves it like a
 // file (byte ranges for seeking). What it downloads is kept in a cache
@@ -76,7 +76,7 @@ type Status struct {
 	Speed int64  `json:"speed"` // bytes per second, lately
 }
 
-// Engine is KumoBox's BitTorrent client for streaming, started the first
+// Engine is Moviko's BitTorrent client for streaming, started the first
 // time a torrent is played.
 type Engine struct {
 	dir string
@@ -511,7 +511,7 @@ func (e *Engine) janitor(stop chan struct{}) {
 	}
 }
 
-// logWriter passes the client's errors on to KumoBox's log.
+// logWriter passes the client's errors on to Moviko's log.
 type logWriter struct{}
 
 func (logWriter) Write(p []byte) (int, error) {

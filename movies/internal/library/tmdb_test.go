@@ -296,9 +296,9 @@ func (t *fakeTitle) json(kind string, details bool) map[string]any {
 // newTestPlatform is a Platform on a fresh database, with TMDB being f.
 func newTestPlatform(t *testing.T, f *fakeTMDB) (*catalog.Platform, *db.DB, *config.Store) {
 	t.Helper()
-	t.Setenv("KUMOBOX_TMDB_URL", f.srv.URL)
-	t.Setenv("KUMOBOX_TMDB_IMAGE_URL", "https://img.test/t/p")
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	t.Setenv("MOVIKO_TMDB_URL", f.srv.URL)
+	t.Setenv("MOVIKO_TMDB_IMAGE_URL", "https://img.test/t/p")
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

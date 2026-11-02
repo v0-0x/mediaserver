@@ -2,7 +2,7 @@ package history
 
 import "time"
 
-// Month is what was watched in KumoBox in a month: the movies and the
+// Month is what was watched in Moviko in a month: the movies and the
 // episodes finished (watched past finished of their length), and the
 // minutes watched (what was seen of each). One counts in the month it was
 // last watched in (the history keeps one position per episode or movie).

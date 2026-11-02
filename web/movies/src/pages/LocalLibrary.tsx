@@ -20,7 +20,7 @@ import type { LibraryTitle, LocalFile } from "@/lib/types"
 import { cn, cover, entryUrl, formatBytes, formatLabel, LIST_STATUS, poster, relativeTime, title, year } from "@/lib/utils"
 
 // "Local library": only movies and shows that have files on this computer
-// (or on another KumoBox sharing its library). The server sums each title's
+// (or on another Moviko sharing its library). The server sums each title's
 // files up (GET /api/library/titles): episodes by season, size, quality,
 // what's unwatched.
 
@@ -70,7 +70,7 @@ const watchedUpTo = (t: LibraryTitle) => (t.listEntry?.status === "COMPLETED" ? 
 export default function LocalLibraryPage() {
     const { data: status } = useStatus()
     const { data: coll } = useCollection()
-    // The libraries other KumoBox apps on the network share with this one.
+    // The libraries other Moviko apps on the network share with this one.
     const { data: shared } = useSharedLibraries()
     const [source, setSource] = usePersisted<string>("kumobox-local-source", "local")
     // This computer's library off (Settings › Local library): only the
@@ -294,11 +294,11 @@ export default function LocalLibraryPage() {
                     >
                         {libraryDir ? (
                             <>
-                                KumoBox looks for video files in <span className="font-mono text-fg/80">{libraryDir}</span>. Download movies and episodes from a provider or with torrents, or copy files there
+                                Moviko looks for video files in <span className="font-mono text-fg/80">{libraryDir}</span>. Download movies and episodes from a provider or with torrents, or copy files there
                                 (like <span className="font-mono text-fg/80">Movie (2010)/</span> or <span className="font-mono text-fg/80">Show (2008)/Season 01/</span>).
                             </>
                         ) : (
-                            "Pick the folder where your movies and shows live and KumoBox will scan and match them automatically."
+                            "Pick the folder where your movies and shows live and Moviko will scan and match them automatically."
                         )}
                     </EmptyState>
                 )}

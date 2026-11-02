@@ -6,7 +6,7 @@
 // provider of its own, turned on, made the default and tracked apart.
 //
 // Vidlink, Hexa and Videasy encrypt requests or answers with keys their
-// web players work out: like FreeFlix, KumoBox has enc-dec.app's API
+// web players work out: like FreeFlix, Moviko has enc-dec.app's API
 // (DecryptURL) do it. Xpass and Mapple need no one else.
 package freeflix
 

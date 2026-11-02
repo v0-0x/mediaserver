@@ -1,4 +1,4 @@
-// Package letterboxd connects KumoBox to a Letterboxd account.
+// Package letterboxd connects Moviko to a Letterboxd account.
 //
 // Letterboxd has no open API, so the sync works with what any member can
 // get at:
@@ -7,7 +7,7 @@
 //     the latest 50 diary entries, with TMDB ids);
 //   - export.go reads the data export (Settings › Data › Export on
 //     letterboxd.com: a ZIP of CSV files with the whole history);
-//   - csvout.go writes what KumoBox logged as a CSV that letterboxd.com/import
+//   - csvout.go writes what Moviko logged as a CSV that letterboxd.com/import
 //     takes;
 //   - api.go is a client of the official API, for installs that were granted
 //     access by Letterboxd;
@@ -30,7 +30,7 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/config"
 )
 
-// DefaultBaseURL is the Letterboxd website. $KUMOBOX_LETTERBOXD_URL (or
+// DefaultBaseURL is the Letterboxd website. $MOVIKO_LETTERBOXD_URL (or
 // Sync.BaseURL) points the feed reader elsewhere, for tests and offline demos.
 const DefaultBaseURL = "https://letterboxd.com"
 
@@ -47,12 +47,12 @@ var (
 
 // Source values of catalog.DiaryEntry.
 const (
-	SourceKumoBox    = "kumobox"
+	SourceMoviko    = "kumobox"
 	SourceLetterboxd = "letterboxd"
 )
 
-// userAgent identifies KumoBox to Letterboxd.
-func userAgent() string { return "KumoBox/" + config.AppVersion }
+// userAgent identifies Moviko to Letterboxd.
+func userAgent() string { return "Moviko/" + config.AppVersion }
 
 var usernameRe = regexp.MustCompile(`^[A-Za-z0-9_]{1,40}$`)
 
@@ -74,7 +74,7 @@ func ParseUsername(s string) (string, error) {
 }
 
 // ViewerID is the catalog.Viewer id of a Letterboxd member: a stable positive
-// number derived from the username, so two KumoBoxes connected to the same
+// number derived from the username, so two Movikos connected to the same
 // account recognise each other.
 func ViewerID(username string) int {
 	h := fnv.New32a()
@@ -107,7 +107,7 @@ func FilmURL(link string) string {
 	return link
 }
 
-// StarsToScore converts a Letterboxd rating (0.5-5 stars) to a KumoBox score
+// StarsToScore converts a Letterboxd rating (0.5-5 stars) to a Moviko score
 // (0-100); no rating (0) stays 0.
 func StarsToScore(stars float64) int {
 	if stars <= 0 {
@@ -116,7 +116,7 @@ func StarsToScore(stars float64) int {
 	return int(math.Round(math.Min(stars, 5) * 20))
 }
 
-// ScoreToStars converts a KumoBox score (0-100) to Letterboxd stars, rounded
+// ScoreToStars converts a Moviko score (0-100) to Letterboxd stars, rounded
 // to the nearest half star (0.5-5); no score (0) stays 0.
 func ScoreToStars(score float64) float64 {
 	if score <= 0 {

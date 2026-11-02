@@ -70,7 +70,7 @@ func (f *flexInt) UnmarshalJSON(b []byte) error {
 }
 
 // parseStream turns an addon's stream object into a providers.Stream. It
-// returns false for streams KumoBox can't use (usenet, archives...).
+// returns false for streams Moviko can't use (usenet, archives...).
 func parseStream(raw json.RawMessage, a Addon) (providers.Stream, bool) {
 	var w wireStream
 	if err := json.Unmarshal(raw, &w); err != nil {

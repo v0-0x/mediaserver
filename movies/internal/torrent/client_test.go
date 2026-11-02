@@ -65,7 +65,7 @@ func TestQbittorrent(t *testing.T) {
 	}))
 	defer srv.Close()
 	cfg := cfgFor(t, srv)
-	cfg.Category, cfg.Tags = "anime", "kumobox"
+	cfg.Category, cfg.Tags = "anime", "moviko"
 	q := NewQbittorrent(cfg)
 	ctx := context.Background()
 	if v, err := q.Version(ctx); err != nil || v != "v5.0.2" {
@@ -95,7 +95,7 @@ func TestQbittorrent(t *testing.T) {
 	}
 }
 
-// qBittorrent bans an IP after a few failed logins, so KumoBox must not retry
+// qBittorrent bans an IP after a few failed logins, so Moviko must not retry
 // a failing login on every poll, and must not log in at all when
 // qBittorrent bypasses authentication for localhost.
 func TestQbittorrentLoginAttempts(t *testing.T) {

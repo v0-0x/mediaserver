@@ -73,7 +73,7 @@ func (f *fakeAPI) serve(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 500, map[string]any{"message": "Oops"})
 		return
 	}
-	if ua := r.Header.Get("User-Agent"); !strings.HasPrefix(ua, "KumoBox/") {
+	if ua := r.Header.Get("User-Agent"); !strings.HasPrefix(ua, "Moviko/") {
 		f.t.Errorf("User-Agent = %q", ua)
 	}
 	if r.URL.Path == "/auth/token" {
@@ -279,8 +279,8 @@ func TestPush(t *testing.T) {
 
 	ts.cat.put(catalog.ListEntry{MediaID: matrix, Status: "COMPLETED", Score: 90, Liked: true})
 	e1, _ := ts.LoggedWatched(ctx, matrix)
-	e2, _, _ := ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: chernobyl, WatchedDate: "2024-03-01", Source: SourceKumoBox, Tags: "binge, , tv"})
-	e3, _, _ := ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: 999, WatchedDate: "2024-03-02", Source: SourceKumoBox})
+	e2, _, _ := ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: chernobyl, WatchedDate: "2024-03-01", Source: SourceMoviko, Tags: "binge, , tv"})
+	e3, _, _ := ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: 999, WatchedDate: "2024-03-02", Source: SourceMoviko})
 	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: parasite, WatchedDate: "2024-03-02", Source: SourceLetterboxd, LetterboxdID: "x"})
 
 	// The token was revoked: Push signs in again with the refresh token.
@@ -309,14 +309,14 @@ func TestPush(t *testing.T) {
 
 	// The token expires: it's renewed before sending.
 	*ts.clock = testNow.Add(2 * time.Hour)
-	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-12", Source: SourceKumoBox, Rewatch: true})
+	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-12", Source: SourceMoviko, Rewatch: true})
 	if res, err := ts.Push(ctx); err != nil || res.Added != 1 || api.refreshes != 2 {
 		t.Errorf("push after expiry = %+v, %v, %d refreshes", res, err, api.refreshes)
 	}
 
 	// The server fails: the error is kept, the entries stay pending.
 	api.broken = true
-	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-13", Source: SourceKumoBox})
+	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-13", Source: SourceMoviko})
 	if _, err := ts.Push(ctx); err == nil {
 		t.Error("push to a broken server succeeded")
 	}
@@ -338,7 +338,7 @@ func TestPushSignInOver(t *testing.T) {
 	ts.settings(t, func(l *config.LetterboxdSettings) { l.APIClientID = "cid"; l.APIClientSecret = "secret" })
 	// A token that's expired, with a refresh token Letterboxd no longer takes.
 	_ = ts.setKV(kvToken, Token{AccessToken: "old", RefreshToken: "stale", ExpiresAt: testNow.Add(-time.Hour)})
-	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-01", Source: SourceKumoBox})
+	ts.cat.AddDiary(ctx, catalog.DiaryEntry{MediaID: matrix, WatchedDate: "2024-03-01", Source: SourceMoviko})
 	if _, err := ts.Push(ctx); !errors.Is(err, ErrAPIUnauthorized) {
 		t.Errorf("err = %v", err)
 	}

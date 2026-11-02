@@ -115,7 +115,7 @@ func (a *App) nextKey(ctx context.Context, s *player.Session) (*catalog.Media, i
 }
 
 // episodeFile is the file of an episode: this computer's, else one another
-// KumoBox shares.
+// Moviko shares.
 func (a *App) episodeFile(mediaID, key int) *library.LocalFile {
 	files, _ := a.Files.ByMedia(mediaID)
 	for _, f := range a.Share.RemoteFiles() {

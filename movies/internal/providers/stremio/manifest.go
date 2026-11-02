@@ -5,7 +5,7 @@
 //
 // The protocol is plain HTTP + JSON: an addon is a base URL (its "transport
 // URL" without "/manifest.json") serving /manifest.json and
-// /{resource}/{type}/{id}.json. KumoBox only uses the "stream" and
+// /{resource}/{type}/{id}.json. Moviko only uses the "stream" and
 // "subtitles" resources, with IMDb ids ("tt0133093", "tt0944947:1:2" for
 // an episode) or, for addons that only take them, TMDB ids ("tmdb:603").
 package stremio
@@ -19,13 +19,13 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/providers"
 )
 
-// Stremio content types KumoBox uses.
+// Stremio content types Moviko uses.
 const (
 	TypeMovie  = "movie"
 	TypeSeries = "series"
 )
 
-// Resources KumoBox uses.
+// Resources Moviko uses.
 const (
 	ResourceStream    = "stream"
 	ResourceSubtitles = "subtitles"
@@ -51,7 +51,7 @@ type Manifest struct {
 	ContactEmail  string        `json:"contactEmail,omitempty"`
 }
 
-// Catalog is a catalog an addon offers (KumoBox lists them, it doesn't
+// Catalog is a catalog an addon offers (Moviko lists them, it doesn't
 // browse them).
 type Catalog struct {
 	Type  string          `json:"type"`
@@ -115,7 +115,7 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	return json.Marshal(plain{r.Name, r.Types, r.IDPrefixes})
 }
 
-// Validate checks the fields KumoBox relies on.
+// Validate checks the fields Moviko relies on.
 func (m Manifest) Validate() error {
 	var missing []string
 	if strings.TrimSpace(m.ID) == "" {
@@ -155,7 +155,7 @@ func (m Manifest) Serves(resource, typ string) (bool, []string) {
 }
 
 // Useful reports whether the addon serves streams or subtitles of movies or
-// series: the only addons KumoBox can use.
+// series: the only addons Moviko can use.
 func (m Manifest) Useful() bool {
 	for _, res := range []string{ResourceStream, ResourceSubtitles} {
 		for _, t := range []string{TypeMovie, TypeSeries} {

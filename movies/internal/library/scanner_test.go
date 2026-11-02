@@ -19,7 +19,7 @@ import (
 
 func newTestScanner(t *testing.T, dirs ...string) (*Scanner, *config.Store) {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +201,7 @@ func TestScanKeepsFilesOfMissingDrives(t *testing.T) {
 }
 
 // A folder taken out of the library, or the library turned off: its files
-// go from the index, also when its drive is gone (moved to an KumoBox Hub), but
+// go from the index, also when its drive is gone (moved to a Moviko Hub), but
 // not those in a folder still in it, and nothing on the disk.
 func TestForgetFoldersOutOfTheLibrary(t *testing.T) {
 	base := t.TempDir()
@@ -377,7 +377,7 @@ func TestFoldersExplainSkippedFolders(t *testing.T) {
 	touch(t, filepath.Join(lib, "Partial", "Show.S01E01.mkv.part"))
 	touch(t, filepath.Join(lib, "Artbook", "Scans", "01.jpg"))
 	touch(t, filepath.Join(lib, "Notes", "readme.txt"))
-	touch(t, filepath.Join(lib, "KumoBox Download", ".kumobox-download-abc", "Show - S01E01.mp4"))
+	touch(t, filepath.Join(lib, "Moviko Download", ".kumobox-download-abc", "Show - S01E01.mp4"))
 	if err := os.MkdirAll(filepath.Join(lib, "Empty"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +407,7 @@ func TestFoldersExplainSkippedFolders(t *testing.T) {
 		"Partial":                "Still downloading (1 unfinished file)",
 		"Artbook":                "No video files in this folder or its subfolders",
 		"Notes":                  "No video files here (1 .txt)",
-		"KumoBox Download":       "Still downloading (1 unfinished file)",
+		"Moviko Download":       "Still downloading (1 unfinished file)",
 		"Empty":                  "The folder is empty",
 	}
 	for label, want := range problems {
@@ -415,7 +415,7 @@ func TestFoldersExplainSkippedFolders(t *testing.T) {
 			t.Errorf("%s: want problem %q, got %+v (listed: %v)", label, want, f, ok)
 		}
 	}
-	for _, label := range []string{"Fargo (2014)/Artwork", "Artbook/Scans", "KumoBox Download/.kumobox-download-abc"} {
+	for _, label := range []string{"Fargo (2014)/Artwork", "Artbook/Scans", "Moviko Download/.kumobox-download-abc"} {
 		if f, ok := got[label]; ok {
 			t.Errorf("%s shouldn't be listed: %+v", label, f)
 		}

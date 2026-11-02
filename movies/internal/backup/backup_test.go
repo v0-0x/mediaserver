@@ -14,17 +14,17 @@ import (
 	"github.com/v0-0x/mediaserver/movies/internal/history"
 )
 
-type kumobox struct {
+type moviko struct {
 	d     *db.DB
 	hist  *history.Store
 	store *config.Store
 	dir   string
 }
 
-func newKumoBox(t *testing.T) *kumobox {
+func newMoviko(t *testing.T) *moviko {
 	t.Helper()
 	dir := t.TempDir()
-	d, err := db.Open(filepath.Join(dir, "kumobox.db"))
+	d, err := db.Open(filepath.Join(dir, "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,17 +33,17 @@ func newKumoBox(t *testing.T) *kumobox {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &kumobox{d: d, hist: history.NewStore(d), store: store, dir: dir}
+	return &moviko{d: d, hist: history.NewStore(d), store: store, dir: dir}
 }
 
-func (k *kumobox) exec(t *testing.T, q string, args ...any) {
+func (k *moviko) exec(t *testing.T, q string, args ...any) {
 	t.Helper()
 	if _, err := k.d.Write(q, args...); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func (k *kumobox) count(t *testing.T, q string, args ...any) int {
+func (k *moviko) count(t *testing.T, q string, args ...any) int {
 	t.Helper()
 	var n int
 	if err := k.d.QueryRow(q, args...).Scan(&n); err != nil {
@@ -52,11 +52,11 @@ func (k *kumobox) count(t *testing.T, q string, args ...any) int {
 	return n
 }
 
-// A backup goes into another KumoBox: what's newer there stays, its network
+// A backup goes into another Moviko: what's newer there stays, its network
 // and sharing settings too; logins only when asked; the data from before
 // is saved.
 func TestBackupRoundTrip(t *testing.T) {
-	a := newKumoBox(t)
+	a := newMoviko(t)
 	now := time.Now().Unix()
 	cfg := a.store.Get()
 	cfg.Playback.AutoPlayNext = true
@@ -94,7 +94,7 @@ func TestBackupRoundTrip(t *testing.T) {
 		t.Errorf("files kept: %d, want only the one matched by hand", got)
 	}
 
-	b := newKumoBox(t)
+	b := newMoviko(t)
 	bcfg := b.store.Get()
 	bcfg.Server.Port = 42000
 	if _, err := b.store.Save(bcfg); err != nil {
@@ -168,7 +168,7 @@ func TestBackupRoundTrip(t *testing.T) {
 // With logins: the AniList login and the passwords come along (the login
 // only where there's none).
 func TestBackupWithLogins(t *testing.T) {
-	a := newKumoBox(t)
+	a := newMoviko(t)
 	cfg := a.store.Get()
 	cfg.Qbittorrent.Password = "secret"
 	cfg.TMDB.APIKey = "0123456789abcdef0123456789abcdef"
@@ -183,7 +183,7 @@ func TestBackupWithLogins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := newKumoBox(t)
+	b := newMoviko(t)
 	sum, err := Restore(b.d, b.hist, b.store, read, filepath.Join(b.dir, "backups"), "1.0.140", "Laptop")
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +198,7 @@ func TestBackupWithLogins(t *testing.T) {
 }
 
 func TestReadRejects(t *testing.T) {
-	for _, in := range []string{"", "{}", "not json", `{"kumobox": 99, "version": "9.9.9"}`} {
+	for _, in := range []string{"", "{}", "not json", `{"moviko": 99, "version": "9.9.9"}`} {
 		if _, err := Read(strings.NewReader(in)); err == nil {
 			t.Errorf("read %q", in)
 		}
@@ -228,13 +228,13 @@ func TestPruneUndo(t *testing.T) {
 // The diary comes along: each viewing once, however often it's restored,
 // next to what was logged here.
 func TestBackupDiary(t *testing.T) {
-	a := newKumoBox(t)
+	a := newMoviko(t)
 	a.exec(t, `INSERT INTO diary(media_id, watched_date, rating, review, created_at) VALUES(603, '2026-10-01', 9, 'Again', 100), (155, '2026-10-02', 10, '', 200)`)
 	f, err := Make(a.d, a.store.Get(), false, "2.0.0", "PC")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b := newKumoBox(t)
+	b := newMoviko(t)
 	b.exec(t, `INSERT INTO diary(media_id, watched_date, created_at) VALUES(27205, '2026-09-30', 50)`)
 	for i := 0; i < 2; i++ {
 		sum, err := Restore(b.d, b.hist, b.store, f, filepath.Join(b.dir, "backups"), "2.0.0", "Laptop")

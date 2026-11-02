@@ -133,7 +133,7 @@ func (a *App) wireProviders() error {
 		}
 		return append(out, mediaserver.Hosts(a.mediaServers())...)
 	}
-	// The media servers' tokens are added when KumoBox fetches their
+	// The media servers' tokens are added when Moviko fetches their
 	// videos, never put in the links (mediaserver/credentials.go).
 	stream.Credentials = func(u *url.URL) map[string]string { return mediaserver.Credentials(a.mediaServers(), u) }
 	a.Settings.OnChange(func(old, cur config.Settings) {

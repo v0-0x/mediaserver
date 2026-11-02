@@ -28,8 +28,8 @@ import {
     useSaveMSettings,
 } from "./data"
 
-// mediaserver's Movies and TV pages: its movies side (KumoBox's server, for
-// the KumoBox apps), on the dashboard. Movies and TV are the same side,
+// mediaserver's Movies and TV pages: its movies side (Moviko's server, for
+// the Moviko apps), on the dashboard. Movies and TV are the same side,
 // seen apart: their own titles, the same devices, folders and settings.
 
 export type MediaTab = "overview" | "devices" | "library" | "settings"
@@ -78,7 +78,7 @@ export function MediaOverview({ kind, o, go }: { kind: MediaKind; o: HubOverview
                 <button onClick={() => go("devices")} className="card flex items-center gap-3 border-brand/40 bg-brand-soft p-4 text-left transition-colors hover:border-brand/70">
                     <Wifi className="size-5 text-brand-strong" />
                     <span className="min-w-0 flex-1 text-sm">
-                        <span className="font-medium">{waiting.length === 1 ? `${waiting[0].name} wants the library` : `${waiting.length} KumoBox apps want the library`}</span>
+                        <span className="font-medium">{waiting.length === 1 ? `${waiting[0].name} wants the library` : `${waiting.length} Moviko apps want the library`}</span>
                         <span className="text-muted"> — share it with {waiting.length === 1 ? "it" : "them"} in Devices.</span>
                     </span>
                     <ChevronRight className="size-4 text-muted" />
@@ -117,7 +117,7 @@ export function MediaOverview({ kind, o, go }: { kind: MediaKind; o: HubOverview
                         </dl>
                     </Panel>
                     <Panel
-                        title={`KumoBox apps · ${online.length} online`}
+                        title={`Moviko apps · ${online.length} online`}
                         action={
                             <button className="flex items-center gap-1 text-[13px] text-muted hover:text-fg" onClick={() => go("devices")}>
                                 Manage <ChevronRight className="size-4" />
@@ -126,7 +126,7 @@ export function MediaOverview({ kind, o, go }: { kind: MediaKind; o: HubOverview
                     >
                         {peers.length === 0 ? (
                             <p className="px-4 py-6 text-center text-sm leading-relaxed text-muted">
-                                No devices yet. Open KumoBox on a computer, TV or phone on this network and turn on Settings › Other devices › Library sharing.
+                                No devices yet. Open Moviko on a computer, TV or phone on this network and turn on Settings › Other devices › Library sharing.
                             </p>
                         ) : (
                             <ul className="divide-y divide-line">
@@ -216,12 +216,12 @@ export function MediaDevices() {
     return (
         <div className="flex flex-col gap-6">
             <p className="max-w-3xl text-sm leading-relaxed text-muted">
-                The KumoBox apps on this network: the same for Movies and TV. A device shows up here when KumoBox is open on it with{" "}
+                The Moviko apps on this network: the same for Movies and TV. A device shows up here when Moviko is open on it with{" "}
                 <span className="text-fg">Settings › Other devices › Library sharing</span> on. Share the library with it, and it plays the server's movies and shows.
             </p>
             {peers.length === 0 && (
                 <EmptyState icon={<Wifi />} title="No devices yet">
-                    Open KumoBox on a computer, TV or phone on this network and turn on Settings › Other devices › Library sharing.
+                    Open Moviko on a computer, TV or phone on this network and turn on Settings › Other devices › Library sharing.
                     {sharing?.addresses?.length ? ` If it doesn't show up, add this server by address there: ${sharing.addresses[0]}.` : ""}
                 </EmptyState>
             )}
@@ -246,7 +246,7 @@ export function MediaDevices() {
                                         <p className="truncate text-[12.5px] text-muted">
                                             {p.online ? "Online" : p.lastSeen ? `Last seen ${ago(p.lastSeen * 1000)}` : "Not seen yet"}
                                             {p.address && ` · ${p.address}`}
-                                            {p.version && ` · KumoBox ${p.version}`}
+                                            {p.version && ` · Moviko ${p.version}`}
                                         </p>
                                     </div>
                                     {p.error && p.allowed && <Badge tone="red">Not answering</Badge>}
@@ -353,7 +353,7 @@ export function MediaLibrary({ kind, moviesPort }: { kind: MediaKind; moviesPort
                             </div>
                         }
                     >
-                        <p className="border-b border-line px-4 py-2.5 text-[12.5px] text-muted">The same folders for Movies and TV: a folder may have both, KumoBox tells them apart.</p>
+                        <p className="border-b border-line px-4 py-2.5 text-[12.5px] text-muted">The same folders for Movies and TV: a folder may have both, Moviko tells them apart.</p>
                         {folders.length === 0 ? (
                             <p className="px-4 py-8 text-center text-sm text-muted">No folder yet. Add the folder your movies and shows are in (on a Raspberry Pi, the USB drive's, like /media/pi/Movies).</p>
                         ) : (
@@ -395,7 +395,7 @@ export function MediaLibrary({ kind, moviesPort }: { kind: MediaKind; moviesPort
                             <ExternalLink className="size-4 shrink-0 text-muted" />
                             <span className="min-w-0 flex-1">
                                 <span className="font-medium">Fix what isn't matched</span>
-                                <span className="block text-[12.5px] text-muted">In KumoBox's Library tools, on this server.</span>
+                                <span className="block text-[12.5px] text-muted">In Moviko's Library tools, on this server.</span>
                             </span>
                         </a>
                     )}
@@ -472,7 +472,7 @@ export function MediaSettings({ moviesPort }: { moviesPort?: number }) {
                         save.mutate(s => ({ ...s, sharing: { ...s.sharing, name: shownName.trim() } }), { onSuccess: () => toast.success("Saved") })
                     }}
                 >
-                    <p className="text-[12.5px] leading-relaxed text-muted">What the KumoBox apps call this server.{sharing?.addresses?.length ? ` It's at ${sharing.addresses.join(", ")}.` : ""}</p>
+                    <p className="text-[12.5px] leading-relaxed text-muted">What the Moviko apps call this server.{sharing?.addresses?.length ? ` It's at ${sharing.addresses.join(", ")}.` : ""}</p>
                     <div className="flex gap-2">
                         <Input placeholder={sharing?.name || "This computer's name"} value={shownName} onChange={e => setName(e.target.value)} />
                         <Button type="submit" loading={save.isPending} disabled={shownName.trim() === (settings.sharing.name ?? "")}>
@@ -485,7 +485,7 @@ export function MediaSettings({ moviesPort }: { moviesPort?: number }) {
                 <HardDrive className="size-4 shrink-0 text-muted" />
                 <span className="min-w-0 flex-1">
                     <span className="font-medium">Everything else</span>
-                    <span className="block text-[12.5px] text-muted">Torrent clients, streaming providers, languages: KumoBox's own settings, on this server.</span>
+                    <span className="block text-[12.5px] text-muted">Torrent clients, streaming providers, languages: Moviko's own settings, on this server.</span>
                 </span>
                 <ExternalLink className="size-4 text-muted" />
             </a>

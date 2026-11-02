@@ -1,11 +1,11 @@
-// TV mode: KumoBox on a TV (the Android app on a Fire TV), driven by the remote.
+// TV mode: Moviko on a TV (the Android app on a Fire TV), driven by the remote.
 //
 // The remote's D-pad sends arrow keys: they move the focus to the nearest
 // thing that can be pressed in that direction (spatial navigation), and OK
 // (Enter) presses it. Inside a dialog or the player, the focus stays there.
 // Menus move it themselves, text fields keep Left/Right for the text, and
 // the player keeps the keys it uses (see Player). Back, Menu (☰) and the
-// media keys come from the app (window.kumoboxBack, window.kumoboxKey).
+// media keys come from the app (window.movikoBack, window.kumoboxKey).
 
 import { createStore } from "./store"
 
@@ -17,22 +17,22 @@ type AndroidBridge = {
 
 declare global {
     interface Window {
-        KumoBoxAndroid?: AndroidBridge
-        kumoboxBack?: () => boolean
+        MovikoAndroid?: AndroidBridge
+        movikoBack?: () => boolean
         kumoboxKey?: (key: string) => void
-        kumoboxResumed?: () => void // the app back from the home screen (events.ts)
+        movikoResumed?: () => void // the app back from the home screen (events.ts)
     }
 }
 
-export const android: AndroidBridge | undefined = typeof window === "undefined" ? undefined : window.KumoBoxAndroid
+export const android: AndroidBridge | undefined = typeof window === "undefined" ? undefined : window.MovikoAndroid
 
-// KumoBox's Android app (a TV's, or a phone's): no mpv there.
-export const androidApp = typeof navigator !== "undefined" && /\bKumoBoxAndroid\b/.test(navigator.userAgent)
+// Moviko's Android app (a TV's, or a phone's): no mpv there.
+export const androidApp = typeof navigator !== "undefined" && /\bMovikoAndroid\b/.test(navigator.userAgent)
 
 // The Android app says it in its user agent; ?tv=1 tries TV mode anywhere.
 export const tv =
     typeof window !== "undefined" &&
-    (/\bKumoBoxTV\b/.test(navigator.userAgent) ||
+    (/\bMovikoTV\b/.test(navigator.userAgent) ||
         (() => {
             try {
                 const q = new URLSearchParams(location.search).get("tv")
@@ -371,7 +371,7 @@ let started = false
 
 // initTV turns TV mode on (once). In the Android app on a phone, only its
 // Back and media keys: Back goes back through the pages there too, instead
-// of sending KumoBox to the background.
+// of sending Moviko to the background.
 export function initTV(goBack: () => boolean) {
     if ((!tv && !androidApp) || started) return
     started = true
@@ -382,7 +382,7 @@ export function initTV(goBack: () => boolean) {
     }
     // Back: a menu or dialog closes, then the player, then the page goes
     // back. false: nothing left, the app goes to the TV's home.
-    window.kumoboxBack = () => {
+    window.movikoBack = () => {
         if (document.querySelector('[role="menu"], [role="listbox"], [role="dialog"], [role="alertdialog"], [data-tv-scope]')) {
             press("Escape")
             return true

@@ -9,7 +9,7 @@ import (
 )
 
 func TestMonthly(t *testing.T) {
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

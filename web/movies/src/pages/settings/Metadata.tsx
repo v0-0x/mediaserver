@@ -87,7 +87,7 @@ export function MetadataSection({ draft, set }: SectionProps) {
     }
     return (
         <>
-            <Group title="TMDB" description="KumoBox gets every title, poster, season, episode and where-to-watch listing from The Movie Database (themoviedb.org). Its API is free for personal use.">
+            <Group title="TMDB" description="Moviko gets every title, poster, season, episode and where-to-watch listing from The Movie Database (themoviedb.org). Its API is free for personal use.">
                 <Row label="Status" help={status?.tmdbConfigured ? "Search, Discover and the calendar work." : "Without a key, only your library and players work."}>
                     {status?.tmdbConfigured ? <Badge tone="green">Connected</Badge> : <Badge tone="amber">No key yet</Badge>}
                 </Row>

@@ -14,7 +14,7 @@ import (
 // How each provider's searches went (providers.Health) is kept in the
 // database, so a provider that kept failing yesterday is still known as one
 // today. A search asks many providers at once: the stats are saved a few
-// seconds after a change rather than on each answer, and when KumoBox
+// seconds after a change rather than on each answer, and when Moviko
 // stops.
 
 // healthKey is where the stats are kept (kv table).

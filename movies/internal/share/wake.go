@@ -10,7 +10,7 @@ import (
 
 // Waking a host that's asleep (Wake-on-LAN): its network card stays on and
 // starts the computer when it gets a "magic packet" with its address. A host
-// tells the KumoBoxes it shares with its cards' addresses (Hello.Wake); they keep
+// tells the Movikos it shares with its cards' addresses (Hello.Wake); they keep
 // them, and send the packet when asked (or when a stream from it broke), then
 // ask it every few seconds until it answers.
 
@@ -122,19 +122,19 @@ func sendWake(cards []string, last net.IP) error {
 // waking: it was sent the packet a moment ago, and hasn't answered since.
 func (p *peer) waking(now time.Time) bool { return now.Before(p.wakeUntil) }
 
-// Wake wakes a host that shares its library with this KumoBox, and asks it
+// Wake wakes a host that shares its library with this Moviko, and asks it
 // until it answers (for a while).
 func (s *Service) Wake(id string) error {
 	s.mu.Lock()
 	p := s.peers[id]
 	if p == nil || !p.shares {
 		s.mu.Unlock()
-		return errors.New("that KumoBox doesn't share its library with this one")
+		return errors.New("that Moviko doesn't share its library with this one")
 	}
 	cards, last, name := p.wakeMACs, p.addr, p.displayName()
 	s.mu.Unlock()
 	if len(cards) == 0 {
-		return errors.New(name + " hasn't said how to wake it yet: update KumoBox there, and leave it on until this device has heard from it once")
+		return errors.New(name + " hasn't said how to wake it yet: update Moviko there, and leave it on until this device has heard from it once")
 	}
 	if err := sendWake(cards, last); err != nil {
 		return errors.New("couldn't send the wake-up call: " + plainError(err))
@@ -173,7 +173,7 @@ func (s *Service) WakeFor(path string) error {
 	return s.Wake(host)
 }
 
-// Sleeping is a host that shares its library with this KumoBox and doesn't
+// Sleeping is a host that shares its library with this Moviko and doesn't
 // answer: asleep or off.
 type Sleeping struct {
 	ID      string `json:"id"`
@@ -182,7 +182,7 @@ type Sleeping struct {
 	Waking  bool   `json:"waking"`
 }
 
-// Asleep lists the hosts that share with this KumoBox and don't answer (sharing
+// Asleep lists the hosts that share with this Moviko and don't answer (sharing
 // on only).
 func (s *Service) Asleep() []Sleeping {
 	now := time.Now()

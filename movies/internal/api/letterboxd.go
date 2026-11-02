@@ -58,7 +58,7 @@ const (
 // onThisComputer refuses what only this computer may do.
 func onThisComputer(r *http.Request, what string) error {
 	if !isTrusted(r) {
-		return forbidden(what + " on the computer KumoBox runs on")
+		return forbidden(what + " on the computer Moviko runs on")
 	}
 	return nil
 }
@@ -221,7 +221,7 @@ func uploadError(err error) error {
 	return badRequest("the upload failed: " + err.Error())
 }
 
-// lbExport is the CSV of the diary entries logged in KumoBox for
+// lbExport is the CSV of the diary entries logged in Moviko for
 // letterboxd.com/import: those not on Letterboxd yet, or all of them with
 // all=1. X-Diary-Ids lists the entries it has, to mark them exported once
 // imported (mark-exported).
@@ -239,10 +239,10 @@ func (s *Server) lbExport(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("X-Diary-Ids", strings.Join(list, ","))
 	w.Header().Set("X-Diary-Count", strconv.Itoa(len(ids)))
-	csvAttachment(w, "kumobox-letterboxd-"+time.Now().Format("2006-01-02")+".csv", buf.Bytes())
+	csvAttachment(w, "moviko-letterboxd-"+time.Now().Format("2006-01-02")+".csv", buf.Bytes())
 }
 
-// lbWatchlist is the CSV of the KumoBox watchlist, for Letterboxd's
+// lbWatchlist is the CSV of the Moviko watchlist, for Letterboxd's
 // watchlist importer. X-Film-Count says how many films it has.
 func (s *Server) lbWatchlist(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
@@ -252,7 +252,7 @@ func (s *Server) lbWatchlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("X-Film-Count", strconv.Itoa(n))
-	csvAttachment(w, "kumobox-watchlist-"+time.Now().Format("2006-01-02")+".csv", buf.Bytes())
+	csvAttachment(w, "moviko-watchlist-"+time.Now().Format("2006-01-02")+".csv", buf.Bytes())
 }
 
 func csvAttachment(w http.ResponseWriter, name string, data []byte) {

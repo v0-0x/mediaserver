@@ -20,24 +20,24 @@ func TestPresence(t *testing.T) {
 			w: Watching{Title: "Breaking Bad", Year: 2008, Show: true, Episode: 1002, EpisodeTitle: "Cat's in the Bag...",
 				Poster: poster, Position: 600, Duration: 2880},
 			want: Activity{Details: "Breaking Bad", State: "S01E02 · Cat's in the Bag...", LargeImage: poster, LargeText: "Breaking Bad",
-				SmallImage: AppAsset, SmallText: "KumoBox", Start: now.Add(-10 * time.Minute), End: now.Add(38 * time.Minute)},
+				SmallImage: AppAsset, SmallText: "Moviko", Start: now.Add(-10 * time.Minute), End: now.Add(38 * time.Minute)},
 		},
 		{
 			name: "an episode without its title, paused",
 			w:    Watching{Title: "Severance", Show: true, Episode: 2010, Poster: poster, Position: 600, Duration: 2880, Paused: true},
-			want: Activity{Details: "Severance", State: "S02E10", LargeImage: poster, LargeText: "Severance", SmallImage: AppAsset, SmallText: "KumoBox"},
+			want: Activity{Details: "Severance", State: "S02E10", LargeImage: poster, LargeText: "Severance", SmallImage: AppAsset, SmallText: "Moviko"},
 		},
 		{
 			name: "a movie",
 			w:    Watching{Title: "Inception", Year: 2010, Episode: 1, Poster: poster, Position: 90.5, Duration: 8880},
-			want: Activity{Details: "Inception", State: "2010", LargeImage: poster, LargeText: "Inception (2010)", SmallImage: AppAsset, SmallText: "KumoBox",
+			want: Activity{Details: "Inception", State: "2010", LargeImage: poster, LargeText: "Inception (2010)", SmallImage: AppAsset, SmallText: "Moviko",
 				Start: now.Add(-90500 * time.Millisecond), End: now.Add(-90500 * time.Millisecond).Add(8880 * time.Second)},
 		},
 		{
 			// No poster (or one Discord can't fetch): the application's image.
 			name: "no poster",
 			w:    Watching{Title: "Home video", Poster: "http://127.0.0.1:43311/api/image?x"},
-			want: Activity{Details: "Home video", LargeImage: AppAsset, LargeText: "Home video", SmallImage: AppAsset, SmallText: "KumoBox"},
+			want: Activity{Details: "Home video", LargeImage: AppAsset, LargeText: "Home video", SmallImage: AppAsset, SmallText: "Moviko"},
 		},
 	}
 	for _, tc := range cases {
@@ -50,13 +50,13 @@ func TestPresence(t *testing.T) {
 func TestActivityPayload(t *testing.T) {
 	start := time.UnixMilli(1_760_000_000_000)
 	a := Activity{Details: "Breaking Bad", State: "S01E02 · Cat's in the Bag...", LargeImage: "https://image.tmdb.org/p.jpg", LargeText: "Breaking Bad",
-		SmallImage: AppAsset, SmallText: "KumoBox", Start: start, End: start.Add(48 * time.Minute)}
+		SmallImage: AppAsset, SmallText: "Moviko", Start: start, End: start.Add(48 * time.Minute)}
 	want := map[string]any{
 		"type": typeWatching, "status_display_type": statusShowsDetails,
 		"details": "Breaking Bad", "state": "S01E02 · Cat's in the Bag...",
 		"assets": map[string]any{
 			"large_image": "https://image.tmdb.org/p.jpg", "large_text": "Breaking Bad",
-			"small_image": AppAsset, "small_text": "KumoBox",
+			"small_image": AppAsset, "small_text": "Moviko",
 		},
 		"timestamps": map[string]any{"start": start.UnixMilli(), "end": start.Add(48 * time.Minute).UnixMilli()},
 	}

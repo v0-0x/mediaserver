@@ -11,7 +11,7 @@ package torrent
 //	  "scraped_date":1700000000}],"next":1}
 //
 // Older servers (and self-hosted copies) answer the bare array instead of
-// {"torrents": …}. It knows no IMDb ids: KumoBox searches "Title 1999" or
+// {"torrents": …}. It knows no IMDb ids: Moviko searches "Title 1999" or
 // "Title S01E02".
 
 import (

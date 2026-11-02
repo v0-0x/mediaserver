@@ -33,7 +33,7 @@ func thisComputer(fn func(r *http.Request) (any, error)) func(r *http.Request) (
 // lanMayFetch reports whether r may have this computer download u: this
 // computer may download any address, devices on the LAN only those set up
 // here (the marketplace, addon collections and repositories of the
-// settings, which they can't change), so they can't make KumoBox fetch, and
+// settings, which they can't change), so they can't make Moviko fetch, and
 // keep in its cache, whatever they like.
 func lanMayFetch(r *http.Request, u string, configured ...string) bool {
 	if isTrusted(r) {

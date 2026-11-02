@@ -123,7 +123,7 @@ export function ProvidersSection({ draft, set }: SectionProps) {
                 </Row>
             </Group>
 
-            <Group title="Nuvio providers" description="Repositories of Nuvio scrapers (manifest.json URLs). Their providers run in KumoBox's extension sandbox.">
+            <Group title="Nuvio providers" description="Repositories of Nuvio scrapers (manifest.json URLs). Their providers run in Moviko's extension sandbox.">
                 <Stack label="Repositories">
                     <ListInput value={p?.nuvioRepos ?? []} onChange={v => set("providers", { nuvioRepos: v })} placeholder="https://…/manifest.json" addLabel="Add repository" />
                 </Stack>
@@ -132,7 +132,7 @@ export function ProvidersSection({ draft, set }: SectionProps) {
             <Group title="Downloads" description="Movies and episodes downloaded from streaming providers.">
                 <Stack
                     label="Download folder"
-                    help={`Empty: your library folder (${status?.settings.library.dir || "not set"}). Downloads are matched automatically.${lan ? " Changed on the computer KumoBox runs on." : ""}`}
+                    help={`Empty: your library folder (${status?.settings.library.dir || "not set"}). Downloads are matched automatically.${lan ? " Changed on the computer Moviko runs on." : ""}`}
                 >
                     <PathInput value={dl?.dir ?? ""} disabled={lan} onChange={v => set("downloads", { dir: v })} placeholder="Library folder" />
                 </Stack>

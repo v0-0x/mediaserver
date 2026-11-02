@@ -4,7 +4,7 @@
     "name": "Fixture Provider",
     "description": "Scrapes the test site with cheerio, fetch and axios.",
     "version": "1.0.0",
-    "author": "KumoBox tests",
+    "author": "Moviko tests",
     "supportedTypes": ["movie", "tv"],
     "filename": "providers/fixture.js",
     "enabled": true,

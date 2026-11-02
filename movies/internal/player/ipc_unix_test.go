@@ -15,6 +15,6 @@ func testIPCAddress(dir, name string) string { return filepath.Join(dir, name+".
 
 // leftoverIPC lists the IPC sockets left in the runtime dir.
 func leftoverIPC(runtimeDir string) []string {
-	left, _ := filepath.Glob(filepath.Join(runtimeDir, "kumobox", "mpv-*.sock"))
+	left, _ := filepath.Glob(filepath.Join(runtimeDir, "moviko", "mpv-*.sock"))
 	return left
 }

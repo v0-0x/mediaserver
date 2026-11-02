@@ -42,7 +42,7 @@ func newFfmpegLocal(t *testing.T, vcodec string, extra ...string) (*Local, strin
 	if err != nil {
 		t.Skipf("can't encode a test video with %s: %v %s", vcodec, err, out)
 	}
-	d, err := db.Open(filepath.Join(dir, "kumobox.db"))
+	d, err := db.Open(filepath.Join(dir, "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -399,7 +399,7 @@ func TestCaps(t *testing.T) {
 
 func testSettings(t *testing.T) *config.Store {
 	t.Helper()
-	d, err := db.Open(filepath.Join(t.TempDir(), "kumobox.db"))
+	d, err := db.Open(filepath.Join(t.TempDir(), "moviko.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

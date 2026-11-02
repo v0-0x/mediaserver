@@ -6,7 +6,7 @@ computer that stays on. It is one program with a side for each app:
 | Side | For | Port | Code | From |
 |---|---|---|---|---|
 | **Anime** | the Aniko apps | 43211 (discovery 43212/udp) | `anime/` | Aniko's server, as Aniko Hub |
-| **Movies & TV** | the KumoBox apps | 43311 (discovery 43312/udp) | `movies/` | KumoBox's server |
+| **Movies & TV** | the Moviko apps (KumoBox until 2.0.9) | 43311 (discovery 43312/udp) | `movies/` | Moviko's server |
 | **Music** | the Utako apps | 43411 (discovery 43412/udp) | `music/` | written here, for Utako |
 
 The sides are separate: each has its own library, devices, logins and data
@@ -25,23 +25,23 @@ cmd/mediaserver      the program: starts the sides, one log, data folders,
 anime/engine         starts the anime side (Aniko's app as a hub: no player,
                      the dashboard, mediaserver's updater)
 anime/internal/...   Aniko's server packages
-movies/engine        starts the movies side (KumoBox's app: no player,
+movies/engine        starts the movies side (Moviko's app: no player,
                      sharing always on, updated with mediaserver)
-movies/internal/...  KumoBox's server packages
+movies/internal/...  Moviko's server packages
 music/engine         starts the music side (Utako's server: no player, a
                      library, devices, uploads, settings kept for them)
 music/internal/...   its packages: peer (keys, signed requests, beacon),
                      library (scan, tags, ffprobe lengths, covers), api
                      (the devices' port; the dashboard's Handler), upload
 web/anime            Aniko's web UI: on a server it shows the dashboard
-web/movies           KumoBox's web UI: the movies side's pages
+web/movies           Moviko's web UI: the movies side's pages
 packaging/           install.sh, the systemd service, the users' README
 ```
 
 - **Connecting.** The anime side answers the Aniko apps exactly as Aniko Hub
   did (same port, same identity and pairings once its data is moved), and
   tells them it's Aniko `anime/engine.ProtocolVersion`. The movies side is a
-  KumoBox to the KumoBox apps (it says it runs on `mediaserver`, so they
+  Moviko to the Moviko apps (it says it runs on `mediaserver`, so they
   don't offer to share with it or to update it), version
   `movies/engine.ProtocolVersion`. The music side speaks the same peer
   protocol (`music/internal/peer`, checked against the vectors Utako's own
@@ -56,10 +56,10 @@ packaging/           install.sh, the systemd service, the users' README
   signed-in owner only. The music side's dashboard API is only ever there,
   never on its own port.
 - **Signing in.** The dashboard's sign-in (the anime side's `kumo_session`
-  cookie) also opens KumoBox's own pages on port 43311: cookies go to every
+  cookie) also opens Moviko's own pages on port 43311: cookies go to every
   port of a host, and the movies side asks the anime side whether a request
   has it (`movies/internal/api`: `Server.Owner`). Without it, its pages send
-  the browser to the dashboard; the KumoBox apps' own requests
+  the browser to the dashboard; the Moviko apps' own requests
   (`/api/peer/`) are checked by their keys, as always.
 - **Updates.** The anime side's updater looks for `server-v<version>`
   releases of this repository, downloads
@@ -98,11 +98,11 @@ change both together; `docs/media-server.md` in Utako's repository says
 what they say to each other, and Utako's opt-in `real_server` test runs it
 all against a running mediaserver.
 
-## Bringing in a newer Aniko or KumoBox
+## Bringing in a newer Aniko or Moviko
 
-`movies/` is a copy of KumoBox's `server/internal` (imports renamed to
+`movies/` is a copy of Moviko's `server/internal` (imports renamed to
 `github.com/v0-0x/mediaserver/movies/...`), and `web/movies` of its `web/`:
-KumoBox has every change made here, so a newer KumoBox is copied over as it
+Moviko has every change made here, so a newer Moviko is copied over as it
 is (keeping `update_test.go`'s `TestVersionOf`, which reads the app's
 desktop/package.json), then `movies/engine.ProtocolVersion` is raised to its
 version.

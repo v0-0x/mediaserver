@@ -13,20 +13,20 @@ const videosFolder = "Videos"
 
 func defaultDataDir() string {
 	if d := os.Getenv("XDG_DATA_HOME"); d != "" {
-		return filepath.Join(d, "kumobox")
+		return filepath.Join(d, "moviko")
 	}
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "share", "kumobox")
+	return filepath.Join(home, ".local", "share", "moviko")
 }
 
 func runtimeDir() string {
 	if base := os.Getenv("XDG_RUNTIME_DIR"); base != "" {
-		return filepath.Join(base, "kumobox")
+		return filepath.Join(base, "moviko")
 	}
 	// The shared temporary folder, where the desktop app looks too. Another
 	// user may have made the folder first (or put a symlink there): the
 	// shell token never goes into a folder that isn't this user's alone.
-	dir := filepath.Join(os.TempDir(), "kumobox")
+	dir := filepath.Join(os.TempDir(), "moviko")
 	if ownPrivateDir(dir) {
 		return dir
 	}
@@ -34,7 +34,7 @@ func runtimeDir() string {
 	if err != nil {
 		base = defaultDataDir()
 	}
-	return filepath.Join(base, "kumobox", "run")
+	return filepath.Join(base, "moviko", "run")
 }
 
 // ownPrivateDir makes dir when it's missing and reports whether it's a

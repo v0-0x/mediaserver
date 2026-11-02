@@ -21,7 +21,7 @@ import (
 
 // Online streaming extensions
 //
-// KumoBox/Seanime-style "onlinestream-provider" extensions don't take ids:
+// Moviko/Seanime-style "onlinestream-provider" extensions don't take ids:
 // they search a site by title, list the episodes of the entry found
 // (numbered from the show's first one), then give the video sources of an
 // episode on each of their servers. ExtensionProvider turns one into a
