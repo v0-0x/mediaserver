@@ -39,6 +39,10 @@ type Options struct {
 	DashboardPort int
 	// Free reports the room left on a folder's drive (nil: not checked).
 	Free func(dir string) (uint64, error)
+	// Uploaded, when set, is told of each file uploaded whole: from a device
+	// (its name) or the dashboard (""), where in the library (rel) and on
+	// disk (full). The dashboard's activity shows them.
+	Uploaded func(r *http.Request, device, rel, full string, size int64)
 }
 
 // DefaultPort is the music side's (anime 43211, movies & TV 43311).
@@ -439,7 +443,11 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 			if who == "" {
 				who = "the dashboard"
 			}
-			log.Printf("music: uploaded %s from %s", filepath.Join(dirs[i], filepath.FromSlash(st.Path)), who)
+			full := filepath.Join(dirs[i], filepath.FromSlash(st.Path))
+			log.Printf("music: uploaded %s from %s", full, who)
+			if s.opt.Uploaded != nil {
+				s.opt.Uploaded(r, from, st.Path, full, st.Have)
+			}
 		}
 		if err != nil {
 			uploadError(w, err)

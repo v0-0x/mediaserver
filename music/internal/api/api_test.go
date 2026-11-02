@@ -396,6 +396,11 @@ func TestUtakoAndTheMusicSide(t *testing.T) {
 		t.Fatalf("upload folders %d %s", code, raw)
 	}
 	up := id3(map[string]string{"TIT2": "Uploaded", "TPE1": "New Band"})
+	// The dashboard's activity is told once, when it's whole.
+	var told []string
+	ts.s.opt.Uploaded = func(r *http.Request, device, rel, full string, size int64) {
+		told = append(told, fmt.Sprintf("%s|%s|%s|%d", device, rel, full, size))
+	}
 	q := func(offset int) string {
 		return fmt.Sprintf("/api/peer/upload?folder=0&path=%s&offset=%d&total=%d", url.QueryEscape("New Band/Uploaded.mp3"), offset, len(up))
 	}
@@ -410,6 +415,9 @@ func TestUtakoAndTheMusicSide(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(filepath.Join(ts.music, "New Band", "Uploaded.mp3")); !bytes.Equal(b, up) {
 		t.Fatal("the upload isn't whole")
+	}
+	if want := fmt.Sprintf("%s|New Band/Uploaded.mp3|%s|%d", name, filepath.Join(ts.music, "New Band", "Uploaded.mp3"), len(up)); len(told) != 1 || told[0] != want {
+		t.Fatalf("activity told %q, want [%q]", told, want)
 	}
 	ts.s.lib.Scan(context.Background())
 	_, raw = ts.ask(dev, name, "GET", "/api/peer/hello", nil, false)

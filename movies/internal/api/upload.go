@@ -177,7 +177,11 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 			if who == "" {
 				who = "the browser"
 			}
-			log.Printf("upload: %s from %s", filepath.Join(dirs[i], filepath.FromSlash(st.Path)), who)
+			full := filepath.Join(dirs[i], filepath.FromSlash(st.Path))
+			log.Printf("upload: %s from %s", full, who)
+			if s.Uploaded != nil {
+				s.Uploaded(r, from, st.Path, full, st.Have)
+			}
 		}
 	} else {
 		st, err = s.receiver().Status(dirs[i], q.Get("path"), total)

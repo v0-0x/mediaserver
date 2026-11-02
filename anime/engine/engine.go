@@ -123,6 +123,15 @@ func (e *Engine) Log() interface{ Write([]byte) (int, error) } { return e.app.Lo
 // takes the same sign-in.
 func (e *Engine) IsOwner(r *http.Request) bool { return e.srv.IsOwner(r) }
 
+// Uploaded returns what the movies or music side (side: "Movies", "Music")
+// calls when a file has arrived whole, so the dashboard's activity shows it
+// with the anime side's own uploads.
+func (e *Engine) Uploaded(side string) func(r *http.Request, device, rel, full string, size int64) {
+	return func(r *http.Request, device, rel, full string, size int64) {
+		e.srv.LogUpload(r, side, device, rel, full, size)
+	}
+}
+
 // hostName is how the server is reached on the network: its name (a Pi is
 // raspberrypi.local), for the log.
 func hostName() string {

@@ -3,7 +3,9 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -131,5 +133,27 @@ func TestUploadHere(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("not in the audit log: %+v", s.app.HubStore.Activity())
+	}
+}
+
+// The other sides' uploads go in the same audit log, saying which side.
+func TestLogUploadFromOtherSides(t *testing.T) {
+	s := newHubServer(t)
+	r := httptest.NewRequest("POST", "/api/upload", nil)
+	r.RemoteAddr = "192.168.1.20:5000"
+	s.LogUpload(r, "Movies", "Laptop", "Film (2020)/Film.mkv", "/srv/movies/Film (2020)/Film.mkv", 42)
+	s.LogUpload(r, "Music", "", "Band/Song.flac", "/srv/music/Band/Song.flac", 7)
+	var got []string
+	for _, e := range s.app.HubStore.Activity() {
+		if e.Kind == "upload" {
+			got = append(got, fmt.Sprintf("%s|%s|%s|%s|%d|%d", e.Device, e.By, e.IP, e.Text, e.Size, len(e.Files)))
+		}
+	}
+	want := map[string]bool{
+		"Laptop|||uploaded Film (2020)/Film.mkv to Movies|42|1":  true,
+		"|hub|192.168.1.20|uploaded Band/Song.flac to Music|7|1": true,
+	}
+	if len(got) != 2 || !want[got[0]] || !want[got[1]] {
+		t.Fatalf("audit log: %q", got)
 	}
 }

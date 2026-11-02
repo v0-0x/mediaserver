@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -106,8 +107,9 @@ var auditBodies = map[string]bool{
 // who, and whether it went through.
 func (s *Server) audited(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	_, pattern := s.mux.Handler(r)
-	// The movies side's file pieces (movies.go) are like this side's.
-	if pattern == "" || auditSkip[pattern] || r.URL.Path == "/api/movies/upload" {
+	// The movies and music sides' file pieces are like this side's: each
+	// file is noted once, when it's whole (LogUpload).
+	if pattern == "" || auditSkip[pattern] || r.URL.Path == "/api/movies/upload" || r.URL.Path == "/api/music/upload" {
 		next.ServeHTTP(w, r)
 		return
 	}
@@ -449,4 +451,19 @@ func (s *Server) titles(r *http.Request, events []anikohub.Event) {
 			}
 		}
 	}
+}
+
+// LogUpload puts a file uploaded to one of mediaserver's other sides (side:
+// "Movies", "Music") in the hub's audit log, as this side's own uploads are:
+// from a device (its name), or from the dashboard's browser (device "").
+func (s *Server) LogUpload(r *http.Request, side, device, rel, full string, size int64) {
+	if s.app.HubStore == nil {
+		return
+	}
+	ev := anikohub.Event{Kind: "upload", Device: device, Text: "uploaded " + rel + " to " + side, Size: size,
+		Files: []anikohub.AuditFile{{Name: filepath.Base(full), Path: full, Size: size}}}
+	if device == "" {
+		ev.By, ev.IP = auditBy(r)
+	}
+	s.app.HubStore.Log(ev)
 }

@@ -26,6 +26,8 @@ type Options struct {
 	// DashboardPort is where a browser opening the music side's port is
 	// sent.
 	DashboardPort int
+	// Uploaded is told of each file uploaded whole (see api.Options).
+	Uploaded func(r *http.Request, device, rel, full string, size int64)
 }
 
 // Engine is the running music side.
@@ -33,7 +35,7 @@ type Engine struct{ srv *api.Server }
 
 // Start opens the music side's data and starts it.
 func Start(o Options) (*Engine, error) {
-	srv, err := api.New(api.Options{DataDir: o.DataDir, Version: o.Version, DashboardPort: o.DashboardPort, Free: util.Free})
+	srv, err := api.New(api.Options{DataDir: o.DataDir, Version: o.Version, DashboardPort: o.DashboardPort, Free: util.Free, Uploaded: o.Uploaded})
 	if err != nil {
 		return nil, err
 	}

@@ -36,6 +36,8 @@ type Options struct {
 	// where the others are sent to sign in.
 	Owner         func(r *http.Request) bool
 	DashboardPort int
+	// Uploaded is told of each file uploaded whole (see api.Server).
+	Uploaded func(r *http.Request, device, rel, full string, size int64)
 }
 
 // Engine is the running movies side.
@@ -76,7 +78,7 @@ func Start(o Options) (*Engine, error) {
 	a.Update.Managed = "mediaserver updates itself, the movies side with it: see Updates on its dashboard."
 	srv := api.New(a, webui.FS())
 	srv.ForceWebUI = true
-	srv.Owner, srv.DashboardPort = o.Owner, o.DashboardPort
+	srv.Owner, srv.DashboardPort, srv.Uploaded = o.Owner, o.DashboardPort, o.Uploaded
 	if err := srv.Start(); err != nil {
 		a.Shutdown()
 		return nil, fmt.Errorf("could not start the movies side: %v (is mediaserver, or Moviko, already running?)", err)

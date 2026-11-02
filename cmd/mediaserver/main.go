@@ -90,7 +90,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	m, err := movies.Start(movies.Options{DataDir: moviesDir, Owner: a.IsOwner, DashboardPort: a.Port()})
+	m, err := movies.Start(movies.Options{DataDir: moviesDir, Owner: a.IsOwner, DashboardPort: a.Port(), Uploaded: a.Uploaded("Movies")})
 	if err != nil {
 		a.Shutdown()
 		log.Fatal(err)
@@ -99,7 +99,7 @@ func main() {
 	a.SetMovies(m.Handler())
 	// One log: each side's Logs page shows all of it.
 	log.SetOutput(teeLog{a.Log(), m.Keep})
-	u, err := music.Start(music.Options{DataDir: musicDir, Version: version, DashboardPort: a.Port()})
+	u, err := music.Start(music.Options{DataDir: musicDir, Version: version, DashboardPort: a.Port(), Uploaded: a.Uploaded("Music")})
 	if err != nil {
 		m.Shutdown()
 		a.Shutdown()

@@ -54,6 +54,10 @@ type Server struct {
 	// the dashboard (on DashboardPort) to sign in.
 	Owner         func(r *http.Request) bool
 	DashboardPort int
+	// Uploaded, when set (mediaserver), is told of each file uploaded whole:
+	// from a device (its name) or a browser (""), where in the library (rel)
+	// and on disk (full). The dashboard's activity shows them.
+	Uploaded func(r *http.Request, device, rel, full string, size int64)
 
 	// Files sent into the library (upload.go).
 	uploadOnce sync.Once
