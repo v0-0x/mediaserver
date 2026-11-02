@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/v0-0x/mediaserver/anime/internal/util"
 	"net"
 	"strings"
 	"sync"
@@ -166,6 +167,11 @@ func (d *discovery) close() { _ = d.conn.Close() }
 func isLocalNetwork(ip net.IP) bool {
 	if ip == nil {
 		return false
+	}
+	// Any address on one of this computer's own networks (IPv6 ones
+	// included, which aren't "private").
+	if util.OnLink(ip) {
+		return true
 	}
 	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
 		return true

@@ -47,7 +47,7 @@ var (
 
 // Source values of catalog.DiaryEntry.
 const (
-	SourceMoviko    = "kumobox"
+	SourceMoviko     = "kumobox"
 	SourceLetterboxd = "letterboxd"
 )
 

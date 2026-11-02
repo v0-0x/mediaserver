@@ -407,7 +407,7 @@ func TestFoldersExplainSkippedFolders(t *testing.T) {
 		"Partial":                "Still downloading (1 unfinished file)",
 		"Artbook":                "No video files in this folder or its subfolders",
 		"Notes":                  "No video files here (1 .txt)",
-		"Moviko Download":       "Still downloading (1 unfinished file)",
+		"Moviko Download":        "Still downloading (1 unfinished file)",
 		"Empty":                  "The folder is empty",
 	}
 	for label, want := range problems {

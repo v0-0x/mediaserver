@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/v0-0x/mediaserver/movies/internal/util"
 	"net"
 	"strings"
 	"sync"
@@ -22,7 +23,7 @@ var group = net.IPv4(239, 255, 75, 77)
 
 // beacon is the message: who sends it, and where its server is.
 type beacon struct {
-	Moviko int    `json:"kumobox"` // protocol version
+	Moviko  int    `json:"kumobox"` // protocol version
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Port    int    `json:"port"`
@@ -164,6 +165,11 @@ func (d *discovery) close() { _ = d.conn.Close() }
 func isLocalNetwork(ip net.IP) bool {
 	if ip == nil {
 		return false
+	}
+	// Any address on one of this computer's own networks (IPv6 ones
+	// included, which aren't "private").
+	if util.OnLink(ip) {
+		return true
 	}
 	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
 		return true

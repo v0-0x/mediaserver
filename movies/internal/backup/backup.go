@@ -37,7 +37,7 @@ const Format = 1
 const MaxSize = 256 << 20
 
 type File struct {
-	Moviko   int    `json:"kumobox"` // the format (its key from before the rename: older backups have it)
+	Moviko    int    `json:"kumobox"` // the format (its key from before the rename: older backups have it)
 	Version   string `json:"version"` // Moviko's, that made it
 	CreatedAt int64  `json:"createdAt"`
 	Computer  string `json:"computer"`

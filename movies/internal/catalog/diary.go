@@ -17,7 +17,7 @@ import (
 
 // Diary sources.
 const (
-	DiaryMoviko    = "kumobox"
+	DiaryMoviko     = "kumobox"
 	DiaryLetterboxd = "letterboxd"
 )
 

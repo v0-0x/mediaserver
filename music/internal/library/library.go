@@ -757,3 +757,14 @@ func probe(ctx context.Context, ffprobe, path string) (int64, map[string]string)
 
 // CanProbe reports whether songs get their lengths (ffprobe is there).
 func (l *Library) CanProbe() bool { return l.probe != "" }
+
+// Size is how many bytes the songs take.
+func (l *Library) Size() int64 {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	var n int64
+	for _, e := range l.songs {
+		n += e.Size
+	}
+	return n
+}

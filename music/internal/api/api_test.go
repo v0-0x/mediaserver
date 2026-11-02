@@ -526,3 +526,42 @@ func TestDashboardFolders(t *testing.T) {
 		t.Fatalf("upload from the dashboard: %d %s %s", w.Code, w.Body, raw)
 	}
 }
+
+// The dashboard's albums: newest first, with a cover where a song has one,
+// and found by a word.
+func TestDashboardAlbums(t *testing.T) {
+	ts := newTestServer(t)
+	_, raw := ts.dashboard("GET", "/api/albums", nil)
+	var got struct {
+		Total  int `json:"total"`
+		Albums []struct {
+			Album, Artist, Cover string
+			Songs                int
+		} `json:"albums"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil || got.Total != 2 {
+		t.Fatalf("%s", raw)
+	}
+	for _, a := range got.Albums {
+		switch a.Album {
+		case "First Album":
+			if a.Artist != "Band" || a.Songs != 2 || a.Cover == "" {
+				t.Fatalf("%+v", a)
+			}
+		case "Singles":
+			if a.Artist != "Someone" || a.Songs != 1 || a.Cover == "" {
+				t.Fatalf("%+v", a)
+			}
+		default:
+			t.Fatalf("%+v", a)
+		}
+	}
+	_, raw = ts.dashboard("GET", "/api/albums?q=someone", nil)
+	if json.Unmarshal(raw, &got); got.Total != 1 || got.Albums[0].Album != "Singles" {
+		t.Fatalf("search %s", raw)
+	}
+	_, raw = ts.dashboard("GET", "/api/status", nil)
+	if !strings.Contains(string(raw), `"size":`) {
+		t.Fatalf("status %s", raw)
+	}
+}

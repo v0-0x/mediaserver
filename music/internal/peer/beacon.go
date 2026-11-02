@@ -102,6 +102,11 @@ func IsLocalNetwork(ip net.IP) bool {
 	if ip == nil {
 		return false
 	}
+	// Any address on one of this computer's own networks (IPv6 ones
+	// included, which aren't "private").
+	if OnLink(ip) {
+		return true
+	}
 	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() {
 		return true
 	}

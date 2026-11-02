@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -72,6 +73,7 @@ func (s *Server) Handler() http.Handler {
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 	})
 	m.HandleFunc("GET /api/tracks", s.tracks)
+	m.HandleFunc("GET /api/albums", s.albums)
 	m.HandleFunc("GET /api/art", func(w http.ResponseWriter, r *http.Request) {
 		serveArt(w, s.lib, r.URL.Query().Get("path"))
 	})
@@ -167,7 +169,7 @@ func (s *Server) status(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"id": s.id.ID, "name": s.name, "port": s.opt.Port, "version": s.opt.Version,
-		"songs": songs, "albums": albums, "artists": artists,
+		"songs": songs, "albums": albums, "artists": artists, "size": s.lib.Size(),
 		"folders": len(s.lib.Dirs()), "scanning": scanning, "lastScan": lastScan,
 		"devices": len(devs), "online": on, "allowed": allowed,
 		"listening": listeners, "kept": keptInfo, "lengths": s.lib.CanProbe(),
@@ -207,4 +209,75 @@ func (s *Server) tracks(w http.ResponseWriter, r *http.Request) {
 		total++
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"total": total, "tracks": match})
+}
+
+// album is an album as the dashboard shows it: a cover (a song of it that
+// has one), its songs, and when its newest song came.
+type album struct {
+	Album   string `json:"album"`
+	Artist  string `json:"artist"`
+	Songs   int    `json:"songs"`
+	Cover   string `json:"cover,omitempty"` // a song's path, for /api/art
+	AddedAt int64  `json:"addedAt"`
+}
+
+// albums are the library's albums (songs with no album go under their
+// artist's "Singles"), the newest first, matching ?q= (any word, in the album
+// or artist), a page at a time (?limit=).
+func (s *Server) albums(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	words := strings.Fields(strings.ToLower(q.Get("q")))
+	limit, err := strconv.Atoi(q.Get("limit"))
+	if err != nil || limit <= 0 || limit > 1000 {
+		limit = 60
+	}
+	byKey := map[string]*album{}
+	var order []*album
+	for _, t := range s.lib.Tracks() {
+		artist := t.AlbumArtist
+		if artist == "" {
+			artist = t.Artist
+		}
+		name := t.Album
+		if name == "" {
+			name = "Singles"
+		}
+		key := strings.ToLower(artist) + "\x00" + strings.ToLower(name)
+		a := byKey[key]
+		if a == nil {
+			a = &album{Album: name, Artist: artist}
+			byKey[key] = a
+			order = append(order, a)
+		}
+		a.Songs++
+		if t.AddedAt > a.AddedAt {
+			a.AddedAt = t.AddedAt
+		}
+		if a.Cover == "" && t.HasArt {
+			a.Cover = t.Path
+		}
+	}
+	sort.SliceStable(order, func(i, j int) bool { return order[i].AddedAt > order[j].AddedAt })
+	out := make([]album, 0, min(len(order), limit))
+	total := 0
+	for _, a := range order {
+		if len(words) > 0 {
+			hay := strings.ToLower(a.Album + "\x00" + a.Artist)
+			ok := true
+			for _, w := range words {
+				if !strings.Contains(hay, w) {
+					ok = false
+					break
+				}
+			}
+			if !ok {
+				continue
+			}
+		}
+		if len(out) < limit {
+			out = append(out, *a)
+		}
+		total++
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"total": total, "albums": out})
 }

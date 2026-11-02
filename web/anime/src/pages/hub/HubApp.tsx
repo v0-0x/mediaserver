@@ -35,11 +35,12 @@ const MediaSettings = lazy(() => import("./media/MediaPages").then(m => ({ defau
 const MusicOverview = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicOverview })))
 const MusicDevices = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicDevices })))
 const MusicLibrary = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicLibrary })))
+const MusicSettings = lazy(() => import("./music/MusicPages").then(m => ({ default: m.MusicSettings })))
 
 export type HubTab = "overview" | "devices" | "library" | "accounts" | "activity" | "settings"
 const TABS: HubTab[] = ["overview", "devices", "library", "accounts", "activity", "settings"]
 const MEDIA_TABS: MediaTab[] = ["overview", "devices", "library", "settings"]
-const MUSIC_TABS: MusicTab[] = ["overview", "devices", "library"]
+const MUSIC_TABS: MusicTab[] = ["overview", "devices", "library", "settings"]
 
 // What the dashboard is about: the anime side, the movies side's movies or
 // shows, or the music side.
@@ -179,6 +180,7 @@ function Dashboard({ status }: { status: Status }) {
                                     { value: "overview", label: "Overview", icon: <Gauge /> },
                                     { value: "devices", label: "Devices", icon: <Wifi />, count: uWaiting ? `${uWaiting} new` : uDevices ? uDevices.filter(d => d.allowed).length : undefined },
                                     { value: "library", label: "Library", icon: <Library /> },
+                                    { value: "settings", label: "Settings", icon: <SettingsIcon /> },
                                 ]}
                             />
                         ) : (
@@ -226,9 +228,10 @@ function Dashboard({ status }: { status: Status }) {
                                     </>
                                 ) : side === "music" ? (
                                     <>
-                                        {tab === "overview" && <MusicOverview go={goMusic} />}
+                                        {tab === "overview" && <MusicOverview o={o} go={goMusic} />}
                                         {tab === "devices" && <MusicDevices />}
                                         {tab === "library" && <MusicLibrary />}
+                                        {tab === "settings" && <MusicSettings />}
                                     </>
                                 ) : (
                                     <>

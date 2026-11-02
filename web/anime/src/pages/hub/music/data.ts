@@ -31,6 +31,7 @@ export type UStatus = {
     songs: number
     albums: number
     artists: number
+    size: number
     folders: number
     scanning: boolean
     lastScan: number
@@ -54,6 +55,17 @@ export type UTrack = {
     durationMs: number
     addedAt: number
     hasArt?: boolean
+}
+
+export type UAlbum = { album: string; artist: string; songs: number; cover?: string; addedAt: number }
+
+export function useUAlbums(q: string, limit: number) {
+    return useQuery({
+        queryKey: ["music", "albums", q, limit],
+        queryFn: () => api.get<{ total: number; albums: UAlbum[] }>(`${U}/albums?q=${encodeURIComponent(q)}&limit=${limit}`),
+        placeholderData: prev => prev,
+        refetchInterval: 30000,
+    })
 }
 
 export type UFolder = { path: string; songs: number; missing?: boolean }
