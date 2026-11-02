@@ -3,6 +3,7 @@ import { BookOpen, Puzzle, Search } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ListCardMenu } from "@/components/ListCardMenu"
+import { DownloadedGrid } from "@/components/MangaDownloads"
 import { MediaCard, MediaCardSkeleton, MediaGrid } from "@/components/MediaCard"
 import { Button, EmptyState, ErrorState, Tabs } from "@/components/ui"
 import { api } from "@/lib/api"
@@ -47,8 +48,15 @@ export default function MangaPage() {
                     </Link>
                 </div>
             )}
-            <Tabs className="mb-8" value={status} onChange={setStatus} tabs={Object.entries(LIST_STATUS_MANGA).map(([k, v]) => ({ value: k, label: v, count: byStatus[k]?.length ?? 0 }))} />
-            {isLoading ? (
+            <Tabs
+                className="mb-8"
+                value={status}
+                onChange={setStatus}
+                tabs={[...Object.entries(LIST_STATUS_MANGA).map(([k, v]) => ({ value: k, label: v, count: byStatus[k]?.length ?? 0 })), { value: "DOWNLOADED", label: "Downloaded" }]}
+            />
+            {status === "DOWNLOADED" ? (
+                <DownloadedGrid />
+            ) : isLoading ? (
                 <MediaGrid>
                     {Array.from({ length: 12 }).map((_, i) => (
                         <MediaCardSkeleton key={i} />

@@ -195,6 +195,9 @@ type MangaSettings struct {
 	DefaultProvider string `json:"defaultProvider"`
 	ReadingMode     string `json:"readingMode"` // long-strip | paged | double
 	Direction       string `json:"direction"`   // ltr | rtl
+	// Dir is where downloaded manga go ("": ~/Manga on a computer, the
+	// data folder's manga folder on a TV or a server; app.MangaDir).
+	Dir string `json:"dir,omitempty"`
 }
 
 type AnilistSettings struct {

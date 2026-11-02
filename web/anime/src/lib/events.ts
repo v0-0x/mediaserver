@@ -68,6 +68,10 @@ export function connectEvents(qc: QueryClient) {
                 qc.invalidateQueries({ queryKey: ["manga", "collection"] })
                 qc.invalidateQueries({ queryKey: ["manga", "media"] })
                 break
+            case "manga-downloads":
+                qc.invalidateQueries({ queryKey: ["manga-downloads"] })
+                qc.invalidateQueries({ queryKey: ["manga-library"] })
+                break
             case "settings-updated":
                 qc.invalidateQueries({ queryKey: ["status"] })
                 break

@@ -18,6 +18,7 @@ import (
 	"github.com/v0-0x/mediaserver/anime/internal/anilist"
 	"github.com/v0-0x/mediaserver/anime/internal/config"
 	"github.com/v0-0x/mediaserver/anime/internal/downloads"
+	"github.com/v0-0x/mediaserver/anime/internal/extensions"
 	"github.com/v0-0x/mediaserver/anime/internal/library"
 	"github.com/v0-0x/mediaserver/anime/internal/manga"
 	"github.com/v0-0x/mediaserver/anime/internal/player"
@@ -1088,11 +1089,23 @@ func (s *Server) mangaChapters(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	provider := r.URL.Query().Get("provider")
+	if provider == LocalProvider {
+		// The downloaded chapters, read from the manga folder (the
+		// reader's next and previous chapter).
+		_, local, err := s.app.MangaLib.Series(id)
+		out := &manga.ChaptersResult{Provider: LocalProvider, Chapters: []extensions.MangaChapter{}}
+		if err == nil {
+			for i, c := range local {
+				out.Chapters = append(out.Chapters, extensions.MangaChapter{ID: c.File, Chapter: c.Number, Title: c.Title, Index: float64(i)})
+			}
+		}
+		return out, nil
+	}
 	media, err := s.app.Platform.MediaLite(r.Context(), id)
 	if err != nil {
 		return nil, err
 	}
-	provider := r.URL.Query().Get("provider")
 	if provider == "" {
 		provider = s.app.Settings.Get().Manga.DefaultProvider
 	}

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowRightLeft, Download, Folder, FolderPlus, RefreshCw, Trash2, Upload } from "lucide-react"
-import { useRef, useState } from "react"
+import { ArrowRightLeft, BookOpen, Clapperboard, Download, Folder, FolderPlus, RefreshCw, Trash2, Upload } from "lucide-react"
+import { lazy, Suspense, useRef, useState } from "react"
 import { DirPicker } from "@/components/DirPicker"
 import { AllFiles, Ignored, Unmatched } from "@/components/library/LibraryTools"
 import { UploadDialog } from "@/components/UploadDialog"
@@ -14,11 +14,52 @@ import { LibraryBrowse } from "./LibraryBrowse"
 import { M, type MSettings } from "./media/data"
 import { bytes, Panel, shortPath } from "./parts"
 
-// The server's library: the folders it shares (on its disks: a USB drive on a
-// Pi), scanning them, what devices are downloading onto it, and putting
-// its files right (matching, ignoring, episode numbers).
+const MangaLibrary = lazy(() => import("./MangaLibrary"))
+
+// The server's library: its anime (the folders it shares, on its disks: a
+// USB drive on a Pi; scanning them, what devices are downloading onto it,
+// and putting its files right) and its manga (what devices downloaded
+// onto it).
 
 export default function Library({ o, status }: { o: HubOverview; status: Status }) {
+    const [kind, setKind] = useState<"anime" | "manga">(() => {
+        try {
+            return sessionStorage.getItem("hub-library") === "manga" ? "manga" : "anime"
+        } catch {
+            return "anime"
+        }
+    })
+    const pick = (k: typeof kind) => {
+        setKind(k)
+        try {
+            sessionStorage.setItem("hub-library", k)
+        } catch {
+            // Private windows: the switch just isn't remembered.
+        }
+    }
+    return (
+        <div className="flex flex-col gap-5">
+            <Tabs
+                className="self-start"
+                value={kind}
+                onChange={pick}
+                tabs={[
+                    { value: "anime", label: "Anime", icon: <Clapperboard /> },
+                    { value: "manga", label: "Manga", icon: <BookOpen /> },
+                ]}
+            />
+            {kind === "anime" ? (
+                <AnimeLibrary o={o} status={status} />
+            ) : (
+                <Suspense fallback={null}>
+                    <MangaLibrary status={status} />
+                </Suspense>
+            )}
+        </div>
+    )
+}
+
+function AnimeLibrary({ o, status }: { o: HubOverview; status: Status }) {
     const qc = useQueryClient()
     const settings = status.settings
     const folders = [settings.library.dir, ...(settings.library.extraDirs ?? [])].filter(Boolean)

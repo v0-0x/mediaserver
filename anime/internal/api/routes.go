@@ -344,8 +344,12 @@ func (s *Server) routes() {
 	}))
 	m.HandleFunc("GET /api/manga/{id}/chapters", h(s.mangaChapters))
 	m.HandleFunc("GET /api/manga/pages", h(func(r *http.Request) (any, error) {
+		if r.URL.Query().Get("provider") == LocalProvider {
+			return s.localPages(r.URL.Query().Get("chapterId"))
+		}
 		return s.app.Manga.Pages(r.Context(), r.URL.Query().Get("provider"), r.URL.Query().Get("chapterId"))
 	}))
+	s.mangaDownloadRoutes()
 	m.HandleFunc("GET /api/manga/search", h(func(r *http.Request) (any, error) {
 		return s.app.Manga.Search(r.Context(), r.URL.Query().Get("provider"), r.URL.Query().Get("q"))
 	}))

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -39,6 +40,8 @@ type uploadTarget struct {
 type uploadFolders struct {
 	Folders []string `json:"folders"`
 	Chunk   int      `json:"chunk"`
+	// Manga: it takes downloaded manga too (folder=manga: its manga folder).
+	Manga bool `json:"manga"`
 }
 
 func (s *Server) uploadRoutes() {
@@ -141,8 +144,18 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 	q := r.URL.Query()
 	dirs := s.app.Settings.Get().LibraryDirs()
 	if q.Get("path") == "" {
-		writeJSON(w, http.StatusOK, uploadFolders{Folders: append([]string{}, dirs...), Chunk: fileup.Chunk})
+		writeJSON(w, http.StatusOK, uploadFolders{Folders: append([]string{}, dirs...), Chunk: fileup.Chunk, Manga: true})
 		return
+	}
+	// Downloaded manga, from an Aniko: into the manga folder.
+	if q.Get("folder") == "manga" {
+		dir := s.app.MangaDir()
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "couldn't make the manga folder: " + err.Error()})
+			return
+		}
+		dirs = []string{dir}
+		q.Set("folder", "0")
 	}
 	i, err := strconv.Atoi(q.Get("folder"))
 	if q.Get("folder") == "" {

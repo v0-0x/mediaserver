@@ -21,6 +21,8 @@ const MODES: [Mode, string][] = [
 ]
 
 function proxied(p: Page) {
+    // A downloaded chapter's pages are Aniko's own.
+    if (p.url.startsWith("/api/")) return p.url
     const u = btoa(unescape(encodeURIComponent(p.url))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
     const h = Object.keys(p.headers ?? {}).length ? btoa(JSON.stringify(p.headers)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") : ""
     return `/api/proxy?u=${u}${h ? `&h=${h}` : ""}`

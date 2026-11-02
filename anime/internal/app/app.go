@@ -71,6 +71,9 @@ type App struct {
 	Trash *library.Trash
 	// Notify tells about aired episodes and episodes ready in the library.
 	Notify *notify.Service
+	// MangaLib is the downloaded manga (MangaDir), MangaDL their downloads.
+	MangaLib *manga.Library
+	MangaDL  *manga.Downloader
 	// Exits ends Aniko from inside, e.g. to restart it after an update;
 	// cmd/aniko waits for it, next to the signals.
 	Exits *lifecycle.Exits
@@ -214,6 +217,7 @@ func New(dataDir string, opts ...Options) (*App, error) {
 	// Libraries other Aniko apps share with this one show with its own.
 	lib.Remote = a.Share.RemoteFiles
 	a.ShellToken = randomToken()
+	a.wireManga()
 	a.wire()
 	return a, nil
 }
@@ -527,6 +531,7 @@ func (a *App) Start() {
 	a.Scanner.StartWatcher()
 	a.background(func() { a.Torrents.RunCounter(a.ctx) })
 	a.background(func() { a.Notify.Run(a.ctx) })
+	a.background(func() { a.MangaDL.Run(a.ctx) })
 	a.background(a.purgeTrash)
 	a.background(func() {
 		a.AutoDL.Loop(a.ctx, func() (bool, time.Duration) {

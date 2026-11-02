@@ -1,14 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { BookOpen, RefreshCw, Search, Wand2 } from "lucide-react"
+import { BookOpen, Download, RefreshCw, Search, Wand2 } from "lucide-react"
 import { useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "@/lib/toast"
 import { ListStatusButton, ProgressEditor, ScoreEditor } from "@/components/entry/ListEditor"
+import { ChapterDownload, DownloadDialog, DownloadsPanel, LocalChapters, useMangaDownloads, useMangaLocal } from "@/components/MangaDownloads"
 import { PluginSlot } from "@/components/plugins/PluginSlot"
 import { Badge, Button, Dialog, EmptyState, ErrorState, Input, Select, Skeleton } from "@/components/ui"
 import { api, qs } from "@/lib/api"
 import { useMangaChapters, useStatus } from "@/lib/queries"
-import type { MangaPosition, Media } from "@/lib/types"
+import type { LocalMangaChapter, MangaChapter, MangaPosition, Media } from "@/lib/types"
 import { banner, cleanDescription, cn, cover, formatLabel, statusLabel, title } from "@/lib/utils"
 
 export default function MangaEntryPage() {
@@ -26,6 +27,11 @@ export default function MangaEntryPage() {
         enabled: id > 0,
     })
     const [matchOpen, setMatchOpen] = useState(false)
+    const [downloadOpen, setDownloadOpen] = useState(false)
+    // Downloaded chapters (read from here, also offline), and those on
+    // their way.
+    const { data: local } = useMangaLocal(id)
+    const { data: downloads } = useMangaDownloads()
     const navigate = useNavigate()
     const qc = useQueryClient()
 
@@ -57,13 +63,35 @@ export default function MangaEntryPage() {
     // Where reading stopped (the reader saves it): that chapter at that page,
     // or the next chapter once it was read to the end. Continue goes there
     // unless the list's progress is further.
-    const stoppedAt = position?.provider === effective ? chapters.findIndex(c => c.id === position.chapterId) : -1
+    // (A downloaded chapter read here is saved as the "local" provider's: by
+    // its number.)
+    const stoppedAt = !position
+        ? -1
+        : position.provider === effective
+          ? chapters.findIndex(c => c.id === position.chapterId)
+          : position.provider === "local"
+            ? chapters.findIndex(c => c.chapter === position.chapter)
+            : -1
     const finished = !!position && position.pages > 0 && position.page >= position.pages - 1
     const stopped = stoppedAt < 0 ? undefined : chapters[finished ? stoppedAt + 1 : stoppedAt]
     const resume = stopped && parseFloat(stopped.chapter) > progress ? stopped : undefined
     const resumePage = resume && !finished ? position!.page : 0
     const next = resume ?? chapters.find(c => parseFloat(c.chapter) > progress) ?? chapters[0]
-    const read = (chapterId: string, page?: number) => navigate(`/manga/read${qs({ id, provider: effective, chapter: chapterId, page: page ? String(page) : undefined })}`)
+    const localChapters = local?.chapters ?? []
+    const localByNumber = new Map(localChapters.map(c => [c.chapter, c]))
+    const jobByNumber = new Map((downloads ?? []).filter(j => j.mediaId === id && j.state !== "done").map(j => [j.chapter, j]))
+    const readLocal = (c: LocalMangaChapter, page?: number) => navigate(`/manga/read${qs({ id, provider: "local", chapter: c.file, page: page ? String(page) : undefined })}`)
+    // A downloaded chapter reads from here.
+    const read = (c: MangaChapter, page?: number) => {
+        const l = localByNumber.get(c.chapter)
+        if (l) return readLocal(l, page)
+        navigate(`/manga/read${qs({ id, provider: effective, chapter: c.id, page: page ? String(page) : undefined })}`)
+    }
+    const deleteLocal = (c: LocalMangaChapter) =>
+        api
+            .del(`/api/manga-library/${id}${qs({ file: c.file })}`)
+            .then(() => qc.invalidateQueries({ queryKey: ["manga-library"] }))
+            .catch(e => toast.error(e.message))
 
     return (
         <div className="min-h-full pb-24">
@@ -89,7 +117,7 @@ export default function MangaEntryPage() {
                         <p className="line-clamp-3 max-w-4xl text-white/70">{cleanDescription(media.description)}</p>
                         <div className="flex flex-wrap gap-2.5">
                             {next && (
-                                <Button variant="white" size="lg" icon={<BookOpen className="size-5" />} onClick={() => read(next.id, resumePage)}>
+                                <Button variant="white" size="lg" icon={<BookOpen className="size-5" />} onClick={() => read(next, resumePage)}>
                                     {progress || resume ? "Continue" : "Start"} · Ch {next.chapter}
                                     {resumePage > 0 && ` · p. ${resumePage + 1}`}
                                 </Button>
@@ -118,37 +146,66 @@ export default function MangaEntryPage() {
                     <Button variant="subtle" icon={<Wand2 className="size-4" />} onClick={() => setMatchOpen(true)} disabled={!effective}>
                         Change match
                     </Button>
+                    <Button variant="subtle" icon={<Download className="size-4" />} onClick={() => setDownloadOpen(true)} disabled={chapters.length === 0}>
+                        Download
+                    </Button>
+                    {localChapters.length > 0 && (
+                        <span className="text-sm text-muted">
+                            {localChapters.length} downloaded
+                        </span>
+                    )}
                     {ch?.mapping && (
                         <span className="text-sm text-muted">
                             Matched <span className="font-semibold text-fg">{ch.mapping.title}</span>
                         </span>
                     )}
                 </div>
-                {!effective && (
+                <DownloadsPanel mediaId={id} />
+                {!effective && localChapters.length === 0 && (
                     <EmptyState title="No manga provider installed" action={<Link to="/extensions?tab=marketplace"><Button variant="primary">Open marketplace</Button></Link>}>
                         Install a manga provider extension to read chapters.
                     </EmptyState>
                 )}
                 {chLoading && effective && <Skeleton className="h-64" />}
-                {error && <EmptyState title="Couldn't load chapters" action={<Button onClick={() => refetch()}>Retry</Button>}>{(error as Error).message}</EmptyState>}
+                {error && localChapters.length === 0 && <EmptyState title="Couldn't load chapters" action={<Button onClick={() => refetch()}>Retry</Button>}>{(error as Error).message}</EmptyState>}
+                {/* The provider lists nothing (offline, none installed): what's downloaded. */}
+                {chapters.length === 0 && !chLoading && localChapters.length > 0 && (
+                    <>
+                        <p className="text-sm text-muted">Downloaded chapters, read from this device:</p>
+                        <LocalChapters chapters={localChapters} progress={progress} read={c => readLocal(c)} onDelete={deleteLocal} />
+                    </>
+                )}
                 {chapters.length > 0 && (
                     <div className="card divide-y divide-line">
                         {[...chapters].reverse().map(c => {
                             const done = parseFloat(c.chapter) <= progress
                             return (
-                                <button key={c.id} onClick={() => read(c.id)} className={cn("flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/[0.03]", done && "opacity-50")}>
-                                    <div className="min-w-0">
-                                        <p className="truncate font-medium">{c.title || `Chapter ${c.chapter}`}</p>
-                                        <p className="text-xs text-subtle">{[c.scanlator, c.language?.toUpperCase(), c.updatedAt].filter(Boolean).join(" · ")}</p>
-                                    </div>
-                                    {done ? <Badge tone="green">Read</Badge> : <Badge>Ch {c.chapter}</Badge>}
-                                </button>
+                                <div key={c.id} className={cn("flex items-center pr-1", done && "opacity-50")}>
+                                    <button onClick={() => read(c)} className="flex min-w-0 flex-1 items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-white/[0.03]">
+                                        <div className="min-w-0">
+                                            <p className="truncate font-medium">{c.title || `Chapter ${c.chapter}`}</p>
+                                            <p className="text-xs text-subtle">{[c.scanlator, c.language?.toUpperCase(), c.updatedAt].filter(Boolean).join(" · ")}</p>
+                                        </div>
+                                        {done ? <Badge tone="green">Read</Badge> : <Badge>Ch {c.chapter}</Badge>}
+                                    </button>
+                                    <ChapterDownload mediaId={id} title={title(media)} provider={effective} chapter={c} local={localByNumber.get(c.chapter)} job={jobByNumber.get(c.chapter)} />
+                                </div>
                             )
                         })}
                     </div>
                 )}
                 <PluginSlot slot="manga-entry-screen-bottom" />
             </div>
+            <DownloadDialog
+                open={downloadOpen}
+                onOpenChange={setDownloadOpen}
+                mediaId={id}
+                title={title(media)}
+                provider={effective}
+                chapters={chapters}
+                progress={progress}
+                local={localChapters}
+            />
             <MangaMatchDialog open={matchOpen} onOpenChange={setMatchOpen} provider={effective} mediaId={id} defaultQuery={media.title.english || media.title.romaji || ""} />
         </div>
     )

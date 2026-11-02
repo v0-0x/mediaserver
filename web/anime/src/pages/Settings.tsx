@@ -2089,6 +2089,9 @@ function MangaSection({ draft, set }: SectionProps) {
             <Row label="Default provider" help="Install manga providers from the marketplace">
                 <Select className="w-56" value={draft.manga.defaultProvider} onChange={v => set("manga", { defaultProvider: v })} options={[{ value: "", label: "First installed" }, ...(data ?? []).map(p => ({ value: p.id, label: p.name }))]} />
             </Row>
+            <Row label="Download folder" help="Where downloaded chapters go on this device, one folder per manga with its details (empty: Manga in your home folder)">
+                <PathInput value={draft.manga.dir ?? ""} onChange={v => set("manga", { dir: v })} placeholder="~/Manga" />
+            </Row>
             <Row label="Reading mode">
                 <Select
                     className="w-44"
