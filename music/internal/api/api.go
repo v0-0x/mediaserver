@@ -402,7 +402,9 @@ func (s *Server) peerUpload(w http.ResponseWriter, r *http.Request) {
 
 // uploadHere takes a request about an upload into the library: its
 // folders, where a file stands, or a piece. from is the device it comes
-// from ("": the dashboard).
+// from ("": the dashboard). With replace=1 it's a new copy of a song in the
+// library (its details changed on a device): the copy takes the song's
+// place once it's whole, and a GET starts it over.
 func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string) {
 	q := r.URL.Query()
 	dirs := s.lib.Dirs()
@@ -428,6 +430,19 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 		writeJSON(w, http.StatusBadRequest, errMsg("the file's size and the piece's place are needed"))
 		return
 	}
+	replace := q.Get("replace") == "1"
+	if replace {
+		// Only the library's songs are replaced, nothing else in its folders.
+		name, err := fileup.Clean(q.Get("path"))
+		if err != nil {
+			uploadError(w, err)
+			return
+		}
+		if _, ok := s.lib.Song(filepath.Join(dirs[i], name)); !ok {
+			writeJSON(w, http.StatusNotFound, errMsg("that song isn't in the library (any more)"))
+			return
+		}
+	}
 	var st fileup.Result
 	if r.Method == http.MethodPost {
 		// The whole piece first, whatever the answer: one refused unread
@@ -437,14 +452,22 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 			writeJSON(w, http.StatusBadRequest, errMsg("the piece didn't arrive whole: "+err.Error()))
 			return
 		}
-		st, err = s.recv.Receive(dirs[i], q.Get("path"), offset, total, bytes.NewReader(piece))
+		if replace {
+			st, err = s.recv.ReceiveReplace(dirs[i], q.Get("path"), offset, total, bytes.NewReader(piece))
+		} else {
+			st, err = s.recv.Receive(dirs[i], q.Get("path"), offset, total, bytes.NewReader(piece))
+		}
 		if err == nil && st.Done {
 			who := from
 			if who == "" {
 				who = "the dashboard"
 			}
 			full := filepath.Join(dirs[i], filepath.FromSlash(st.Path))
-			log.Printf("music: uploaded %s from %s", full, who)
+			if replace {
+				log.Printf("music: %s changed from %s", full, who)
+			} else {
+				log.Printf("music: uploaded %s from %s", full, who)
+			}
 			if s.opt.Uploaded != nil {
 				s.opt.Uploaded(r, from, st.Path, full, st.Have)
 			}
@@ -454,7 +477,11 @@ func (s *Server) uploadHere(w http.ResponseWriter, r *http.Request, from string)
 			return
 		}
 	} else {
-		st, err = s.recv.Status(dirs[i], q.Get("path"), total)
+		if replace {
+			st, err = s.recv.StartReplace(dirs[i], q.Get("path"))
+		} else {
+			st, err = s.recv.Status(dirs[i], q.Get("path"), total)
+		}
 		if err != nil {
 			uploadError(w, err)
 			return

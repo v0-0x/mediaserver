@@ -4,7 +4,9 @@
 // large one never sits in memory and an upload cut short carries on where
 // it stopped. A file is written next to its place as <name>.part (the
 // library's scanner skips those) and takes its name once it's all there. A
-// file is never written over, nor outside its folder.
+// file is never written over, nor outside its folder, except by a replace:
+// a new copy of a song that's there (one whose details a device changed),
+// which takes its place only once it's all there.
 package upload
 
 import (
@@ -35,6 +37,9 @@ type Result struct {
 	Path string `json:"path"`
 	Have int64  `json:"have"`
 	Done bool   `json:"done"`
+	// Replace: the file there is being replaced (a server that answers
+	// without it doesn't replace files).
+	Replace bool `json:"replace,omitempty"`
 }
 
 // Error is a refusal, with the HTTP status that says it.
@@ -112,6 +117,65 @@ func (u *Receiver) Status(dir, rel string, total int64) (Result, error) {
 	return status(root, name, rel, total)
 }
 
+// StartReplace begins a new copy of the file rel in dir, which must be
+// there: what an earlier replace left of it is dropped (a copy with other
+// changes may be just as long), so it's sent from the start.
+func (u *Receiver) StartReplace(dir, rel string) (Result, error) {
+	name, err := Clean(rel)
+	if err != nil {
+		return Result{}, err
+	}
+	key := filepath.Join(dir, name)
+	if !u.take(key) {
+		return Result{}, refuse(409, "%s is being sent already", rel)
+	}
+	defer u.give(key)
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return Result{}, refuse(404, "the folder isn't there: %v", err)
+	}
+	defer root.Close()
+	if st, err := root.Stat(name); err != nil || !st.Mode().IsRegular() {
+		return Result{}, refuse(404, "%s isn't there to replace", rel)
+	}
+	if err := root.Remove(name + partSuffix); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return Result{}, refuse(500, "couldn't start over %s: %v", rel, err)
+	}
+	return Result{Path: rel, Replace: true}, nil
+}
+
+// replacing is where a replace of name stands: what of the new copy is
+// there.
+func replacing(root *os.Root, name, rel string, total int64) (Result, error) {
+	if st, err := root.Stat(name); err != nil || !st.Mode().IsRegular() {
+		return Result{}, refuse(404, "%s isn't there to replace", rel)
+	}
+	st := Result{Path: rel, Replace: true}
+	if part, err := root.Stat(name + partSuffix); err == nil && part.Mode().IsRegular() && part.Size() <= total {
+		st.Have = part.Size()
+	}
+	return st, nil
+}
+
+func (u *Receiver) take(key string) bool {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	if u.busy == nil {
+		u.busy = map[string]bool{}
+	}
+	if u.busy[key] {
+		return false
+	}
+	u.busy[key] = true
+	return true
+}
+
+func (u *Receiver) give(key string) {
+	u.mu.Lock()
+	delete(u.busy, key)
+	u.mu.Unlock()
+}
+
 func status(root *os.Root, name, rel string, total int64) (Result, error) {
 	if st, err := root.Stat(name); err == nil {
 		if st.Mode().IsRegular() && st.Size() == total {
@@ -129,6 +193,17 @@ func status(root *os.Root, name, rel string, total int64) (Result, error) {
 // dir. A piece that doesn't follow on from what's there is refused with
 // the status 409 and where the file stands (Error.Have).
 func (u *Receiver) Receive(dir, rel string, offset, total int64, piece io.Reader) (Result, error) {
+	return u.receive(dir, rel, offset, total, piece, false)
+}
+
+// ReceiveReplace is Receive for a new copy of the file rel, which is there
+// (StartReplace began it): the copy takes the file's place once it's all
+// there.
+func (u *Receiver) ReceiveReplace(dir, rel string, offset, total int64, piece io.Reader) (Result, error) {
+	return u.receive(dir, rel, offset, total, piece, true)
+}
+
+func (u *Receiver) receive(dir, rel string, offset, total int64, piece io.Reader, replace bool) (Result, error) {
 	name, err := Clean(rel)
 	if err != nil {
 		return Result{}, err
@@ -137,28 +212,22 @@ func (u *Receiver) Receive(dir, rel string, offset, total int64, piece io.Reader
 		return Result{}, refuse(400, "a piece out of the file")
 	}
 	key := filepath.Join(dir, name)
-	u.mu.Lock()
-	if u.busy == nil {
-		u.busy = map[string]bool{}
-	}
-	if u.busy[key] {
-		u.mu.Unlock()
+	if !u.take(key) {
 		return Result{}, refuse(409, "%s is being sent already", rel)
 	}
-	u.busy[key] = true
-	u.mu.Unlock()
-	defer func() {
-		u.mu.Lock()
-		delete(u.busy, key)
-		u.mu.Unlock()
-	}()
+	defer u.give(key)
 
 	root, err := os.OpenRoot(dir)
 	if err != nil {
 		return Result{}, refuse(404, "the folder isn't there: %v", err)
 	}
 	defer root.Close()
-	st, err := status(root, name, rel, total)
+	var st Result
+	if replace {
+		st, err = replacing(root, name, rel, total)
+	} else {
+		st, err = status(root, name, rel, total)
+	}
 	if err != nil || st.Done {
 		return st, err
 	}
@@ -211,8 +280,9 @@ func (u *Receiver) Receive(dir, rel string, offset, total int64, piece io.Reader
 	if err := f.Close(); err != nil {
 		return st, refuse(500, "couldn't write %s: %v", rel, err)
 	}
-	// Taken by another file meanwhile: this one stays a .part.
-	if _, err := root.Stat(name); !errors.Is(err, fs.ErrNotExist) {
+	// Taken by another file meanwhile: this one stays a .part. A replace
+	// takes the file's place in one step (a rename over it).
+	if _, err := root.Stat(name); !replace && !errors.Is(err, fs.ErrNotExist) {
 		return st, refuse(409, "%s is already there, and isn't the same file", rel)
 	}
 	if err := root.Rename(name+partSuffix, name); err != nil {

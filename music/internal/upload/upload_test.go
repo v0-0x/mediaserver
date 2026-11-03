@@ -81,6 +81,79 @@ func TestReceive(t *testing.T) {
 	}
 }
 
+// A replace sends a new copy of a file that's there: the file stays as it
+// was until the copy is whole, then the copy takes its place. Only a file
+// that's there is replaced, and a new start drops what an earlier one left.
+func TestReplace(t *testing.T) {
+	dir := t.TempDir()
+	var done []string
+	u := &Receiver{Done: func(p string) { done = append(done, p) }}
+	old := bytes.Repeat([]byte("o"), 3000)
+	if err := os.MkdirAll(filepath.Join(dir, "Band"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(dir, "Band", "Song.mp3")
+	if err := os.WriteFile(file, old, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// The same length as the old one: its details changed, not its size.
+	data := bytes.Repeat([]byte("n"), 3000)
+	rel := "Band/Song.mp3"
+
+	if _, err := u.StartReplace(dir, "Band/Other.mp3"); refusal(t, err) != 404 {
+		t.Fatalf("a file that isn't there: %v", err)
+	}
+	if _, err := u.ReceiveReplace(dir, "Band/Other.mp3", 0, 3, piece([]byte("abc"))); refusal(t, err) != 404 {
+		t.Fatalf("a piece of a file that isn't there: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "Band", "Other.mp3")); err == nil {
+		t.Fatal("a replace made a new file")
+	}
+	st, err := u.StartReplace(dir, rel)
+	if err != nil || st.Have != 0 || !st.Replace || st.Done {
+		t.Fatalf("start: %+v %v", st, err)
+	}
+	st, err = u.ReceiveReplace(dir, rel, 0, int64(len(data)), piece(data[:1000]))
+	if err != nil || st.Have != 1000 || st.Done || !st.Replace {
+		t.Fatalf("first piece: %+v %v", st, err)
+	}
+	if got, _ := os.ReadFile(file); !bytes.Equal(got, old) {
+		t.Fatal("the file changed before the copy was whole")
+	}
+	_, err = u.ReceiveReplace(dir, rel, 0, int64(len(data)), piece(data[:1000]))
+	var e *Error
+	if !errors.As(err, &e) || e.Status != 409 || e.Have != 1000 {
+		t.Fatalf("a piece that doesn't follow on: %v", err)
+	}
+	// Started over: what was sent is dropped.
+	if st, err := u.StartReplace(dir, rel); err != nil || st.Have != 0 {
+		t.Fatalf("started over: %+v %v", st, err)
+	}
+	if _, err := os.Stat(file + partSuffix); err == nil {
+		t.Fatal("the earlier copy stayed")
+	}
+	if st, err := u.ReceiveReplace(dir, rel, 0, int64(len(data)), piece(data[:2000])); err != nil || st.Have != 2000 {
+		t.Fatalf("again: %+v %v", st, err)
+	}
+	st, err = u.ReceiveReplace(dir, rel, 2000, int64(len(data)), piece(data[2000:]))
+	if err != nil || !st.Done || st.Have != int64(len(data)) {
+		t.Fatalf("last piece: %+v %v", st, err)
+	}
+	if got, _ := os.ReadFile(file); !bytes.Equal(got, data) {
+		t.Fatal("the copy didn't take the file's place")
+	}
+	if _, err := os.Stat(file + partSuffix); err == nil {
+		t.Fatal("the copy stayed as a .part")
+	}
+	if len(done) != 1 || done[0] != file {
+		t.Fatalf("done: %v", done)
+	}
+	// An ordinary upload still never writes over it.
+	if _, err := u.Receive(dir, rel, 0, 5, piece([]byte("other"))); refusal(t, err) != 409 {
+		t.Fatalf("an upload over it: %v", err)
+	}
+}
+
 func TestNoRoom(t *testing.T) {
 	u := &Receiver{Free: func(string) (uint64, error) { return 100 << 20, nil }}
 	if _, err := u.Receive(t.TempDir(), "big.mkv", 0, 1<<30, piece([]byte("x"))); refusal(t, err) != 507 {

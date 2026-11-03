@@ -430,6 +430,38 @@ func TestUtakoAndTheMusicSide(t *testing.T) {
 		t.Fatalf("search %s", raw)
 	}
 
+	// Its details changed on the device: the song is sent again in its
+	// place, in two pieces, and the library reads the new details. Only a
+	// song in the library is replaced.
+	changed := id3(map[string]string{"TIT2": "Renamed", "TPE1": "New Band"})
+	rq := func(offset int) string {
+		return fmt.Sprintf("/api/peer/upload?folder=0&path=%s&offset=%d&total=%d&replace=1", url.QueryEscape("New Band/Uploaded.mp3"), offset, len(changed))
+	}
+	if code, raw := ts.ask(dev, name, "GET", rq(0), nil, false); code != 200 || !strings.Contains(string(raw), `"replace":true`) || !strings.Contains(string(raw), `"have":0`) {
+		t.Fatalf("replace start: %d %s", code, raw)
+	}
+	if code, raw := ts.ask(dev, name, "POST", rq(0), changed[:100], false, "Content-Type", "application/octet-stream"); code != 200 || !strings.Contains(string(raw), `"have":100`) {
+		t.Fatalf("replace first piece: %d %s", code, raw)
+	}
+	if b, _ := os.ReadFile(filepath.Join(ts.music, "New Band", "Uploaded.mp3")); !bytes.Equal(b, up) {
+		t.Fatal("the song changed before its new copy was whole")
+	}
+	if code, raw := ts.ask(dev, name, "POST", rq(100), changed[100:], false, "Content-Type", "application/octet-stream"); code != 200 || !strings.Contains(string(raw), `"done":true`) {
+		t.Fatalf("replace last piece: %d %s", code, raw)
+	}
+	if b, _ := os.ReadFile(filepath.Join(ts.music, "New Band", "Uploaded.mp3")); !bytes.Equal(b, changed) {
+		t.Fatal("the new copy didn't take the song's place")
+	}
+	ts.s.lib.Scan(context.Background())
+	_, raw = ts.dashboard("GET", "/api/tracks?q=renamed", nil)
+	if !strings.Contains(string(raw), `"total":1`) {
+		t.Fatalf("the library didn't read the new details: %s", raw)
+	}
+	nope := fmt.Sprintf("/api/peer/upload?folder=0&path=%s&total=3&replace=1", url.QueryEscape("New Band/Not a song.mp3"))
+	if code, raw := ts.ask(dev, name, "GET", nope, nil, false); code != 404 {
+		t.Fatalf("replacing what isn't a song: %d %s", code, raw)
+	}
+
 	// Let out again: nothing more, its uploads off.
 	ts.dashboard("POST", "/api/devices/"+dev.ID, map[string]bool{"allowed": false})
 	if code, _ := ts.ask(dev, name, "GET", "/api/peer/music/library", nil, false); code != 403 {
