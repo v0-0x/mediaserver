@@ -1,12 +1,14 @@
-import { CircleCheck, FolderSync, Magnet, RefreshCw } from "lucide-react"
+import { CircleCheck, Download, FolderSync, Magnet, RefreshCw } from "lucide-react"
+import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { Cleanup } from "@/components/library/Cleanup"
 import { LibraryFolders } from "@/components/library/LibraryFolders"
+import { MissingDownloadDialog, useAniCliDownloads, useDownloading } from "@/components/library/MissingDownload"
 import { AllFiles, Ignored, Unmatched } from "@/components/library/LibraryTools"
-import { Button, EmptyState, Tabs } from "@/components/ui"
+import { Badge, Button, EmptyState, Tabs, Tooltip } from "@/components/ui"
 import { useCollection, useScan } from "@/lib/queries"
 import { scanStore, useStore } from "@/lib/store"
-import { formatRanges, missingEpisodes } from "@/lib/missing"
+import { formatRanges, type Missing, missingEpisodes } from "@/lib/missing"
 import type { CollectionItem, CollectionView } from "@/lib/types"
 import { cover, title } from "@/lib/utils"
 
@@ -92,37 +94,68 @@ function MissingEpisodes() {
         )
     return (
         <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted">Episodes between the first and the last one in your library that aren't there, and those aired since (for the anime you're watching).</p>
+            <p className="text-sm text-muted">
+                Episodes between the first and the last one in your library that aren't there, and those aired since (for the anime you're watching). Download them with ani-cli, subbed or dubbed, or find torrents.
+            </p>
             <div className="card divide-y divide-line">
-                {rows.map(({ item, missing }) => {
-                    const first = missing.gaps[0] ?? missing.newer[0]
-                    return (
-                        <div key={item.media.id} className="flex items-center gap-4 px-4 py-3">
-                            <img src={cover(item.media, "thumb")} alt="" className="h-16 w-11 shrink-0 rounded-md object-cover" />
-                            <div className="min-w-0 flex-1">
-                                <Link to={`/entry?id=${item.media.id}`} className="block truncate font-medium hover:underline">
-                                    {title(item.media)}
-                                </Link>
-                                {missing.gaps.length > 0 && (
-                                    <p className="mt-0.5 text-sm text-amber-200/85">
-                                        Missing {missing.gaps.length === 1 ? "episode" : `${missing.gaps.length} episodes`}: {formatRanges(missing.gaps)}
-                                    </p>
-                                )}
-                                {missing.newer.length > 0 && (
-                                    <p className="mt-0.5 text-sm text-muted">
-                                        Aired since your last one: {formatRanges(missing.newer)}
-                                    </p>
-                                )}
-                            </div>
-                            <Link to={`/entry?id=${item.media.id}&tab=torrents&episode=${first}`}>
-                                <Button size="sm" icon={<Magnet className="size-4" />}>
-                                    Find torrents
-                                </Button>
-                            </Link>
-                        </div>
-                    )
-                })}
+                {rows.map(({ item, missing }) => (
+                    <MissingRow key={item.media.id} item={item} missing={missing} />
+                ))}
             </div>
+        </div>
+    )
+}
+
+// An anime with episodes missing: download them with ani-cli (sub or dub),
+// or find torrents for the first.
+function MissingRow({ item, missing }: { item: CollectionItem; missing: Missing }) {
+    const [open, setOpen] = useState(false)
+    const aniCli = useAniCliDownloads()
+    const downloading = useDownloading(item.media.id)
+    const first = missing.gaps[0] ?? missing.newer[0]
+    const busy = [...missing.gaps, ...missing.newer].filter(n => downloading.has(n)).length
+    return (
+        <div className="flex flex-wrap items-center gap-4 px-4 py-3">
+            <img src={cover(item.media, "thumb")} alt="" className="h-16 w-11 shrink-0 rounded-md object-cover" />
+            <div className="min-w-0 flex-1">
+                <Link to={`/entry?id=${item.media.id}`} className="block truncate font-medium hover:underline">
+                    {title(item.media)}
+                </Link>
+                {missing.gaps.length > 0 && (
+                    <p className="mt-0.5 text-sm text-amber-200/85">
+                        Missing {missing.gaps.length === 1 ? "episode" : `${missing.gaps.length} episodes`}: {formatRanges(missing.gaps)}
+                    </p>
+                )}
+                {missing.newer.length > 0 && <p className="mt-0.5 text-sm text-muted">Aired since your last one: {formatRanges(missing.newer)}</p>}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+                {busy > 0 && (
+                    <Link to="/downloads" className="focus-ring rounded-full">
+                        <Badge tone="blue">Downloading {busy}</Badge>
+                    </Link>
+                )}
+                {aniCli.loaded &&
+                    aniCli.enabled &&
+                    (aniCli.installed ? (
+                        <Button size="sm" variant="primary" icon={<Download className="size-4" />} onClick={() => setOpen(true)}>
+                            Download
+                        </Button>
+                    ) : (
+                        <Tooltip content="ani-cli isn't installed (Settings › Programs)">
+                            <span>
+                                <Button size="sm" icon={<Download className="size-4" />} disabled>
+                                    Download
+                                </Button>
+                            </span>
+                        </Tooltip>
+                    ))}
+                <Link to={`/entry?id=${item.media.id}&tab=torrents&episode=${first}`}>
+                    <Button size="sm" icon={<Magnet className="size-4" />}>
+                        Find torrents
+                    </Button>
+                </Link>
+            </div>
+            {open && <MissingDownloadDialog media={item.media} missing={missing} open={open} onOpenChange={setOpen} />}
         </div>
     )
 }
