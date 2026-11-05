@@ -8,9 +8,9 @@ import { Dropdown, DropdownContent, DropdownItem, DropdownSeparator, DropdownTri
 // The tabs along the bottom.
 const TABS = [
     { to: "/", label: "Home", icon: <Home />, match: (p: string) => p === "/" },
-    { to: "/local", label: "Library", icon: <HardDrive /> },
-    { to: "/discover", label: "Discover", icon: <Compass /> },
     { to: "/search", label: "Search", icon: <Search /> },
+    { to: "/discover", label: "Discover", icon: <Compass /> },
+    { to: "/local", label: "Library", icon: <HardDrive /> },
 ]
 
 // A phone's navigation (narrow windows, not a TV): the sidebar is a bar of

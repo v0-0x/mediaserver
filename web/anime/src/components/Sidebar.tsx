@@ -84,38 +84,35 @@ export function useNavGroups(): { label: string; items: NavItem[] }[] {
     const settings = status?.settings
     const activeDownloads = (downloads ?? []).filter(d => ["queued", "resolving", "downloading"].includes(d.status)).length
 
+    // Three groups: finding and watching anime (what's used most, first),
+    // getting it, and looking after the library.
     return [
         {
             label: "Watch",
             items: [
                 { to: "/", label: "Home", icon: <Home />, match: p => p === "/" },
+                { to: "/search", label: "Search", icon: <Search />, hint: "Ctrl K" },
+                { to: "/discover", label: "Discover", icon: <Compass /> },
                 { to: "/local", label: "Local library", icon: <HardDrive /> },
+                { to: "/lists", label: "My lists", icon: <ListChecks /> },
                 { to: "/schedule", label: "Schedule", icon: <CalendarDays /> },
                 ...(settings?.manga.enabled !== false ? [{ to: "/manga", label: "Manga", icon: <BookOpen />, match: (p: string) => p.startsWith("/manga") }] : []),
-                { to: "/lists", label: "My lists", icon: <ListChecks /> },
-                { to: "/stats", label: "Stats", icon: <ChartColumn /> },
-            ],
-        },
-        {
-            label: "Explore",
-            items: [
-                { to: "/discover", label: "Discover", icon: <Compass /> },
-                { to: "/search", label: "Search", icon: <Search />, hint: "Ctrl K" },
             ],
         },
         {
             label: "Downloads",
             items: [
-                { to: "/torrent-list", label: "Torrents", icon: <Magnet />, badge: settings?.torrent.showActiveCount ? torrentCount : 0 },
                 { to: "/downloads", label: "Downloads", icon: <Download />, badge: activeDownloads },
+                { to: "/torrent-list", label: "Torrents", icon: <Magnet />, badge: settings?.torrent.showActiveCount ? torrentCount : 0 },
                 { to: "/auto-downloader", label: "Auto downloader", icon: <Rss /> },
             ],
         },
         {
-            label: "Library",
+            label: "Manage",
             items: [
                 { to: "/library", label: "Library tools", icon: <FolderSearch />, badge: coll?.unmatchedCount ?? 0 },
                 { to: "/extensions", label: "Extensions", icon: <Puzzle /> },
+                { to: "/stats", label: "Stats", icon: <ChartColumn /> },
             ],
         },
     ]
