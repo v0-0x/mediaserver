@@ -104,7 +104,29 @@ func (s *Server) peerRoutes() {
 	m := s.mux
 	m.HandleFunc("GET /api/peer/whoami", h(func(r *http.Request) (any, error) { return s.app.Share.Whoami(), nil }))
 	m.HandleFunc("GET /api/peer/hello", h(func(r *http.Request) (any, error) { return s.app.Share.Hello(peerOf(r)), nil }))
-	m.HandleFunc("GET /api/peer/files", shared(h(func(r *http.Request) (any, error) { return s.app.Share.SharedFiles() })))
+	// The shared files, as encoded once for everyone (gzipped for those who
+	// take it: the Go client does by itself), with the version as its ETag.
+	m.HandleFunc("GET /api/peer/files", shared(func(w http.ResponseWriter, r *http.Request) {
+		ver, plain, gz, err := s.app.Share.SharedFilesJSON()
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+			return
+		}
+		etag := `"` + ver + `"`
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Cache-Control", "no-cache")
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if gz != nil && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+			_, _ = w.Write(gz)
+			return
+		}
+		_, _ = w.Write(plain)
+	}))
 	// The watch history, for an Aniko it's paired with (it shares its library
 	// with it, or that one with it) on the same AniList account: Continue
 	// watching goes on there where it stopped here.
@@ -266,14 +288,21 @@ func (s *Server) peerRoutes() {
 		return map[string]any{"message": msg}, nil
 	}))
 
-	// This Aniko's settings and the libraries shared with it.
-	// Opened: what the others share is asked for again.
+	// This Aniko's settings and the libraries shared with it. With
+	// refresh=1 (the page just opened, or you asked), what the others share
+	// is asked for again now; a page asking every few seconds doesn't have
+	// the servers answer that often.
+	refresh := func(r *http.Request) {
+		if r.URL.Query().Get("refresh") == "1" {
+			s.app.Share.RefreshNow()
+		}
+	}
 	m.HandleFunc("GET /api/sharing", h(func(r *http.Request) (any, error) {
-		s.app.Share.Refresh()
+		refresh(r)
 		return s.app.Share.Status(), nil
 	}))
 	m.HandleFunc("GET /api/sharing/libraries", h(func(r *http.Request) (any, error) {
-		s.app.Share.Refresh()
+		refresh(r)
 		return s.app.Share.Libraries(), nil
 	}))
 	m.HandleFunc("POST /api/sharing/peers/{id}", h(func(r *http.Request) (any, error) {

@@ -170,6 +170,8 @@ export type CollectionView = {
     // Anime in the library left out for now (AniList didn't say what they
     // are yet): the collection is asked for again.
     incomplete?: number
+    // The list is the copy here; AniList is being asked for the current one.
+    refreshing?: boolean
     genres: string[] | null
 }
 
@@ -638,6 +640,9 @@ export type SharingPeer = {
     sharesAccount: boolean
     usingAccount: boolean
     takesDownloads: boolean
+    // It answers when asked, but none of its announcements got through in a
+    // minute: found by its address alone (a firewall on it).
+    noBeacons?: boolean
     // It shares with this Aniko and has said how to wake it up (Wake-on-LAN);
     // waking: a wake-up was just sent.
     canWake?: boolean

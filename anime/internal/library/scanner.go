@@ -37,12 +37,17 @@ type Scanner struct {
 
 	mu      sync.Mutex
 	running atomic.Bool
-	rescan  atomic.Bool
+	// progress: where the scan running is (Progress).
+	progress atomic.Pointer[ScanProgress]
+	rescan   atomic.Bool
 
 	startMu   sync.Mutex // serializes StartWatcher (settings changes fire concurrently)
 	watcherMu sync.Mutex
 	watcher   *fsnotify.Watcher
 	stopWatch chan struct{}
+	// watching: the watcher knows the library's folders (StartWatcher walks
+	// them in the background).
+	watching atomic.Bool
 }
 
 func NewScanner(store *Store, p *anilist.Platform, s *config.Store, hub *events.Hub) *Scanner {
@@ -86,6 +91,15 @@ type ScanProgress struct {
 
 func (s *Scanner) Running() bool { return s.running.Load() }
 
+// Progress is where the scan running is (nil: none running): what the
+// events say, for a page that asks instead of listening (a dashboard).
+func (s *Scanner) Progress() *ScanProgress { return s.progress.Load() }
+
+func (s *Scanner) publishProgress(p ScanProgress) {
+	s.progress.Store(&p)
+	s.hub.Publish(events.ScanProgress, p)
+}
+
 var ErrScanRunning = errors.New("a library scan is already running")
 
 // ScanDonePayload is sent with events.ScanDone.
@@ -112,6 +126,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 	defer func() {
 		// Always tell the UI the scan is over, also when it failed.
 		if err != nil {
+			s.progress.Store(nil)
 			s.hub.Publish(events.ScanDone, ScanDonePayload{Error: err.Error()})
 		}
 		s.mu.Unlock()
@@ -127,7 +142,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 	cfg := s.settings.Get()
 	roots := cfg.LibraryDirs()
 
-	s.hub.Publish(events.ScanProgress, ScanProgress{Stage: "walking", Message: "Looking for video files…"})
+	s.publishProgress(ScanProgress{Stage: "walking", Message: "Looking for video files…"})
 	found := map[string]fs.FileInfo{}
 	var walked, failed []string // roots read successfully / folders that couldn't be read
 	for _, root := range roots {
@@ -136,7 +151,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 		}
 		base := len(found)
 		w, err := walkLibrary(root, cfg.Library.IgnorePatterns, func(n int) {
-			s.hub.Publish(events.ScanProgress, ScanProgress{Stage: "walking", Done: base + n, Message: "Found " + itoa(base+n) + " files…"})
+			s.publishProgress(ScanProgress{Stage: "walking", Done: base + n, Message: "Found " + itoa(base+n) + " files…"})
 		})
 		if err != nil {
 			log.Printf("scan: can't read %s: %v", root, err)
@@ -147,7 +162,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 		for p, info := range w.files {
 			found[p] = info
 		}
-		s.hub.Publish(events.ScanProgress, ScanProgress{Stage: "walking", Done: len(found), Message: "Found " + itoa(len(found)) + " files…"})
+		s.publishProgress(ScanProgress{Stage: "walking", Done: len(found), Message: "Found " + itoa(len(found)) + " files…"})
 	}
 	if cfg.Library.Off {
 		return nil, ErrLibraryOff
@@ -160,7 +175,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 	if err != nil {
 		return nil, err
 	}
-	s.hub.Publish(events.ScanProgress, ScanProgress{Stage: "walking", Done: len(found), Message: "Found " + itoa(len(found)) + " files, reading names…"})
+	s.publishProgress(ScanProgress{Stage: "walking", Done: len(found), Message: "Found " + itoa(len(found)) + " files, reading names…"})
 	byPath := map[string]*LocalFile{}
 	for _, f := range existing {
 		byPath[f.Path] = f
@@ -216,7 +231,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 	if !opts.SkipMatching && len(toMatch) > 0 {
 		m := s.newMatcher(cfg.Library.MatchThreshold, cfg.Library.MatchOutsideList)
 		m.MatchFiles(ctx, toMatch, func(done, total int, title string) {
-			s.hub.Publish(events.ScanProgress, ScanProgress{Stage: "matching", Done: done, Total: total, Message: "Matching " + title})
+			s.publishProgress(ScanProgress{Stage: "matching", Done: done, Total: total, Message: "Matching " + title})
 		})
 		if upgrade {
 			// Matched again only to do better: a file AniList couldn't
@@ -239,7 +254,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 		_ = s.Store.db.SetKV(matcherVersionKey, matcherVersion)
 	}
 
-	s.hub.Publish(events.ScanProgress, ScanProgress{Stage: "saving", Message: "Saving…"})
+	s.publishProgress(ScanProgress{Stage: "saving", Message: "Saving…"})
 	// Matching can take minutes; don't overwrite what the user (or a
 	// finished download) changed in the meantime.
 	if err := s.Store.SaveScanned(changed, byPath); err != nil {
@@ -260,6 +275,7 @@ func (s *Scanner) Scan(ctx context.Context, opts ScanOptions) (res *ScanResult, 
 		}
 	}
 	res.Seconds = time.Since(start).Seconds()
+	s.progress.Store(nil)
 	s.hub.Publish(events.ScanDone, ScanDonePayload{ScanResult: res})
 	s.hub.Publish(events.LibraryUpdated, nil)
 	if s.OnScanned != nil {
@@ -450,6 +466,14 @@ func itoa(n int) string { return strconv.Itoa(n) }
 
 // StartWatcher watches the library directories and triggers an incremental
 // scan shortly after files are added, removed or renamed.
+// walkForWatch is the walk StartWatcher finds the library's folders with
+// (a variable, for the tests).
+var walkForWatch = walkLibrary
+
+// WatcherReady reports that the watcher knows the library's folders: it
+// takes a moment after StartWatcher, in the background.
+func (s *Scanner) WatcherReady() bool { return s.watching.Load() }
+
 func (s *Scanner) StartWatcher() {
 	s.startMu.Lock()
 	defer s.startMu.Unlock()
@@ -458,48 +482,76 @@ func (s *Scanner) StartWatcher() {
 	if !cfg.Library.AutoRefresh {
 		return
 	}
-	var dirs []string
-	for _, root := range cfg.LibraryDirs() {
-		// Same walk as the scanner, so symlinked folders are watched too.
-		if res, err := walkLibrary(root, cfg.Library.IgnorePatterns, nil); err == nil {
-			dirs = append(dirs, res.dirs...)
-		}
-	}
-	// macOS watches a folder by opening every file in it, and those count
-	// against the files Aniko may have open, its network connections too: a
-	// library bigger than that is checked for changes every few minutes
-	// instead.
-	polling := false
-	if budget := watchBudget(); budget > 0 {
-		if n, over := overBudget(dirs, budget); over {
-			log.Printf("library watcher: the library has %d+ files, more than macOS lets Aniko watch (%d): it checks for new episodes every %v instead", n, budget, pollEvery)
-			dirs, polling = nil, true
-		}
-	}
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Printf("library watcher: %v", err)
 		return
-	}
-	for _, dir := range dirs {
-		_ = w.Add(dir)
 	}
 	stop := make(chan struct{})
 	s.watcherMu.Lock()
 	s.watcher, s.stopWatch = w, stop
 	s.watcherMu.Unlock()
 
+	// The library's folders are found and watched in the background: a
+	// large library on a slow disk (a server's USB drive) takes a while to
+	// walk, and nothing has to wait for it (the server answers meanwhile; a
+	// scan finds what changed before the watcher was ready).
+	usePolling := make(chan struct{}, 1)
+	go func() {
+		stopped := func() bool {
+			select {
+			case <-stop:
+				return true
+			default:
+				return false
+			}
+		}
+		var dirs []string
+		for _, root := range cfg.LibraryDirs() {
+			if stopped() {
+				return
+			}
+			// Same walk as the scanner, so symlinked folders are watched too.
+			if res, err := walkForWatch(root, cfg.Library.IgnorePatterns, nil); err == nil {
+				dirs = append(dirs, res.dirs...)
+			}
+		}
+		// macOS watches a folder by opening every file in it, and those
+		// count against the files Aniko may have open, its network
+		// connections too: a library bigger than that is checked for changes
+		// every few minutes instead.
+		if budget := watchBudget(); budget > 0 {
+			if n, over := overBudget(dirs, budget); over {
+				log.Printf("library watcher: the library has %d+ files, more than macOS lets Aniko watch (%d): it checks for new episodes every %v instead", n, budget, pollEvery)
+				usePolling <- struct{}{}
+				s.watching.Store(true)
+				return
+			}
+		}
+		for _, dir := range dirs {
+			if stopped() {
+				return
+			}
+			_ = w.Add(dir)
+		}
+		s.watching.Store(true)
+	}()
+
 	go func() {
 		var timer *time.Timer
 		trigger := make(chan struct{}, 1)
 		var poll <-chan time.Time
-		if polling {
-			t := time.NewTicker(pollEvery)
-			defer t.Stop()
-			poll = t.C
-		}
+		var ticker *time.Ticker
+		defer func() {
+			if ticker != nil {
+				ticker.Stop()
+			}
+		}()
 		for {
 			select {
+			case <-usePolling:
+				ticker = time.NewTicker(pollEvery)
+				poll = ticker.C
 			case <-poll:
 				go s.autoScan()
 			case <-stop:
@@ -567,6 +619,7 @@ func overBudget(dirs []string, budget int) (n int, over bool) {
 func (s *Scanner) StopWatcher() {
 	s.watcherMu.Lock()
 	defer s.watcherMu.Unlock()
+	s.watching.Store(false)
 	if s.stopWatch != nil {
 		close(s.stopWatch)
 		s.stopWatch = nil

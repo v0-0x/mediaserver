@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -124,7 +125,7 @@ func TestLibrarySharing(t *testing.T) {
 	}
 	var libs []share.SharedLibrary
 	eventually(t, "the guest to get the host's library", func() bool {
-		w := do(guest, "GET", "/api/sharing/libraries", local, "", nil) // asks again
+		w := do(guest, "GET", "/api/sharing/libraries?refresh=1", local, "", nil) // asks again
 		_ = json.Unmarshal(w.Body.Bytes(), &libs)
 		return len(libs) == 1 && len(libs[0].Files) == 1
 	})
@@ -215,7 +216,7 @@ func TestLibrarySharing(t *testing.T) {
 		t.Fatalf("disallow: %d", w.Code)
 	}
 	eventually(t, "the guest to lose the host's library", func() bool {
-		w := do(guest, "GET", "/api/sharing/libraries", local, "", nil)
+		w := do(guest, "GET", "/api/sharing/libraries?refresh=1", local, "", nil)
 		_ = json.Unmarshal(w.Body.Bytes(), &libs)
 		return len(libs) == 0
 	})
@@ -296,6 +297,32 @@ func TestPeerRequestsChecked(t *testing.T) {
 	if resp.StatusCode != http.StatusOK || !strings.Contains(string(body), "Show - 01.mkv") {
 		t.Errorf("files when allowed: %d %s", resp.StatusCode, body)
 	}
+	// Gzipped for a client that takes it, and not sent again when it has
+	// that version (its ETag).
+	etag := resp.Header.Get("ETag")
+	req, _ = http.NewRequest("GET", hostSrv.URL+"/api/peer/files", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	_ = other.app.Share.Sign(req, hostID, who.Key)
+	if resp, err := http.DefaultClient.Do(req); err == nil {
+		zr, zerr := gzip.NewReader(resp.Body)
+		var unzipped []byte
+		if zerr == nil {
+			unzipped, _ = io.ReadAll(zr)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || resp.Header.Get("Content-Encoding") != "gzip" || zerr != nil || !strings.Contains(string(unzipped), "Show - 01.mkv") {
+			t.Errorf("files gzipped: %d %q %v", resp.StatusCode, resp.Header.Get("Content-Encoding"), zerr)
+		}
+	}
+	req, _ = http.NewRequest("GET", hostSrv.URL+"/api/peer/files", nil)
+	req.Header.Set("If-None-Match", etag)
+	_ = other.app.Share.Sign(req, hostID, who.Key)
+	if resp, err := http.DefaultClient.Do(req); err == nil {
+		resp.Body.Close()
+		if etag == "" || resp.StatusCode != http.StatusNotModified {
+			t.Errorf("files with the version it has (%q): %d, want 304", etag, resp.StatusCode)
+		}
+	}
 	outside := filepath.Join(t.TempDir(), "secret.txt")
 	_ = os.WriteFile(outside, []byte("secret"), 0o644)
 	resp = signed("/api/peer/local/file?" + url.Values{"path": {outside}}.Encode())
@@ -354,7 +381,7 @@ func TestHistoryFollowsTheAccount(t *testing.T) {
 	}
 	eventually(t, "the host to list the guest", func() bool { _, ok := peerIn(host, guest); return ok })
 	synced := func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil) // asks again
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil) // asks again
 		e := guest.app.History.Get(21, 3)
 		return e != nil && e.Position == 600
 	}
@@ -388,7 +415,7 @@ func TestHistoryFollowsTheAccount(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 15; i++ {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		time.Sleep(300 * time.Millisecond)
 	}
 	if e := guest.app.History.Get(21, 4); e != nil {
@@ -432,7 +459,7 @@ func TestAccountShared(t *testing.T) {
 		}
 	}
 	asked := func(ok func() bool) func() bool {
-		return func() bool { do(guest, "GET", "/api/sharing", local, "", nil); return ok() }
+		return func() bool { do(guest, "GET", "/api/sharing?refresh=1", local, "", nil); return ok() }
 	}
 
 	// The library alone: not the account.
@@ -480,7 +507,7 @@ func TestAccountShared(t *testing.T) {
 	}
 	guest.app.Share.DropAccount()
 	for i := 0; i < 8; i++ {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		time.Sleep(250 * time.Millisecond)
 	}
 	if guestLogin() != "" {
@@ -512,7 +539,7 @@ func TestDownloadsToHost(t *testing.T) {
 	eventually(t, "the host to list the guest", func() bool { _, ok := peerIn(host, guest); return ok })
 	gid, hid := guest.app.Share.ID(), host.app.Share.ID()
 	asked := func(ok func() bool) func() bool {
-		return func() bool { do(guest, "GET", "/api/sharing", local, "", nil); return ok() }
+		return func() bool { do(guest, "GET", "/api/sharing?refresh=1", local, "", nil); return ok() }
 	}
 	if err := host.app.Share.SetAllowed(gid, true); err != nil {
 		t.Fatal(err)
@@ -654,7 +681,7 @@ func TestSyncNow(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the library", func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		return len(guest.app.Share.Libraries()) == 1
 	})
 	// Saved on each while the other didn't hear of it.
@@ -730,7 +757,7 @@ func TestHistoryCatchesUp(t *testing.T) {
 	}
 	eventually(t, "the host to list the guest", func() bool { _, ok := peerIn(host, guest); return ok })
 	asked := func(ok func() bool) func() bool {
-		return func() bool { do(guest, "GET", "/api/sharing", local, "", nil); return ok() }
+		return func() bool { do(guest, "GET", "/api/sharing?refresh=1", local, "", nil); return ok() }
 	}
 	has := func(s *Server, ep int, pos float64) func() bool {
 		return func() bool { e := s.app.History.Get(21, ep); return e != nil && e.Position == pos }
@@ -784,7 +811,7 @@ func TestForgetAndUnshareDropGrants(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "downloads to go to the host", func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		return guest.app.Settings.Get().Sharing.DownloadTo == hid
 	})
 	guest.app.Share.Forget(hid)
@@ -844,7 +871,7 @@ func TestPlayerNoteReachesTheHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the library", func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		return len(guest.app.Share.Libraries()) == 1
 	})
 	time.Sleep(2100 * time.Millisecond) // one note every 2 seconds
@@ -898,7 +925,7 @@ func TestAutoSyncWhenBack(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, "the library", func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		return len(guest.app.Share.Libraries()) == 1
 	})
 	time.Sleep(500 * time.Millisecond)

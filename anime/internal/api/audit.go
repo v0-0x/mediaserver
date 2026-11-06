@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -442,13 +441,16 @@ func (s *Server) reversedLines() []string {
 // titles fills in the anime events are about, by name (AniList's, kept;
 // asked a moment at most).
 func (s *Server) titles(r *http.Request, events []anikohub.Event) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-	defer cancel()
-	for i, e := range events {
+	var ids []int
+	for _, e := range events {
 		if e.MediaID > 0 && e.Title == "" {
-			if m, err := s.app.Platform.MediaLite(ctx, e.MediaID); err == nil && m != nil {
-				events[i].Title = m.PreferredTitle()
-			}
+			ids = append(ids, e.MediaID)
+		}
+	}
+	names := titles.get(s.app.Platform, ids)
+	for i, e := range events {
+		if n, ok := names[e.MediaID]; ok && e.Title == "" && n.title != "" {
+			events[i].Title = n.title
 		}
 	}
 }

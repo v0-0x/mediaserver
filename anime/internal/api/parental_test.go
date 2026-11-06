@@ -46,7 +46,7 @@ func TestParentalControls(t *testing.T) {
 	}
 
 	parentalOn := func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil) // asks again
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil) // asks again
 		var st struct {
 			Active bool                   `json:"active"`
 			From   []share.ParentalSource `json:"from"`
@@ -59,7 +59,7 @@ func TestParentalControls(t *testing.T) {
 	// What's shared with it: not the blocked anime.
 	var libs []share.SharedLibrary
 	eventually(t, "the shared library without the blocked anime", func() bool {
-		_ = json.Unmarshal(do(guest, "GET", "/api/sharing/libraries", local, "", nil).Body.Bytes(), &libs)
+		_ = json.Unmarshal(do(guest, "GET", "/api/sharing/libraries?refresh=1", local, "", nil).Body.Bytes(), &libs)
 		return len(libs) == 1 && len(libs[0].Files) == 1 && libs[0].Files[0].MediaID == 22
 	})
 	// Asked anyway: refused, on the guest and on the host.
@@ -124,7 +124,7 @@ func TestParentalControls(t *testing.T) {
 		t.Fatalf("lift: %d", w.Code)
 	}
 	eventually(t, "the controls lifted", func() bool {
-		do(guest, "GET", "/api/sharing", local, "", nil)
+		do(guest, "GET", "/api/sharing?refresh=1", local, "", nil)
 		return !guest.app.Share.Parental().Active()
 	})
 	if w := do(guest, "GET", "/api/anime/21", local, "", nil); w.Code == http.StatusForbidden {

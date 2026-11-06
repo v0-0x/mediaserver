@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"compress/gzip"
 	"github.com/v0-0x/mediaserver/music/internal/library"
 	"github.com/v0-0x/mediaserver/music/internal/peer"
 	fileup "github.com/v0-0x/mediaserver/music/internal/upload"
@@ -62,7 +63,15 @@ type Server struct {
 	ln     net.Listener
 	ann    *peer.Announcer
 	cancel context.CancelFunc
-	wg     sync.WaitGroup
+
+	// The library as sent to the apps (library), encoded once per version,
+	// plain and gzipped: every app asks for the whole list.
+	libJSON struct {
+		sync.Mutex
+		version   string
+		plain, gz []byte
+	}
+	wg sync.WaitGroup
 }
 
 // New opens the music side's data in o.DataDir.
@@ -295,9 +304,46 @@ func (s *Server) hello(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// library is the songs, for an app: all of them, as one list. With
+// ?since=<version> and nothing changed, only that (unchanged); with the
+// version in If-None-Match, 304. Encoded once per version, gzipped for an
+// app that takes it.
 func (s *Server) library(w http.ResponseWriter, r *http.Request) {
 	version, tracks := s.lib.Snapshot()
-	writeJSON(w, http.StatusOK, map[string]any{"version": version, "tracks": tracks})
+	if since := r.URL.Query().Get("since"); since != "" && since == version {
+		writeJSON(w, http.StatusOK, map[string]any{"version": version, "unchanged": true})
+		return
+	}
+	etag := `"` + version + `"`
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", "no-cache")
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	s.libJSON.Lock()
+	if s.libJSON.version != version || s.libJSON.plain == nil {
+		plain, err := json.Marshal(map[string]any{"version": version, "tracks": tracks})
+		if err != nil {
+			s.libJSON.Unlock()
+			writeJSON(w, http.StatusInternalServerError, errMsg(err.Error()))
+			return
+		}
+		var buf bytes.Buffer
+		zw, _ := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
+		_, _ = zw.Write(plain)
+		_ = zw.Close()
+		s.libJSON.version, s.libJSON.plain, s.libJSON.gz = version, plain, buf.Bytes()
+	}
+	plain, gz := s.libJSON.plain, s.libJSON.gz
+	s.libJSON.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		_, _ = w.Write(gz)
+		return
+	}
+	_, _ = w.Write(plain)
 }
 
 // file streams a song (Range included): a ticket, which the player repeats

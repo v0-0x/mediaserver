@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"compress/gzip"
 	"github.com/v0-0x/mediaserver/music/internal/peer"
 )
 
@@ -263,6 +264,21 @@ func TestUtakoAndTheMusicSide(t *testing.T) {
 	var lib libraryAnswer
 	if json.Unmarshal(raw, &lib); code != 200 || len(lib.Tracks) != 3 || lib.Version != hello.Files {
 		t.Fatalf("library %d %s", code, raw)
+	}
+	// Nothing changed: said so with ?since=, and 304 with the version as
+	// its ETag; gzipped for an app that takes it.
+	if code, raw := ts.ask(dev, name, "GET", "/api/peer/music/library?since="+lib.Version, nil, false); code != 200 || !strings.Contains(string(raw), `"unchanged":true`) || strings.Contains(string(raw), `"tracks"`) {
+		t.Fatalf("library since its version: %d %s", code, raw)
+	}
+	if code, _ := ts.ask(dev, name, "GET", "/api/peer/music/library", nil, false, "If-None-Match", `"`+lib.Version+`"`); code != 304 {
+		t.Fatalf("library with its version in If-None-Match: %d, want 304", code)
+	}
+	if code, raw := ts.ask(dev, name, "GET", "/api/peer/music/library", nil, false, "Accept-Encoding", "gzip"); code != 200 || ts.lastResp.Header.Get("Content-Encoding") != "gzip" {
+		t.Fatalf("library gzipped: %d %q", code, ts.lastResp.Header.Get("Content-Encoding"))
+	} else if zr, err := gzip.NewReader(bytes.NewReader(raw)); err != nil {
+		t.Fatalf("library gzipped: %v", err)
+	} else if unzipped, _ := io.ReadAll(zr); !strings.Contains(string(unzipped), `"tracks"`) {
+		t.Fatalf("library gzipped: %s", unzipped)
 	}
 	byTitle := map[string]int{}
 	for i, tr := range lib.Tracks {

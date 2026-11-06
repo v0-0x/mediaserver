@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/v0-0x/mediaserver/anime/internal/anikohub"
+	"github.com/v0-0x/mediaserver/anime/internal/anilist"
 	"github.com/v0-0x/mediaserver/anime/internal/config"
+	"github.com/v0-0x/mediaserver/anime/internal/library"
 	"github.com/v0-0x/mediaserver/anime/internal/share"
 )
 
@@ -226,13 +228,98 @@ type hubLibrary struct {
 	Size      int64    `json:"size"`
 	Unmatched int      `json:"unmatched"`
 	Scanning  bool     `json:"scanning"`
+	// Progress: where the scan running is (with Scanning).
+	Progress *library.ScanProgress `json:"progress,omitempty"`
 }
 
-// The library's numbers, kept a moment (the dashboard asks every 2 seconds).
+// The library's numbers, kept a moment (the dashboard asks every few
+// seconds): also while a scan runs, when they're the numbers from before
+// it (the scan saves at its end), with where the scan is beside them.
 var libStats struct {
 	sync.Mutex
+	at       time.Time
+	v        hubLibrary
+	scanning bool
+}
+
+// titleCache is what the dashboard calls the anime its activity is about:
+// AniList's names, from what's kept here; the ones not kept are asked for
+// in the background, never while the dashboard waits (an AniList slow or
+// away held every overview for seconds).
+type titleCache struct {
+	mu        sync.Mutex
+	titles    map[int]titleEntry
+	resolving map[int]bool
+}
+
+type titleEntry struct {
+	title, cover string
+	at           time.Time // zero: known for good; else when it wasn't (asked again after a while)
+}
+
+const titleMissFor = 2 * time.Minute
+
+var titles titleCache
+
+// get is the names of these anime, as known now; the unknown are asked for
+// soon.
+func (c *titleCache) get(p *anilist.Platform, ids []int) map[int]titleEntry {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.titles == nil {
+		c.titles, c.resolving = map[int]titleEntry{}, map[int]bool{}
+	}
+	out := map[int]titleEntry{}
+	var ask []int
+	now := time.Now()
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		e, ok := c.titles[id]
+		if ok && (e.at.IsZero() || now.Sub(e.at) < titleMissFor) {
+			out[id] = e
+			continue
+		}
+		if m := p.CachedLite(id); m != nil {
+			e = titleEntry{title: m.PreferredTitle(), cover: m.CoverImage.Large}
+			c.titles[id] = e
+			out[id] = e
+			continue
+		}
+		if !c.resolving[id] {
+			c.resolving[id] = true
+			ask = append(ask, id)
+		}
+	}
+	if len(ask) > 0 {
+		go c.resolve(p, ask)
+	}
+	return out
+}
+
+func (c *titleCache) resolve(p *anilist.Platform, ids []int) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	got, _ := p.MediaBatch(ctx, ids)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, id := range ids {
+		delete(c.resolving, id)
+		if m, ok := got[id]; ok && m != nil {
+			c.titles[id] = titleEntry{title: m.PreferredTitle(), cover: m.CoverImage.Large}
+		} else {
+			c.titles[id] = titleEntry{at: time.Now()}
+		}
+	}
+}
+
+// The accounts' history counts, kept half a minute (a count over the whole
+// table each time the dashboard asks).
+var historyCounts struct {
+	sync.Mutex
 	at time.Time
-	v  hubLibrary
+	v  map[int]int
 }
 
 // libraryEdited wraps a handler that changes the library by hand
@@ -252,30 +339,42 @@ func libraryEdited(fn func(*http.Request) (any, error)) func(*http.Request) (any
 func (s *Server) hubLibrary() hubLibrary {
 	libStats.Lock()
 	defer libStats.Unlock()
-	if time.Since(libStats.at) < 15*time.Second && !s.app.Scanner.Running() {
+	scanning := s.app.Scanner.Running()
+	if libStats.scanning && !scanning {
+		// A scan just ended: its numbers now.
+		libStats.at = time.Time{}
+	}
+	libStats.scanning = scanning
+	if time.Since(libStats.at) < 15*time.Second || scanning && !libStats.at.IsZero() {
 		v := libStats.v
-		v.Scanning = s.app.Scanner.Running()
+		v.Scanning = scanning
+		v.Progress = s.app.Scanner.Progress()
 		return v
 	}
 	v := hubLibrary{Folders: s.app.Settings.Get().LibraryDirs()}
-	if files, err := s.app.Files.All(); err == nil {
-		anime := map[int]bool{}
-		for _, f := range files {
-			if f.Ignored {
-				continue
-			}
-			v.Files++
-			v.Size += f.Size
-			if f.MediaID > 0 {
-				anime[f.MediaID] = true
-			} else {
-				v.Unmatched++
-			}
-		}
-		v.Anime = len(anime)
+	files, err := s.app.Files.All()
+	if err != nil && !libStats.at.IsZero() {
+		// Couldn't be read now (the database busy): the last numbers stand.
+		v = libStats.v
+		v.Scanning, v.Progress = scanning, s.app.Scanner.Progress()
+		return v
 	}
-	v.Scanning = s.app.Scanner.Running()
+	anime := map[int]bool{}
+	for _, f := range files {
+		if f.Ignored {
+			continue
+		}
+		v.Files++
+		v.Size += f.Size
+		if f.MediaID > 0 {
+			anime[f.MediaID] = true
+		} else {
+			v.Unmatched++
+		}
+	}
+	v.Anime = len(anime)
 	libStats.at, libStats.v = time.Now(), v
+	v.Scanning, v.Progress = scanning, s.app.Scanner.Progress()
 	return v
 }
 
@@ -296,25 +395,35 @@ func (s *Server) hubOverview(r *http.Request) (any, error) {
 			o.Downloads++
 		}
 	}
-	// What's playing, by name: AniList's (kept), asked a moment at most.
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-	defer cancel()
-	for _, p := range s.app.Share.NowPlaying() {
+	// What's playing and what the activity is about, by name: AniList's,
+	// from what's kept here (the rest is asked for in the background).
+	playing := s.app.Share.NowPlaying()
+	var ids []int
+	for _, p := range playing {
+		ids = append(ids, p.MediaID)
+	}
+	for _, e := range o.Activity {
+		ids = append(ids, e.MediaID)
+	}
+	names := titles.get(s.app.Platform, ids)
+	for _, p := range playing {
 		hp := hubPlaying{Playing: p}
-		if m, err := s.app.Platform.MediaLite(ctx, p.MediaID); err == nil && m != nil {
-			hp.Title, hp.Cover = m.PreferredTitle(), m.CoverImage.Large
+		if e, ok := names[p.MediaID]; ok {
+			hp.Title, hp.Cover = e.title, e.cover
 		}
 		o.Playing = append(o.Playing, hp)
 	}
-	// The episodes the activity is about, by name.
 	for i, e := range o.Activity {
-		if e.MediaID > 0 {
-			if m, err := s.app.Platform.MediaLite(ctx, e.MediaID); err == nil && m != nil {
-				o.Activity[i].Title = m.PreferredTitle()
-			}
+		if n, ok := names[e.MediaID]; ok && n.title != "" {
+			o.Activity[i].Title = n.title
 		}
 	}
-	counts := hs.HistoryCounts()
+	historyCounts.Lock()
+	if time.Since(historyCounts.at) > 30*time.Second {
+		historyCounts.v, historyCounts.at = hs.HistoryCounts(), time.Now()
+	}
+	counts := historyCounts.v
+	historyCounts.Unlock()
 	for _, a := range hs.Accounts() {
 		ha := hubAccount{Account: a, History: counts[a.User]}
 		for _, d := range o.Devices {

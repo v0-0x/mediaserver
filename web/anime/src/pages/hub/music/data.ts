@@ -74,8 +74,10 @@ export function useUStatus() {
     return useQuery({ queryKey: ["music", "status"], queryFn: () => api.get<UStatus>(`${U}/status`), refetchInterval: 5000 })
 }
 
-export function useUDevices() {
-    return useQuery({ queryKey: ["music", "devices"], queryFn: () => api.get<UDevice[]>(`${U}/devices`), refetchInterval: 5000 })
+// Asked every few seconds on the music pages; elsewhere now and then (the
+// badge for devices waiting to be let in).
+export function useUDevices(shown = true) {
+    return useQuery({ queryKey: ["music", "devices"], queryFn: () => api.get<UDevice[]>(`${U}/devices`), refetchInterval: shown ? 5000 : 60_000 })
 }
 
 export function useUFolders() {

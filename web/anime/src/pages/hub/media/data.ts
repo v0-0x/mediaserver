@@ -82,8 +82,10 @@ export function useMStatus() {
     return useQuery({ queryKey: ["movies", "status"], queryFn: () => api.get<MStatus>(`${M}/status`), refetchInterval: 10_000 })
 }
 
-export function useMSharing() {
-    return useQuery({ queryKey: ["movies", "sharing"], queryFn: () => api.get<MSharing>(`${M}/sharing`), refetchInterval: 5_000 })
+// Asked every few seconds on the movies and TV pages; elsewhere now and then
+// (the badge for devices waiting to be let in).
+export function useMSharing(shown = true) {
+    return useQuery({ queryKey: ["movies", "sharing"], queryFn: () => api.get<MSharing>(`${M}/sharing`), refetchInterval: shown ? 5_000 : 60_000 })
 }
 
 export function useMTitles() {

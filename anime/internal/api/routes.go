@@ -18,6 +18,7 @@ import (
 
 	"github.com/v0-0x/mediaserver/anime/internal/anilist"
 	"github.com/v0-0x/mediaserver/anime/internal/config"
+	"github.com/v0-0x/mediaserver/anime/internal/library"
 	"github.com/v0-0x/mediaserver/anime/internal/share"
 	"github.com/v0-0x/mediaserver/anime/internal/stream"
 	"github.com/v0-0x/mediaserver/anime/internal/util"
@@ -721,12 +722,22 @@ func (s *Server) openPath(r *http.Request) (any, error) {
 
 func (s *Server) animeCollection(r *http.Request) (any, error) {
 	// fresh: the list as AniList has it now (another device's progress), at
-	// most a minute old; and the other Anikos asked for their history.
-	if r.URL.Query().Get("fresh") == "1" {
-		_, _ = s.app.Platform.CollectionWithin(r.Context(), "ANIME", time.Minute)
-		s.app.Share.Refresh()
+	// most a minute old: the copy here at once, AniList asked in the
+	// background (the page hears collection-updated), so a slow AniList
+	// doesn't hold the page. refresh: asked now, as you asked.
+	var view *library.CollectionView
+	var err error
+	if r.URL.Query().Get("fresh") == "1" && r.URL.Query().Get("refresh") != "1" {
+		coll, refreshing, cerr := s.app.Platform.CollectionSoon(r.Context(), "ANIME", time.Minute)
+		if cerr != nil {
+			return nil, cerr
+		}
+		if view, err = s.app.Library.CollectionWith(r.Context(), coll); err == nil {
+			view.Refreshing = refreshing
+		}
+	} else {
+		view, err = s.app.Library.Collection(r.Context(), r.URL.Query().Get("refresh") == "1")
 	}
-	view, err := s.app.Library.Collection(r.Context(), r.URL.Query().Get("refresh") == "1")
 	if err == nil {
 		go s.app.PrefetchCollectionArt(view)
 	}

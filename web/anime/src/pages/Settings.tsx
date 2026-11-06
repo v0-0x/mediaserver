@@ -48,7 +48,7 @@ import { Badge, Button, EmptyState, Input, Select, Switch, Textarea } from "@/co
 import { UpdateBanner, versionName } from "@/components/UpdateBanner"
 import { whatsNewStore } from "@/components/WhatsNew"
 import { api, desktop, type DesktopPrefs } from "@/lib/api"
-import { useCheckUpdate, useOnlineProviders, useParental, useSaveSettings, useSharing, useStatus, useUpdateStatus } from "@/lib/queries"
+import { refreshSharing, useCheckUpdate, useOnlineProviders, useParental, useSaveSettings, useSharing, useStatus, useUpdateStatus } from "@/lib/queries"
 import { exampleMpvPath, installHint, installSource, platformName } from "@/lib/platform"
 import type { Tool } from "@/lib/platform"
 import { canInstallPrograms, useInstallPrograms, useWatchSetup } from "@/lib/programs"
@@ -1281,12 +1281,17 @@ function SharingGroup({ draft, set }: SectionProps) {
             {draft.sharing.enabled !== !!saved?.enabled && <p className="px-4 py-3 text-xs text-amber-200/80">Save to turn library sharing {draft.sharing.enabled ? "on" : "off"}.</p>}
             {saved?.enabled && sharing && (
                 <>
-                    <div className="px-4 pt-3.5 pb-1">
+                    <div className="flex items-start justify-between gap-3 px-4 pt-3.5 pb-1">
+                        <div>
                         <p className="text-sm font-medium">Aniko apps on this network</p>
                         <p className="mt-0.5 text-xs text-subtle">
                             Turn on <b>Share my library</b> for those that may watch this computer's anime.
                             {sharing.addresses.length > 0 && <> This computer is at {sharing.addresses.join(", ")}.</>}
                         </p>
+                        </div>
+                        <Button size="sm" variant="ghost" icon={<RefreshCw className="size-4" />} onClick={() => refreshSharing(qc)}>
+                            Refresh
+                        </Button>
                     </div>
                     {peers.length === 0 && (
                         <p className="px-4 py-3 text-sm text-muted">
@@ -1309,6 +1314,7 @@ function SharingGroup({ draft, set }: SectionProps) {
                                         !p.online && p.lastSeen > 0 && `seen ${relativeTime(p.lastSeen)}`,
                                         p.shares && `shares its library with you${p.files ? ` (${p.files} ${p.files === 1 ? "file" : "files"})` : ""}`,
                                         p.error,
+                                        p.noBeacons && "found by its address only: its announcements aren't getting through (a firewall, or a network set to Public on it)",
                                     ]
                                         .filter(Boolean)
                                         .join(" · ")}

@@ -26,6 +26,8 @@ import (
 
 	"github.com/dhowden/tag"
 
+	"crypto/sha1"
+	"encoding/hex"
 	"github.com/v0-0x/mediaserver/music/internal/peer"
 )
 
@@ -97,6 +99,20 @@ type Library struct {
 	probing sync.Mutex
 	// Changed runs after the songs changed (outside the lock).
 	Changed func()
+
+	// saveMu serializes writing the list down (outside mu: a write with its
+	// sync takes a while on a slow disk, and the readers mustn't wait).
+	saveMu     sync.Mutex
+	writtenGen int64
+	// The counts and the size (Counts, Size), kept per gen: the dashboard
+	// asks every few seconds.
+	statsGen             int64
+	statsOK              bool
+	nSongs, nAlbums, nAr int
+	size                 int64
+	// artDir keeps the covers once read out of the songs (Art): reading a
+	// song's tags for its cover each time is a read of the drive each time.
+	artDir string
 }
 
 // indexFormat is what library.json's songs hold: an older one's are read
@@ -112,7 +128,7 @@ type saved struct {
 
 // Open opens the library kept in dir.
 func Open(dir string) (*Library, error) {
-	l := &Library{file: filepath.Join(dir, "library.json"), songs: map[string]*entry{}, wake: make(chan struct{}, 1), missing: map[string]bool{}}
+	l := &Library{file: filepath.Join(dir, "library.json"), artDir: filepath.Join(dir, "art"), songs: map[string]*entry{}, wake: make(chan struct{}, 1), missing: map[string]bool{}}
 	l.probe, _ = exec.LookPath("ffprobe")
 	raw, err := os.ReadFile(l.file)
 	switch {
@@ -138,17 +154,31 @@ func Open(dir string) (*Library, error) {
 	return l, nil
 }
 
-// save writes the library down; the caller holds l.mu (read is enough).
-func (l *Library) save() error {
-	s := saved{Format: indexFormat, Gen: l.gen, Folders: l.folders, Songs: make([]*entry, 0, len(l.songs))}
+// toSave is the library as written down; the caller holds l.mu (read is
+// enough). Its own copy of the songs: written (writeSaved) outside the lock.
+func (l *Library) toSave() saved {
+	s := saved{Format: indexFormat, Gen: l.gen, Folders: append([]string{}, l.folders...), Songs: make([]*entry, 0, len(l.songs))}
 	for _, e := range l.songs {
-		s.Songs = append(s.Songs, e)
+		cp := *e
+		s.Songs = append(s.Songs, &cp)
 	}
 	sort.Slice(s.Songs, func(i, j int) bool { return s.Songs[i].Path < s.Songs[j].Path })
+	return s
+}
+
+// writeSaved writes the library down, one write at a time, the newest last
+// (a later gen is never written over by an earlier one still being written).
+func (l *Library) writeSaved(s saved) error {
 	raw, err := json.Marshal(s)
 	if err != nil {
 		return err
 	}
+	l.saveMu.Lock()
+	defer l.saveMu.Unlock()
+	if s.Gen < l.writtenGen {
+		return nil
+	}
+	l.writtenGen = s.Gen
 	return peer.WriteFile(l.file, raw, 0o600)
 }
 
@@ -165,8 +195,16 @@ func (l *Library) Tracks() []Track {
 	return t
 }
 
-// Snapshot is the songs and their Version, as one.
+// Snapshot is the songs and their Version, as one. The list is sorted once
+// per change, and shared: not to be changed by the caller.
 func (l *Library) Snapshot() (string, []Track) {
+	l.mu.RLock()
+	if l.sorted != nil {
+		gen, sorted := l.gen, l.sorted
+		l.mu.RUnlock()
+		return strconv.FormatInt(gen, 10), sorted
+	}
+	l.mu.RUnlock()
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return strconv.FormatInt(l.gen, 10), l.sortedLocked()
@@ -218,11 +256,29 @@ func (l *Library) Song(path string) (Track, bool) {
 	return e.Track, true
 }
 
-// Counts are how many songs, albums and artists there are.
+// Counts are how many songs, albums and artists there are (counted once
+// per change: the dashboard asks every few seconds).
 func (l *Library) Counts() (songs, albums, artists int) {
 	l.mu.RLock()
-	defer l.mu.RUnlock()
+	if l.statsOK && l.statsGen == l.gen {
+		defer l.mu.RUnlock()
+		return l.nSongs, l.nAlbums, l.nAr
+	}
+	l.mu.RUnlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.countLocked()
+	return l.nSongs, l.nAlbums, l.nAr
+}
+
+// countLocked counts the songs, albums and artists, and adds up the size.
+// Must be called with mu held for writing.
+func (l *Library) countLocked() {
+	if l.statsOK && l.statsGen == l.gen {
+		return
+	}
 	al, ar := map[string]bool{}, map[string]bool{}
+	var size int64
 	for _, e := range l.songs {
 		name := sortName(&e.Track)
 		if name != "" {
@@ -231,8 +287,10 @@ func (l *Library) Counts() (songs, albums, artists int) {
 		if e.Album != "" {
 			al[name+"\x00"+strings.ToLower(e.Album)] = true
 		}
+		size += e.Size
 	}
-	return len(l.songs), len(al), len(ar)
+	l.nSongs, l.nAlbums, l.nAr, l.size = len(l.songs), len(al), len(ar), size
+	l.statsGen, l.statsOK = l.gen, true
 }
 
 // Folder is a library folder, with how many songs it has.
@@ -297,8 +355,9 @@ func (l *Library) AddFolder(dir string) error {
 		}
 	}
 	l.folders = append(l.folders, dir)
-	err = l.save()
+	snap := l.toSave()
 	l.mu.Unlock()
+	err = l.writeSaved(snap)
 	l.ScanSoon()
 	return err
 }
@@ -326,8 +385,9 @@ func (l *Library) RemoveFolder(dir string) error {
 	}
 	l.gen++
 	l.sorted = nil
-	err := l.save()
+	snap := l.toSave()
 	l.mu.Unlock()
+	err := l.writeSaved(snap)
 	l.changed()
 	return err
 }
@@ -488,13 +548,14 @@ func (l *Library) Scan(ctx context.Context) {
 		l.gen++
 		l.sorted = nil
 	}
-	if err := l.save(); err != nil {
-		log.Printf("music: couldn't keep the library's list: %v", err)
-	}
+	snap := l.toSave()
 	l.scanning = false
 	l.lastScan = time.Now()
 	n := len(l.songs)
 	l.mu.Unlock()
+	if err := l.writeSaved(snap); err != nil {
+		log.Printf("music: couldn't keep the library's list: %v", err)
+	}
 	if diff {
 		log.Printf("music: %d in the library", n)
 		l.changed()
@@ -577,11 +638,76 @@ func folderCover(dir string) string {
 }
 
 // Art is the cover of the song at path: the picture in the file, or the
-// cover image by it.
+// cover image by it. Kept once read (artDir), by the song as it was: a
+// song changed is read again.
 func (l *Library) Art(path string) ([]byte, string, error) {
-	if _, ok := l.Song(path); !ok {
+	l.mu.RLock()
+	e, ok := l.songs[path]
+	var key string
+	if ok {
+		key = artKey(path, e.Size, e.ModTime)
+	}
+	l.mu.RUnlock()
+	if !ok {
 		return nil, "", fs.ErrNotExist
 	}
+	if l.artDir != "" {
+		if data, mime, err := readArt(l.artDir, key); err == nil {
+			if mime == "" {
+				return nil, "", fs.ErrNotExist // known to have none
+			}
+			return data, mime, nil
+		}
+	}
+	data, mime, err := l.readArt(path)
+	if l.artDir != "" {
+		if err == nil {
+			keepArt(l.artDir, key, data, mime)
+		} else if errors.Is(err, fs.ErrNotExist) {
+			keepArt(l.artDir, key, nil, "")
+		}
+	}
+	return data, mime, err
+}
+
+func artKey(path string, size, mod int64) string {
+	h := sha1.Sum([]byte(fmt.Sprintf("%s|%d|%d", path, size, mod)))
+	return hex.EncodeToString(h[:])
+}
+
+// readArt is a kept cover: its data and type ("" with no error: the song
+// has none, as found before).
+func readArt(dir, key string) ([]byte, string, error) {
+	mime, err := os.ReadFile(filepath.Join(dir, key+".type"))
+	if err != nil {
+		return nil, "", err
+	}
+	if len(mime) == 0 {
+		return nil, "", nil
+	}
+	data, err := os.ReadFile(filepath.Join(dir, key))
+	if err != nil {
+		return nil, "", err
+	}
+	return data, string(mime), nil
+}
+
+// keepArt keeps a cover (or that there's none: mime ""), best effort.
+func keepArt(dir, key string, data []byte, mime string) {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return
+	}
+	if mime != "" {
+		if err := os.WriteFile(filepath.Join(dir, key), data, 0o600); err != nil {
+			return
+		}
+	}
+	_ = os.WriteFile(filepath.Join(dir, key+".type"), []byte(mime), 0o600)
+}
+
+// readArt reads a song's cover: the picture in the file, or the cover image
+// by it.
+func (l *Library) readArt(path string) ([]byte, string, error) {
 	if f, err := os.Open(path); err == nil {
 		m, err := tag.ReadFrom(f)
 		f.Close()
@@ -667,16 +793,18 @@ func (l *Library) probeLengths(ctx context.Context) {
 
 	n, last := 0, time.Now()
 	flush := func() {
+		var snap saved
 		l.mu.Lock()
 		if n > 0 {
 			l.gen++
 			l.sorted = nil
-			if err := l.save(); err != nil {
-				log.Printf("music: couldn't keep the library's list: %v", err)
-			}
+			snap = l.toSave()
 		}
 		l.mu.Unlock()
 		if n > 0 {
+			if err := l.writeSaved(snap); err != nil {
+				log.Printf("music: couldn't keep the library's list: %v", err)
+			}
 			l.changed()
 		}
 		n, last = 0, time.Now()
@@ -761,10 +889,13 @@ func (l *Library) CanProbe() bool { return l.probe != "" }
 // Size is how many bytes the songs take.
 func (l *Library) Size() int64 {
 	l.mu.RLock()
-	defer l.mu.RUnlock()
-	var n int64
-	for _, e := range l.songs {
-		n += e.Size
+	if l.statsOK && l.statsGen == l.gen {
+		defer l.mu.RUnlock()
+		return l.size
 	}
-	return n
+	l.mu.RUnlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.countLocked()
+	return l.size
 }

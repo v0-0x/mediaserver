@@ -4,10 +4,12 @@ package metadata
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/v0-0x/mediaserver/anime/internal/db"
@@ -74,9 +76,58 @@ func (a *Anime) Get(n int) *Episode {
 
 type Service struct {
 	db *db.DB
+	// fetching: the anime being fetched in the background (Cached).
+	mu       sync.Mutex
+	fetching map[int]bool
 }
 
 func NewService(d *db.DB) *Service { return &Service{db: d} }
+
+// missKey marks an anime ani.zip couldn't be asked about lately: not asked
+// again for a while (every page would, otherwise).
+func missKey(id int) string { return "anizip-miss:" + strconv.Itoa(id) }
+
+const missFor = 3 * time.Minute
+
+// Cached is Get from what's kept here, at once: the metadata, fresh or
+// stale, or nil when none is kept yet. What's missing or stale is fetched
+// in the background for the next time, never while a page waits.
+func (s *Service) Cached(anilistID int) *Anime {
+	var a Anime
+	if s.db.GetCache(cacheKey(anilistID), &a) {
+		return &a
+	}
+	s.fetchSoon(anilistID)
+	if s.db.GetStaleCache(cacheKey(anilistID), &a) {
+		return &a
+	}
+	return nil
+}
+
+func (s *Service) fetchSoon(anilistID int) {
+	var missed bool
+	if s.db.GetCache(missKey(anilistID), &missed) {
+		return
+	}
+	s.mu.Lock()
+	if s.fetching == nil {
+		s.fetching = map[int]bool{}
+	}
+	if s.fetching[anilistID] {
+		s.mu.Unlock()
+		return
+	}
+	s.fetching[anilistID] = true
+	s.mu.Unlock()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		_, _ = s.Get(ctx, anilistID)
+		s.mu.Lock()
+		delete(s.fetching, anilistID)
+		s.mu.Unlock()
+	}()
+}
 
 type rawAnizip struct {
 	Titles   map[string]string `json:"titles"`
@@ -113,10 +164,19 @@ func (s *Service) Get(ctx context.Context, anilistID int) (*Anime, error) {
 		return &a, nil
 	}
 	var raw rawAnizip
+	var missed bool
+	if s.db.GetCache(missKey(anilistID), &missed) {
+		// Couldn't be asked a moment ago: not again yet.
+		if s.db.GetStaleCache(cacheKey(anilistID), &a) {
+			return &a, nil
+		}
+		return &Anime{Episodes: map[string]*Episode{}}, errors.New("ani.zip couldn't be reached a moment ago")
+	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	err := util.GetJSON(ctx, fmt.Sprintf("https://api.ani.zip/mappings?anilist_id=%d", anilistID), nil, &raw)
 	if err != nil {
+		s.db.SetCache(missKey(anilistID), true, missFor)
 		if s.db.GetStaleCache(cacheKey(anilistID), &a) {
 			return &a, nil
 		}

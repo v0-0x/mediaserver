@@ -109,11 +109,11 @@ function Dashboard({ status }: { status: Status }) {
         show({ side: next, tab: tabs.includes(tab) ? tab : "overview" })
     }
     const { data: o, error } = useHubOverview()
-    const { data: sharing } = useMSharing()
+    const { data: sharing } = useMSharing(side === "movies" || side === "tv")
     const waiting = o?.devices.filter(d => d.online && !d.allowed).length ?? 0
     const mPeers = sharing?.peers ?? []
     const mWaiting = mPeers.filter(p => p.online && !p.allowed && !p.declined).length
-    const { data: uDevices } = useUDevices()
+    const { data: uDevices } = useUDevices(side === "music")
     const uWaiting = uDevices?.filter(d => d.online && !d.allowed).length ?? 0
     const sys = o?.system
     // Signed out from the server (its password changed elsewhere): the

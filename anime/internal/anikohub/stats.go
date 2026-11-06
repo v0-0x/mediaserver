@@ -49,7 +49,15 @@ type Sampler struct {
 	cpuAll   uint64
 	anikoCPU uint64 // ticks
 	rx, tx   uint64
+	// The drives, read in the background every half minute: asking a drive
+	// how full it is can wait on it (a USB drive asleep), and a dashboard
+	// asks every few seconds.
+	disks    []Disk
+	disksAt  time.Time
+	sampling bool
 }
+
+const disksEvery = 30 * time.Second
 
 func NewSampler() *Sampler { return &Sampler{started: time.Now()} }
 
@@ -86,17 +94,50 @@ func (s *Sampler) Look(folders []string) System {
 	sys.Throttled = throttled()
 	sys.Load = loadAverage()
 	sys.Uptime = uptime()
+	sys.Disks = s.disksOf(folders)
+	return sys
+}
+
+// disksOf is the drives the folders are on, as last read; read again in
+// the background when that was a while ago (the first time, now).
+func (s *Sampler) disksOf(folders []string) []Disk {
+	s.mu.Lock()
+	first := s.disksAt.IsZero()
+	due := time.Since(s.disksAt) > disksEvery && !s.sampling
+	if due {
+		s.sampling = true
+	}
+	disks := s.disks
+	s.mu.Unlock()
+	if due && first {
+		s.sampleDisks(folders)
+		s.mu.Lock()
+		disks = s.disks
+		s.mu.Unlock()
+	} else if due {
+		go s.sampleDisks(folders)
+	}
+	if disks == nil {
+		return []Disk{}
+	}
+	return disks
+}
+
+func (s *Sampler) sampleDisks(folders []string) {
+	var disks []Disk
 	seen := map[uint64]bool{}
 	for _, f := range folders {
 		if d, id, ok := diskOf(f); ok && !seen[id] {
 			seen[id] = true
-			sys.Disks = append(sys.Disks, d)
+			disks = append(disks, d)
 		}
 	}
-	if sys.Disks == nil {
-		sys.Disks = []Disk{}
+	if disks == nil {
+		disks = []Disk{}
 	}
-	return sys
+	s.mu.Lock()
+	s.disks, s.disksAt, s.sampling = disks, time.Now(), false
+	s.mu.Unlock()
 }
 
 func round1(f float64) float64 { return float64(int(f*10+0.5)) / 10 }

@@ -27,6 +27,39 @@ type Service struct {
 	Remote func() []*LocalFile
 
 	hiddenMu sync.Mutex
+	// warming: the anime being asked of AniList in the background (warm).
+	warmMu  sync.Mutex
+	warming map[int]bool
+}
+
+// warm asks AniList about anime in the background, for the next
+// Collection: those it didn't say in time.
+func (s *Service) warm(ids []int) {
+	s.warmMu.Lock()
+	if s.warming == nil {
+		s.warming = map[int]bool{}
+	}
+	var todo []int
+	for _, id := range ids {
+		if !s.warming[id] {
+			s.warming[id] = true
+			todo = append(todo, id)
+		}
+	}
+	s.warmMu.Unlock()
+	if len(todo) == 0 {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+		_, _ = s.Platform.MediaBatch(ctx, todo)
+		s.warmMu.Lock()
+		for _, id := range todo {
+			delete(s.warming, id)
+		}
+		s.warmMu.Unlock()
+	}()
 }
 
 type EpisodeView struct {
@@ -255,6 +288,9 @@ type CollectionView struct {
 	// having said what they are (no network yet, its limit on requests);
 	// the app asks again in a moment.
 	Incomplete int `json:"incomplete,omitempty"`
+	// Refreshing: the list is the copy here; AniList is being asked for the
+	// current one (collection-updated says when it's in).
+	Refreshing bool `json:"refreshing,omitempty"`
 }
 
 var statusNames = map[string]string{
@@ -267,6 +303,12 @@ func (s *Service) Collection(ctx context.Context, refresh bool) (*CollectionView
 	if err != nil {
 		return nil, err
 	}
+	return s.CollectionWith(ctx, coll)
+}
+
+// CollectionWith is Collection built on the list given (the copy here, say,
+// while AniList is asked in the background: CollectionSoon).
+func (s *Service) CollectionWith(ctx context.Context, coll *anilist.Collection) (*CollectionView, error) {
 	all, _ := s.Store.All()
 	all = append(all, s.shared()...)
 	filesByMedia := map[int][]*LocalFile{}
@@ -345,13 +387,23 @@ func (s *Service) Collection(ctx context.Context, refresh bool) (*CollectionView
 		}
 	}
 	if len(missing) > 0 {
-		medias, _ := s.Platform.MediaBatch(ctx, missing)
+		// From what's kept here, and AniList for a moment: what it doesn't
+		// say in time is left out for now (Incomplete) and asked for in the
+		// background, for the next time.
+		bctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+		medias, _ := s.Platform.MediaBatch(bctx, missing)
+		cancel()
+		var later []int
 		for _, id := range missing {
 			if m, ok := medias[id]; ok {
 				view.LocalOnly = append(view.LocalOnly, makeItem(nil, m))
 			} else {
 				view.Incomplete++
+				later = append(later, id)
 			}
+		}
+		if len(later) > 0 {
+			s.warm(later)
 		}
 		sort.Slice(view.LocalOnly, func(i, j int) bool {
 			return view.LocalOnly[i].Media.PreferredTitle() < view.LocalOnly[j].Media.PreferredTitle()
@@ -406,12 +458,12 @@ func (s *Service) continueWatching(ctx context.Context, coll *anilist.Collection
 			it.Runtime = *media.Duration
 		}
 		it.Image = firstNonEmpty(media.BannerImage, media.CoverImage.ExtraLarge)
-		if meta, err := s.Meta.Get(ctx, media.ID); err == nil {
-			if md := meta.Get(ep); md != nil {
-				it.Title = md.Title
-				if md.Image != "" {
-					it.Image = md.Image
-				}
+		// The episode's name and picture, from what's kept here: ani.zip
+		// is asked in the background, never while the page waits.
+		if md := s.Meta.Cached(media.ID).Get(ep); md != nil {
+			it.Title = md.Title
+			if md.Image != "" {
+				it.Image = md.Image
 			}
 		}
 		seen[media.ID] = true

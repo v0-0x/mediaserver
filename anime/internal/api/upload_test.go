@@ -33,7 +33,7 @@ func TestUploadToHost(t *testing.T) {
 	eventually(t, "the host to list the guest", func() bool { _, ok := peerIn(host, guest); return ok })
 	gid, hid := guest.app.Share.ID(), host.app.Share.ID()
 	asked := func(ok func() bool) func() bool {
-		return func() bool { do(guest, "GET", "/api/sharing", local, "", nil); return ok() }
+		return func() bool { do(guest, "GET", "/api/sharing?refresh=1", local, "", nil); return ok() }
 	}
 	targets := func() []uploadTarget {
 		var out []uploadTarget

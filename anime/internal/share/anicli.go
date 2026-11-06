@@ -97,7 +97,7 @@ func (s *Service) waitHost(ctx context.Context) *peer {
 	if !hosts {
 		return nil
 	}
-	s.Refresh()
+	s.RefreshNow()
 	tick := time.NewTicker(250 * time.Millisecond)
 	defer tick.Stop()
 	deadline := time.After(8 * time.Second)

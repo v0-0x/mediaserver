@@ -2,6 +2,7 @@ package share
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -43,15 +44,19 @@ const (
 	// An Aniko that proved who it is this lately keeps its address: beacons
 	// don't move it (see heard).
 	verifiedFor = time.Minute
-	// How often Settings (open) has the others asked again (they answer
-	// from their library's version, read at most every few seconds).
-	refreshEvery = 3 * time.Second
+	// How often Settings (open, or the library page) may have the hosts
+	// asked again before their turn (Refresh): they answer from their
+	// library's version, but each answer costs a server a little.
+	refreshEvery = 15 * time.Second
 	// How many Anikos only heard of (not paired, not added by hand) are kept.
 	maxStrangers = 64
 	// The largest request body read from an Aniko that isn't paired.
 	maxUnpairedBody = 1 << 20
 	// Failed requests in a row after which a host's library is gone.
 	maxFails = 3
+	// How long the library's version (sharedVersion) is trusted without the
+	// library saying it changed: a safety net for a change that isn't said.
+	versionFor = 5 * time.Minute
 )
 
 // Library is what a host shares: its library's files.
@@ -121,6 +126,17 @@ type Service struct {
 	versionMu sync.Mutex
 	version   string
 	versionAt time.Time
+	// The shared files as sent (SharedFilesJSON), encoded once per version.
+	filesJSONVer       string
+	filesJSON, filesGz []byte
+	// When the hosts were last asked again on request (Refresh): at most
+	// every refreshEvery, however often Settings asks.
+	refreshMu   sync.Mutex
+	refreshedAt time.Time
+	// This computer's network cards (Hello), read at most every minute.
+	macsMu    sync.Mutex
+	macsAt    time.Time
+	macsCache []string
 
 	pushMu    sync.Mutex
 	pending   map[[2]int]history.Entry
@@ -173,6 +189,14 @@ type peer struct {
 	asked    time.Time
 	asking   bool
 	fails    int
+	// filesStale: it answered, but its list of files didn't come (a busy
+	// server, a long list): what this Aniko has of it stays, and it's asked
+	// again soon.
+	filesStale bool
+	// beaconAt: when one of its beacons last came; answeredAt: when it first
+	// answered an ask this run. A host that answers but is never heard
+	// announcing itself is one whose beacons don't get through (a firewall).
+	beaconAt, answeredAt time.Time
 	// historySeq: the last of its history entries (in the order it stored
 	// them) this Aniko has; pushedSeq: the last of this Aniko's it sent it.
 	historySeq, pushedSeq int64
@@ -217,12 +241,27 @@ func (p *peer) displayName() string {
 
 // online: heard from lately. A host that shares with this Aniko is asked
 // every askEvery, and its answer counts until the next one is due: also when
-// its beacons don't come through (the Wi-Fi of some TVs drops them), it
-// doesn't look gone half of the time. The same the other way: a device this
-// Aniko shares with asks it as often (a hub's devices, which it never asks).
+// its beacons don't come through (the Wi-Fi of some TVs drops them, a
+// firewall on a PC), it doesn't look gone half of the time. One ask that
+// failed (a server busy with a scan, a disk waking up) doesn't make it
+// offline either: the ask 10s later decides. The same the other way: a
+// device this Aniko shares with asks it as often (a hub's devices, which it
+// never asks).
 func (p *peer) online(now time.Time) bool {
 	d := now.Sub(p.seen)
-	return d < onlineFor || ((p.shares && p.fails == 0) || p.allowed) && d < askEvery+onlineFor
+	if d < onlineFor {
+		return true
+	}
+	if !p.shares && !p.allowed {
+		return false
+	}
+	switch p.fails {
+	case 0:
+		return d < askEvery+onlineFor
+	case 1:
+		return d < 2*askEvery+onlineFor
+	}
+	return false
 }
 
 func (p *peer) lastAround() time.Time {
@@ -256,6 +295,21 @@ func New(d *db.DB, settings *config.Store, lib Library, hub *events.Hub) (*Servi
 	}
 	s.load()
 	s.loadParental()
+	// The library's version for the others is read again when the library
+	// says it changed (a scan, a download, a match), not on every hello.
+	if hub != nil {
+		ch, _ := hub.Subscribe()
+		go func() {
+			for raw := range ch {
+				var e struct {
+					Type string `json:"type"`
+				}
+				if json.Unmarshal(raw, &e) == nil && e.Type == events.LibraryUpdated {
+					s.libraryChanged()
+				}
+			}
+		}()
+	}
 	return s, nil
 }
 
@@ -501,7 +555,7 @@ func (s *Service) heard(b beacon, from net.IP) {
 	}
 	now := time.Now()
 	wasOnline := p.online(now)
-	p.name, p.version, p.seen = cleanName(b.Name), b.Version, now
+	p.name, p.version, p.seen, p.beaconAt = cleanName(b.Name), b.Version, now, now
 	if pl := cleanPlatform(b.Platform); pl != "" {
 		p.platform = pl
 	}
@@ -743,7 +797,7 @@ func (s *Service) Hello(c Caller) Hello {
 		}
 		h.Downloads = c.Downloads
 		h.AniCli = s.AniCliReady != nil && s.AniCliReady()
-		h.Wake = macs()
+		h.Wake = s.cachedMACs()
 		h.Parental = c.Rules
 		// A hub is on each device's own account (hub.go).
 		if s.Hub != nil {
@@ -782,17 +836,81 @@ func (s *Service) SharedFiles() ([]*library.LocalFile, error) {
 	return out, nil
 }
 
-// sharedVersion is filesVersion of SharedFiles, read again at most every
-// few seconds: each Aniko it shares with asks for it.
+// sharedVersion is filesVersion of SharedFiles: each Aniko it shares with
+// asks for it. Read again when the library says it changed (libraryChanged),
+// or after versionFor; not on every hello, which costs a server with a
+// large library a read of all of it.
 func (s *Service) sharedVersion() string {
 	s.versionMu.Lock()
 	defer s.versionMu.Unlock()
-	if time.Since(s.versionAt) < 5*time.Second && s.version != "" {
-		return s.version
-	}
-	files, _ := s.SharedFiles()
-	s.version, s.versionAt = filesVersion(files), time.Now()
+	s.refreshSharedLocked()
 	return s.version
+}
+
+// libraryChanged: the library says it changed; its version is read again
+// at the next hello.
+func (s *Service) libraryChanged() {
+	s.versionMu.Lock()
+	s.versionAt = time.Time{}
+	s.versionMu.Unlock()
+}
+
+// refreshSharedLocked reads the shared files again when due: their version,
+// and the list as sent to the others (encoded once, gzipped once). Must be
+// called with versionMu held.
+func (s *Service) refreshSharedLocked() {
+	if s.version != "" && time.Since(s.versionAt) < versionFor {
+		return
+	}
+	files, err := s.SharedFiles()
+	if err != nil && s.version != "" {
+		// Couldn't read it now (the database busy): the last known stands.
+		return
+	}
+	ver := filesVersion(files)
+	s.version, s.versionAt = ver, time.Now()
+	if s.filesJSONVer == ver && s.filesJSON != nil {
+		return
+	}
+	plain, err := json.Marshal(files)
+	if err != nil {
+		return
+	}
+	var buf bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestSpeed)
+	_, _ = zw.Write(plain)
+	_ = zw.Close()
+	s.filesJSONVer, s.filesJSON, s.filesGz = ver, plain, buf.Bytes()
+}
+
+// SharedFilesJSON is SharedFiles as sent to the others: its version, the
+// list as JSON, and the same gzipped. Encoded once per version, so a server
+// asked by every device doesn't encode its library for each.
+func (s *Service) SharedFilesJSON() (version string, plain, gz []byte, err error) {
+	s.versionMu.Lock()
+	defer s.versionMu.Unlock()
+	s.refreshSharedLocked()
+	if s.filesJSON == nil {
+		files, err := s.SharedFiles()
+		if err != nil {
+			return "", nil, nil, err
+		}
+		if plain, err = json.Marshal(files); err != nil {
+			return "", nil, nil, err
+		}
+		return filesVersion(files), plain, nil, nil
+	}
+	return s.version, s.filesJSON, s.filesGz, nil
+}
+
+// cachedMACs is macs(), read at most every minute (every hello wants it).
+func (s *Service) cachedMACs() []string {
+	s.macsMu.Lock()
+	defer s.macsMu.Unlock()
+	if time.Since(s.macsAt) > time.Minute {
+		s.macsCache, s.macsAt = macs(), time.Now()
+	}
+	return s.macsCache
 }
 
 // Shares reports a file this Aniko shares (see SharedFiles).
@@ -831,7 +949,7 @@ func (s *Service) askHosts(ctx context.Context) {
 		switch {
 		case p.waking(now):
 			wait = 3 * time.Second
-		case p.fails > 0:
+		case p.fails > 0 || p.filesStale:
 			wait = 10 * time.Second
 		}
 		if now.Sub(p.asked) >= wait {
@@ -850,12 +968,16 @@ func (s *Service) askHosts(ctx context.Context) {
 func (s *Service) ask(ctx context.Context, p *peer) {
 	h, err := s.hello(ctx, p)
 	var files []*library.LocalFile
+	var filesErr error
 	if err == nil && h.Shares {
 		s.mu.Lock()
 		same := h.Files == p.filesVer && p.files != nil
+		// It answered: around, however long its list of files then takes
+		// (a long one, from a busy server). Said now, not after the list.
+		p.seen = time.Now()
 		s.mu.Unlock()
 		if !same {
-			files, err = s.fetchFiles(ctx, p)
+			files, filesErr = s.fetchFiles(ctx, p)
 		}
 	}
 	s.mu.Lock()
@@ -895,6 +1017,9 @@ func (s *Service) ask(ctx context.Context, p *peer) {
 	back := p.fails > 0 || !p.online(time.Now())
 	visible = back || p.shares != h.Shares || (p.name != h.Name && h.Name != "") || p.waking(time.Now())
 	p.fails, p.seen, p.wakeUntil = 0, time.Now(), time.Time{}
+	if p.answeredAt.IsZero() {
+		p.answeredAt = time.Now()
+	}
 	// Its cards, to wake it later (an older Aniko doesn't say).
 	if cards := cleanMACs(h.Wake); h.Shares && len(cards) > 0 && strings.Join(cards, ",") != strings.Join(p.wakeMACs, ",") {
 		p.wakeMACs = cards
@@ -912,11 +1037,21 @@ func (s *Service) ask(ctx context.Context, p *peer) {
 		p.shares = h.Shares
 		s.save()
 	}
+	stale := p.filesStale
+	p.filesStale = false
 	switch {
 	case !h.Shares && p.files != nil:
 		p.files, p.filesVer, changed = nil, "", true
 	case h.Shares && files != nil:
 		p.files, p.filesVer, changed = remoteFiles(p, files), h.Files, true
+	case h.Shares && filesErr != nil:
+		// Its list didn't come (a server busy with a scan, a list too long
+		// for the time): what this Aniko has of it stays, and it's asked
+		// again in a moment (askHosts).
+		p.filesStale = true
+		if !stale {
+			log.Printf("sharing: %s's files: %v (keeping what it had)", p.name, filesErr)
+		}
 	}
 	s.mu.Unlock()
 	s.publish(changed)
@@ -1481,8 +1616,10 @@ func (s *Service) do(c *http.Client, req *http.Request) (*http.Response, error) 
 		if t, err := http.ParseTime(date); err == nil {
 			off = t.Sub(sent).Round(time.Second)
 		}
+		// A signed answer: it's around, whatever it was asked (a file, a
+		// position pushed): online until its next ask comes due.
 		s.mu.Lock()
-		sr.p.verified, sr.p.offset = time.Now(), off
+		sr.p.verified, sr.p.offset, sr.p.seen = time.Now(), off, time.Now()
 		s.mu.Unlock()
 		moved := off-sr.offset > clockSkew/2 || sr.offset-off > clockSkew/2
 		if resp.StatusCode != http.StatusUnauthorized || !moved || try > 0 {
@@ -1547,7 +1684,8 @@ func (s *Service) hello(ctx context.Context, p *peer) (*Hello, error) {
 
 func (s *Service) fetchFiles(ctx context.Context, p *peer) ([]*library.LocalFile, error) {
 	var files []*library.LocalFile
-	if err := s.getJSON(ctx, p, "/api/peer/files", &files); err != nil {
+	// A long list from a busy server takes a while: more than a hello may.
+	if err := s.getJSONWith(ctx, s.slow, p, "/api/peer/files", &files); err != nil {
 		return nil, err
 	}
 	if files == nil {
@@ -1634,6 +1772,10 @@ type PeerView struct {
 	Role string `json:"role,omitempty"`
 	// Parental: parental controls are set for it here (parental.go).
 	Parental bool `json:"parental,omitempty"`
+	// NoBeacons: it answers when asked, but none of its beacons has come in
+	// a minute of that: they don't get through (a firewall, a Wi-Fi that
+	// drops them). It's found by its address alone, which can change.
+	NoBeacons bool `json:"noBeacons,omitempty"`
 }
 
 func (s *Service) view(p *peer, now time.Time) PeerView {
@@ -1661,6 +1803,7 @@ func (s *Service) view(p *peer, now time.Time) PeerView {
 	if p.fails >= maxFails {
 		v.Error = "Not answering"
 	}
+	v.NoBeacons = p.shares && p.beaconAt.IsZero() && !p.answeredAt.IsZero() && now.Sub(p.answeredAt) > time.Minute
 	return v
 }
 
@@ -1776,13 +1919,27 @@ func (s *Service) SetGrants(id string, g Grants) error {
 	return nil
 }
 
-// Refresh asks the hosts again what they share, now (Settings or the
-// library page is open).
+// Refresh asks the hosts again what they share, soon (Settings or the
+// library page is open): at most every refreshEvery, so a page asking every
+// few seconds doesn't have every server answer every few seconds.
 func (s *Service) Refresh() {
+	s.refreshMu.Lock()
+	soon := time.Since(s.refreshedAt) < refreshEvery
+	if !soon {
+		s.refreshedAt = time.Now()
+	}
+	s.refreshMu.Unlock()
+	if !soon {
+		s.RefreshNow()
+	}
+}
+
+// RefreshNow asks the hosts again what they share, now (you asked).
+func (s *Service) RefreshNow() {
 	now := time.Now()
 	s.mu.Lock()
 	for _, p := range s.peers {
-		if now.Sub(p.asked) > refreshEvery {
+		if now.Sub(p.asked) > 3*time.Second {
 			p.asked = time.Time{}
 		}
 	}

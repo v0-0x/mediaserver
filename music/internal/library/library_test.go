@@ -148,3 +148,39 @@ func TestCoverAfterTheSongs(t *testing.T) {
 		t.Fatalf("art: %v %s %d", err, mime, len(data))
 	}
 }
+
+// A cover read out of a song is kept: served again without the song (its
+// drive asleep, say), and read again only when the song changes.
+func TestArtKept(t *testing.T) {
+	dir, music := t.TempDir(), t.TempDir()
+	album := filepath.Join(music, "Album")
+	_ = os.MkdirAll(album, 0o755)
+	song := filepath.Join(album, "01 Song.mp3")
+	if err := os.WriteFile(song, []byte("not much of a song"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(filepath.Join(album, "cover.png"), []byte("\x89PNG\r\n"), 0o644)
+	l, _ := Open(dir)
+	_ = l.AddFolder(music)
+	l.Scan(context.Background())
+	data, mime, err := l.Art(song)
+	if err != nil || mime != "image/png" || len(data) != 6 {
+		t.Fatalf("art: %v %s %d", err, mime, len(data))
+	}
+	// The cover gone: still served, from what was kept.
+	_ = os.Remove(filepath.Join(album, "cover.png"))
+	if data, mime, err := l.Art(song); err != nil || mime != "image/png" || len(data) != 6 {
+		t.Fatalf("art once kept: %v %s %d", err, mime, len(data))
+	}
+	// A song without a cover is known to have none, without reading it.
+	other := filepath.Join(album, "02 Other.mp3")
+	_ = os.WriteFile(other, []byte("another"), 0o644)
+	l.Scan(context.Background())
+	if _, _, err := l.Art(other); err == nil {
+		t.Fatal("a cover for a song without one")
+	}
+	_ = os.Remove(other)
+	if _, _, err := l.Art(other); err == nil {
+		t.Fatal("a cover for a song without one, the second time")
+	}
+}

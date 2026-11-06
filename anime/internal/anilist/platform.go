@@ -44,6 +44,9 @@ type Platform struct {
 	// versions counts the changes made to each cached collection, so that a
 	// fetch already running (whose result may predate a change) isn't cached.
 	versions map[string]uint64
+	// refreshing: a fetch of the collection runs in the background
+	// (CollectionSoon), one at a time per media type.
+	refreshing map[string]bool
 
 	// discoverMu allows one Discover fetch at a time, and discovering one
 	// refresh in the background (discover.go).
@@ -207,6 +210,68 @@ func (p *Platform) Collection(ctx context.Context, mediaType string, refresh boo
 		maxAge = 5 * time.Second // only reuse a fetch that just finished
 	}
 	return p.CollectionWithin(ctx, mediaType, maxAge)
+}
+
+// CollectionSoon is the collection as known now, at once: the copy here,
+// fetched again in the background when older than maxAge (refreshing says
+// so; CollectionUpdate is published when the new one is in). A page isn't
+// held by a slow AniList. Without a copy yet (the first time after a login),
+// it's fetched now.
+func (p *Platform) CollectionSoon(ctx context.Context, mediaType string, maxAge time.Duration) (_ *Collection, refreshing bool, _ error) {
+	if mediaType == "" {
+		mediaType = "ANIME"
+	}
+	st := p.collState(mediaType, maxAge)
+	if st.viewer == nil {
+		c, err := p.localCollection(mediaType)
+		return c, false, err
+	}
+	if st.fresh {
+		return st.cached, false, nil
+	}
+	cached := st.cached
+	if cached == nil {
+		// The copy saved for offline use, while a fresh one is fetched.
+		if saved := p.loadSavedCollection(st.viewer.ID, mediaType); saved != nil {
+			p.mu.Lock()
+			if p.collections[mediaType] == nil && p.session == st.session {
+				p.collections[mediaType] = saved
+			}
+			cached = p.collections[mediaType]
+			p.mu.Unlock()
+		}
+	}
+	if cached == nil {
+		c, err := p.CollectionWithin(ctx, mediaType, maxAge)
+		return c, false, err
+	}
+	p.refreshSoon(mediaType, maxAge)
+	return cached, true, nil
+}
+
+// refreshSoon fetches the collection in the background, once at a time.
+func (p *Platform) refreshSoon(mediaType string, maxAge time.Duration) {
+	p.mu.Lock()
+	if p.refreshing == nil {
+		p.refreshing = map[string]bool{}
+	}
+	if p.refreshing[mediaType] {
+		p.mu.Unlock()
+		return
+	}
+	p.refreshing[mediaType] = true
+	p.mu.Unlock()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
+		_, err := p.CollectionWithin(ctx, mediaType, maxAge)
+		p.mu.Lock()
+		delete(p.refreshing, mediaType)
+		p.mu.Unlock()
+		if err == nil && p.hub != nil {
+			p.hub.Publish(events.CollectionUpdate, nil)
+		}
+	}()
 }
 
 // CollectionWithin is Collection, fetched again when the saved copy is
@@ -479,6 +544,22 @@ func (p *Platform) MediaLite(ctx context.Context, id int) (*Media, error) {
 		return nil, err
 	}
 	return full.Lite(), nil
+}
+
+// CachedLite is MediaLite from what's kept here, at once (fresh or stale),
+// or nil: for a page that mustn't wait on AniList.
+func (p *Platform) CachedLite(id int) *Media {
+	if id <= 0 {
+		return nil
+	}
+	if e := p.cachedEntry(id); e != nil {
+		return e.Media
+	}
+	var m Media
+	if p.db.GetCache(liteKey(id), &m) || p.db.GetStaleCache(liteKey(id), &m) {
+		return &m
+	}
+	return nil
 }
 
 // MediaBatch fetches several media objects in one request (max 50 ids).

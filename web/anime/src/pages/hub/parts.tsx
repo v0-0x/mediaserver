@@ -4,23 +4,23 @@ import { api } from "@/lib/api"
 import type { HubOverview } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-// The pieces of an Aniko Hub's dashboard (pages/hub): what it's asked every
-// 2 seconds, and how its numbers are shown.
+// The pieces of the server's dashboard (pages/hub): what it's asked every
+// 5 seconds, and how its numbers are shown.
 
 export function useHubOverview() {
     return useQuery({
         queryKey: ["hub", "overview"],
         queryFn: () => api.get<HubOverview>("/api/hub/overview"),
         // Not while the tab is in the background (react-query's default).
-        refetchInterval: 2000,
-        staleTime: 1000,
+        refetchInterval: 5000,
+        staleTime: 4000,
     })
 }
 
 // The last few minutes of the server's numbers, for the sparklines: kept
 // while the dashboard is open (another tab and back keeps them).
 export type Sample = { at: number; cpu: number; anikoCpu: number; temp: number; rx: number; tx: number; mem: number }
-const KEEP = 90 // 3 minutes, every 2 seconds
+const KEEP = 36 // 3 minutes, every 5 seconds
 const samples: Sample[] = []
 let lastAt = 0
 

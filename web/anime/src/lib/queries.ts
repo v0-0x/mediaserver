@@ -1,4 +1,4 @@
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, type QueryClient, useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { toast } from "@/lib/toast"
 import { api, qs } from "./api"
@@ -91,7 +91,10 @@ export function useCollection() {
         refetchOnWindowFocus: true,
         // Anime in the library left out for now (AniList didn't say what
         // they are, the app just opened): asked again until they're in.
-        refetchInterval: q => (q.state.data?.incomplete ? 10_000 : false),
+        // Anime left out for now (AniList didn't say in time), or the list
+        // being refreshed in the background: asked again in a while, later
+        // each time (the server also says collection-updated when it's in).
+        refetchInterval: q => (q.state.data?.incomplete || q.state.data?.refreshing ? Math.min(30_000 * 2 ** Math.min(q.state.dataUpdateCount, 2), 120_000) : false),
     })
 }
 
@@ -233,9 +236,23 @@ export function useDiscover() {
     })
 }
 
-// Library sharing: the Aniko apps on the network (asked again while shown).
+// Library sharing: the Aniko apps on the network. Opened, the hosts are asked
+// again what they share (refresh=1); then shown as they answer in their own
+// time, so a page open for an hour doesn't have every server answer every
+// few seconds.
 export function useSharing(enabled = true) {
-    return useQuery({ queryKey: ["sharing", "status"], queryFn: () => api.get<SharingStatus>("/api/sharing"), enabled, refetchInterval: 4000 })
+    return useQuery({
+        queryKey: ["sharing", "status"],
+        queryFn: ({ client }) => api.get<SharingStatus>(client.getQueryState(["sharing", "status"])?.dataUpdateCount ? "/api/sharing" : "/api/sharing?refresh=1"),
+        enabled,
+        refetchInterval: 10_000,
+    })
+}
+
+// Asks the hosts again now (a Refresh button).
+export async function refreshSharing(qc: QueryClient) {
+    await api.get("/api/sharing?refresh=1")
+    qc.invalidateQueries({ queryKey: ["sharing"] })
 }
 
 // Parental controls on this device (set by a computer or hub that shares
