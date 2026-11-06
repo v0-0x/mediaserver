@@ -27,6 +27,9 @@ type Service struct {
 	Remote func() []*LocalFile
 
 	hiddenMu sync.Mutex
+	// Ctx: the app's, for what's asked of AniList in the background (warm);
+	// nil: nothing is (a test).
+	Ctx context.Context
 	// warming: the anime being asked of AniList in the background (warm).
 	warmMu  sync.Mutex
 	warming map[int]bool
@@ -35,6 +38,9 @@ type Service struct {
 // warm asks AniList about anime in the background, for the next
 // Collection: those it didn't say in time.
 func (s *Service) warm(ids []int) {
+	if s.Ctx == nil {
+		return
+	}
 	s.warmMu.Lock()
 	if s.warming == nil {
 		s.warming = map[int]bool{}
@@ -51,7 +57,7 @@ func (s *Service) warm(ids []int) {
 		return
 	}
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		ctx, cancel := context.WithTimeout(s.Ctx, 2*time.Minute)
 		defer cancel()
 		_, _ = s.Platform.MediaBatch(ctx, todo)
 		s.warmMu.Lock()

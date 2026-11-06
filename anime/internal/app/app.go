@@ -184,6 +184,9 @@ func New(dataDir string, opts ...Options) (*App, error) {
 	torrents := torrent.NewManager(settings, hub)
 	exts := extensions.NewManager(d, settings, hub)
 	ctx, cancel := context.WithCancel(context.Background())
+	// What's fetched in the background for a page (episode names, anime
+	// AniList didn't say about in time) stops with the app.
+	meta.Ctx, lib.Ctx = ctx, ctx
 	exits := lifecycle.NewExits()
 
 	a := &App{

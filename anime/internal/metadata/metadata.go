@@ -76,6 +76,9 @@ func (a *Anime) Get(n int) *Episode {
 
 type Service struct {
 	db *db.DB
+	// Ctx: the app's, for what Cached fetches in the background (nil:
+	// nothing is fetched in the background, as in a test).
+	Ctx context.Context
 	// fetching: the anime being fetched in the background (Cached).
 	mu       sync.Mutex
 	fetching map[int]bool
@@ -105,6 +108,9 @@ func (s *Service) Cached(anilistID int) *Anime {
 }
 
 func (s *Service) fetchSoon(anilistID int) {
+	if s.Ctx == nil {
+		return
+	}
 	var missed bool
 	if s.db.GetCache(missKey(anilistID), &missed) {
 		return
@@ -120,7 +126,7 @@ func (s *Service) fetchSoon(anilistID int) {
 	s.fetching[anilistID] = true
 	s.mu.Unlock()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		ctx, cancel := context.WithTimeout(s.Ctx, 20*time.Second)
 		defer cancel()
 		_, _ = s.Get(ctx, anilistID)
 		s.mu.Lock()
