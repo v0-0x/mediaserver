@@ -311,10 +311,16 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                     const m =
                         !native && softwareVideo() && res.probe.video?.length ? "transcode" : ai === 0 && res.probe.method === "direct" ? "direct" : res.probe.method === "direct" ? "remux" : res.probe.method
                     setMethod(m)
-                    // Ignore saved positions past the end of this file.
+                    // Ignore saved positions past the end of this file (kept when
+                    // its length isn't known).
                     // (One handed over from the other player is where it was, also
                     // in the last seconds.)
-                    startAt.current = req.start !== undefined ? Math.min(req.start, Math.max(0, res.probe.duration - 1)) : res.resumeAt && res.resumeAt < res.probe.duration - 10 ? res.resumeAt : 0
+                    startAt.current =
+                        req.start !== undefined
+                            ? Math.min(req.start, Math.max(0, res.probe.duration - 1))
+                            : res.resumeAt && (!res.probe.duration || res.resumeAt < res.probe.duration - 10)
+                              ? res.resumeAt
+                              : 0
                     if (m !== "direct") setOffset(startAt.current)
                     if (startAt.current > 30 && !handed) setResumedFrom(startAt.current)
 
@@ -1395,7 +1401,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                 onEnded={() => {
                     if (ended.current) return
                     const v = videoRef.current
-                    const at = v ? absTime(v) : 0
+                    const at = where(v)
                     const total = duration || (v && Number.isFinite(v.duration) ? v.duration : 0)
                     // Stopped well before the episode's end: the stream broke
                     // (the computer went to sleep, its connection dropped), it
@@ -1730,7 +1736,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                                                     // The video too: copied, it would stay as it was.
                                                     const vt = probe?.video?.[0]
                                                     if (vt) setNoPic(n => [...n, videoFormat(vt)])
-                                                    setOffset(v ? absTime(v) : 0)
+                                                    setOffset(where(v))
                                                     setMethod("transcode")
                                                 }}
                                             >
@@ -1763,7 +1769,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                                                     setSoftwareVideo(on)
                                                     note(on ? "grey picture: converted in software from now on, on this device" : "converted as before again, on this device")
                                                     if (on) toast.info("Converting the video in software on this device from now on")
-                                                    setOffset(v ? absTime(v) : 0)
+                                                    setOffset(where(v))
                                                     setSoftware(on)
                                                     setMethod("transcode")
                                                 }}

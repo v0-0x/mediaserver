@@ -385,7 +385,10 @@ function ContinueRow({ items, onFocus }: { items: ContinueItem[]; onFocus: (i: n
     const qc = useQueryClient()
     const ref = useRef<HTMLDivElement>(null)
     const play = async (it: ContinueItem) => {
-        if (it.hasFile && it.filePath) playLocal(it.filePath, it.media.id, it.episode)
+        // From where the card says: the position shown, not one saved since
+        // (the same episode watched further, or finished, on another device
+        // after this page was loaded).
+        if (it.hasFile && it.filePath) playLocal(it.filePath, it.media.id, it.episode, it.resumeAt > 0 ? { start: it.resumeAt } : {})
         else if (status?.settings.onlineStream.enabled) {
             // Same provider and sub/dub as last time for this anime.
             const provider = readLocal(`aniko-provider-${it.media.id}`) || status.settings.onlineStream.defaultProvider || "ani-cli"
