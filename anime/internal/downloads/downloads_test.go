@@ -577,3 +577,37 @@ func TestDownloadFolder(t *testing.T) {
 		t.Fatalf("no title: got %q", dir)
 	}
 }
+
+// New anime go into the library folder chosen for downloads (Settings ›
+// Library); an anime's own folder wins wherever it is, in any library folder.
+func TestDownloadFolderChosen(t *testing.T) {
+	m, lib := newTestManager(t, nil)
+	lib = filepath.Clean(lib)
+	second := t.TempDir()
+	cfg := m.settings.Get()
+	cfg.Library.ExtraDirs = []string{second}
+	cfg.Library.DownloadDir = second
+	if _, err := m.settings.Save(cfg); err != nil {
+		t.Fatal(err)
+	}
+	cfg = m.settings.Get()
+	if dir, _ := m.folderFor(cfg, 21, "One Piece"); dir != filepath.Join(second, "One Piece") {
+		t.Fatalf("chosen folder: got %q, want it under %q", dir, second)
+	}
+	// Its own folder, in the first library folder, still wins.
+	own := filepath.Join(lib, "One Piece [1080p]")
+	if err := os.MkdirAll(own, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.files.Save(&library.LocalFile{Path: filepath.Join(own, "01.mkv"), Dir: own, Name: "01.mkv", MediaID: 21, Episode: 1, Kind: "main"}); err != nil {
+		t.Fatal(err)
+	}
+	if dir, _ := m.folderFor(cfg, 21, "One Piece"); dir != own {
+		t.Fatalf("own folder: got %q, want %q", dir, own)
+	}
+	// A folder that isn't a library folder isn't used: the first one is.
+	cfg.Library.DownloadDir = t.TempDir()
+	if dir, _ := m.folderFor(cfg, 22, "Bleach"); dir != filepath.Join(lib, "Bleach") {
+		t.Fatalf("a folder outside the library: got %q, want it under %q", dir, lib)
+	}
+}

@@ -134,7 +134,7 @@ export default function Overview({ o, go }: { o: HubOverview; go: (t: HubTab) =>
                         </dl>
                         {(o.library.scanning || o.downloads > 0 || o.library.unmatched > 0) && (
                             <p className="border-t border-line px-4 py-2.5 text-[12.5px] text-muted">
-                                {[o.library.scanning && "Scanning…", o.downloads > 0 && `${o.downloads} downloading onto the server`, o.library.unmatched > 0 && `${o.library.unmatched} not matched`].filter(Boolean).join(" · ")}
+                                {[o.library.scanning && (o.library.progress?.stage === "matching" && o.library.progress.total > 0 ? `Scanning: matching ${o.library.progress.done} of ${o.library.progress.total}` : "Scanning…"), o.downloads > 0 && `${o.downloads} downloading onto the server`, o.library.unmatched > 0 && `${o.library.unmatched} not matched`].filter(Boolean).join(" · ")}
                             </p>
                         )}
                     </Panel>

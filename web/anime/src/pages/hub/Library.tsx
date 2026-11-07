@@ -4,11 +4,11 @@ import { lazy, Suspense, useRef, useState } from "react"
 import { DirPicker } from "@/components/DirPicker"
 import { AllFiles, Ignored, Unmatched } from "@/components/library/LibraryTools"
 import { UploadDialog } from "@/components/UploadDialog"
-import { Badge, Button, IconButton, Progress, Tabs } from "@/components/ui"
+import { Badge, Button, IconButton, Progress, Select, Tabs } from "@/components/ui"
 import { api } from "@/lib/api"
 import { useCollection, useSaveSettings } from "@/lib/queries"
 import { toast } from "@/lib/toast"
-import type { DownloadItem, HubOverview, Status } from "@/lib/types"
+import type { DownloadItem, HubOverview, ScanProgress, Status } from "@/lib/types"
 import { img } from "@/lib/utils"
 import { LibraryBrowse } from "./LibraryBrowse"
 import { M, type MSettings } from "./media/data"
@@ -154,6 +154,20 @@ function AnimeLibrary({ o, status }: { o: HubOverview; status: Status }) {
                                 ))}
                             </ul>
                         )}
+                        {folders.length > 1 && (
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
+                                <div className="text-[13px]">
+                                    <div>Downloads go to</div>
+                                    <div className="text-[12px] text-muted">New anime downloaded by the devices land here. An anime that already has a folder keeps it.</div>
+                                </div>
+                                <Select
+                                    className="w-64 max-w-full"
+                                    value={folders.includes(settings.library.downloadDir ?? "") ? settings.library.downloadDir! : ""}
+                                    onChange={v => saveSettings.mutate({ ...settings, library: { ...settings.library, downloadDir: v } })}
+                                    options={[{ value: "", label: `${shortPath(folders[0])} (the first folder)` }, ...folders.slice(1).map(f => ({ value: f, label: shortPath(f) }))]}
+                                />
+                            </div>
+                        )}
                     </Panel>
 
                     <Panel title="Downloading onto the server">
@@ -205,6 +219,7 @@ function AnimeLibrary({ o, status }: { o: HubOverview; status: Status }) {
                             <Line label="Size" value={bytes(lib.size)} />
                             <Line label="Not matched to an anime" value={lib.unmatched.toLocaleString()} onClick={lib.unmatched > 0 ? () => open("unmatched") : undefined} />
                         </dl>
+                        {lib.scanning && <ScanLine progress={lib.progress} />}
                         <div className="flex flex-wrap gap-2 border-t border-line p-4">
                             <Button
                                 size="sm"
@@ -252,6 +267,22 @@ function AnimeLibrary({ o, status }: { o: HubOverview; status: Status }) {
                     </div>
                 </Panel>
             </div>
+        </div>
+    )
+}
+
+// The scan running: the counts above stay (the last ones), this says
+// where it is. Matching has a total; walking and saving only a message.
+function ScanLine({ progress }: { progress?: ScanProgress | null }) {
+    const p = progress
+    const ratio = p && p.stage === "matching" && p.total > 0 ? Math.min(1, p.done / p.total) : 0
+    return (
+        <div className="flex flex-col gap-1.5 border-t border-line px-4 py-3 text-[12.5px] text-muted">
+            <div className="flex items-center gap-2">
+                <RefreshCw className="size-3.5 shrink-0 animate-spin" />
+                <span className="truncate">{p?.stage === "matching" && p.total > 0 ? `Matching ${p.done.toLocaleString()} of ${p.total.toLocaleString()}: ${p.message.replace(/^Matching /, "")}` : p?.message || "Scanning…"}</span>
+            </div>
+            {ratio > 0 && <Progress value={ratio} className="h-1" />}
         </div>
     )
 }

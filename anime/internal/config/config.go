@@ -104,11 +104,15 @@ type LibrarySettings struct {
 	// Off: this computer has no library of its own; it plays the ones a
 	// Aniko Hub or other computers share with it. The folders below are kept
 	// for when it's turned back on.
-	Off              bool     `json:"off"`
-	Dir              string   `json:"dir"`
-	ExtraDirs        []string `json:"extraDirs"`
-	AutoRefresh      bool     `json:"autoRefresh"`
-	RefreshOnStartup bool     `json:"refreshOnStartup"`
+	Off       bool     `json:"off"`
+	Dir       string   `json:"dir"`
+	ExtraDirs []string `json:"extraDirs"`
+	// DownloadDir: the library folder new downloads (streams, torrents) go
+	// into, when the anime has no folder yet; empty = Dir. One of the
+	// folders above (see DownloadDir()).
+	DownloadDir      string `json:"downloadDir"`
+	AutoRefresh      bool   `json:"autoRefresh"`
+	RefreshOnStartup bool   `json:"refreshOnStartup"`
 	// Minimum similarity (0-1) required to auto-match a title.
 	MatchThreshold float64 `json:"matchThreshold"`
 	// Glob patterns (matched against file/dir names) that the scanner skips.
@@ -582,6 +586,24 @@ func (s Settings) LibraryDirs() []string {
 		out = append(out, d)
 	}
 	return out
+}
+
+// DownloadDir is the folder new downloads go into (see
+// LibrarySettings.DownloadDir): the one chosen when it's one of the library
+// folders, else the first library folder; "" when there's none.
+func (s Settings) DownloadDir() string {
+	dirs := s.LibraryDirs()
+	if d := filepath.Clean(expandHome(s.Library.DownloadDir)); d != "." && d != "" && slices.Contains(dirs, d) {
+		return d
+	}
+	if len(dirs) > 0 {
+		return dirs[0]
+	}
+	if s.Library.Dir != "" {
+		// The library is off: its first folder still takes downloads.
+		return filepath.Clean(expandHome(s.Library.Dir))
+	}
+	return ""
 }
 
 func expandHome(p string) string {

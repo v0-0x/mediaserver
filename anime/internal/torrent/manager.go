@@ -208,7 +208,7 @@ func splitCommand(exe string) (string, []string, error) {
 // SavePathFor returns where a torrent for an anime should be saved.
 func (m *Manager) SavePathFor(title string) string {
 	cfg := m.settings.Get()
-	dir := config.ExpandHome(cfg.Library.Dir)
+	dir := cfg.DownloadDir()
 	if dir == "" {
 		return ""
 	}

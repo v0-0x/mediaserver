@@ -538,27 +538,17 @@ func (m *Manager) download(r *run, cfg config.Settings, res *Resolved, out strin
 // folder), otherwise a new folder named after the anime — never loose in
 // the library folder itself.
 func (m *Manager) folderFor(cfg config.Settings, mediaID int, animeTitle string) (string, error) {
-	baseDir := config.ExpandHome(util.FirstNonEmpty(cfg.AniCli.DownloadDir, cfg.Library.Dir))
+	// Where new anime go: the ani-cli download folder when set, else the
+	// library folder chosen for downloads (Settings › Library).
+	baseDir := util.FirstNonEmpty(config.ExpandHome(cfg.AniCli.DownloadDir), cfg.DownloadDir())
 	if baseDir == "" {
 		return "", errors.New("no download directory configured")
 	}
 	baseDir = filepath.Clean(baseDir)
 	if mediaID > 0 && m.files != nil {
+		// The anime's own folder, in any library folder, wins.
 		if existing, _ := m.files.ByMedia(mediaID); len(existing) > 0 {
-			counts := map[string]int{}
-			best := ""
-			for _, f := range existing {
-				d := filepath.Clean(f.Dir)
-				// Only a folder of its own below the base folder.
-				if d == baseDir || !util.IsSubPath(baseDir, d) || strings.HasPrefix(filepath.Base(d), ".") {
-					continue
-				}
-				counts[d]++
-				if counts[d] > counts[best] {
-					best = d
-				}
-			}
-			if best != "" {
+			if best := library.OwnFolder(existing, append(cfg.LibraryDirs(), baseDir)); best != "" {
 				if st, err := os.Stat(best); err == nil && st.IsDir() {
 					return best, nil
 				}

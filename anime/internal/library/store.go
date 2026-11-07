@@ -3,6 +3,7 @@ package library
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/v0-0x/mediaserver/anime/internal/util"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -67,6 +68,36 @@ func (s *Store) query(where string, args ...any) ([]*LocalFile, error) {
 }
 
 func (s *Store) All() ([]*LocalFile, error) { return s.query(`ORDER BY path`) }
+
+// OwnFolder is the folder an anime's files are in: the one below a parent
+// (a library folder) that holds most of them. Files loose in a parent
+// itself, or in a hidden folder, don't count. "" when there's none.
+func OwnFolder(files []*LocalFile, parents []string) string {
+	counts := map[string]int{}
+	best := ""
+	for _, f := range files {
+		d := filepath.Clean(f.Dir)
+		if strings.HasPrefix(filepath.Base(d), ".") {
+			continue
+		}
+		below := false
+		for _, p := range parents {
+			p = filepath.Clean(p)
+			if d != p && util.IsSubPath(p, d) {
+				below = true
+				break
+			}
+		}
+		if !below {
+			continue
+		}
+		counts[d]++
+		if counts[d] > counts[best] {
+			best = d
+		}
+	}
+	return best
+}
 
 func (s *Store) ByMedia(mediaID int) ([]*LocalFile, error) {
 	files, err := s.query(`WHERE media_id = ? AND ignored = 0`, mediaID)

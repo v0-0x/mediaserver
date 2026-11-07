@@ -55,6 +55,8 @@ export type UTrack = {
     durationMs: number
     addedAt: number
     hasArt?: boolean
+    // A music video (its cover is a frame of it).
+    video?: boolean
 }
 
 export type UAlbum = { album: string; artist: string; songs: number; cover?: string; addedAt: number }

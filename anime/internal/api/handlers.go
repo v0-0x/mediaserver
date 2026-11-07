@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/v0-0x/mediaserver/anime/internal/anilist"
-	"github.com/v0-0x/mediaserver/anime/internal/config"
 	"github.com/v0-0x/mediaserver/anime/internal/downloads"
 	"github.com/v0-0x/mediaserver/anime/internal/extensions"
 	"github.com/v0-0x/mediaserver/anime/internal/library"
@@ -203,24 +202,12 @@ func (s *Server) match(r *http.Request) (any, error) {
 func (s *Server) torrentFolder(mediaID int, title string) string {
 	def := s.app.Torrents.SavePathFor(title)
 	cfg := s.app.Settings.Get()
-	lib := filepath.Clean(config.ExpandHome(cfg.Library.Dir))
-	if mediaID <= 0 || cfg.Library.Dir == "" || !cfg.Torrent.CreateSubfolder {
+	if mediaID <= 0 || def == "" || !cfg.Torrent.CreateSubfolder {
 		return def
 	}
+	// The anime's own folder, in any library folder, wins.
 	files, _ := s.app.Files.ByMedia(mediaID)
-	counts := map[string]int{}
-	best := ""
-	for _, f := range files {
-		d := filepath.Clean(f.Dir)
-		if d == lib || !util.IsSubPath(lib, d) || strings.HasPrefix(filepath.Base(d), ".") {
-			continue
-		}
-		counts[d]++
-		if counts[d] > counts[best] {
-			best = d
-		}
-	}
-	if best != "" {
+	if best := library.OwnFolder(files, append(cfg.LibraryDirs(), cfg.DownloadDir())); best != "" {
 		return best
 	}
 	return def

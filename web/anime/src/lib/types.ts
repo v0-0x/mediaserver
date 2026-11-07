@@ -181,6 +181,8 @@ export type Settings = {
         off?: boolean
         dir: string
         extraDirs: string[]
+        // The library folder new downloads go into ("" = the first).
+        downloadDir?: string
         autoRefresh: boolean
         refreshOnStartup: boolean
         matchThreshold: number
@@ -788,6 +790,9 @@ export type HubEvent = {
     again?: { mediaId: number; episodes: number[]; dub?: boolean; provider?: string; quality?: string; queued?: number }
 }
 
+// Where a scan is (server: library.ScanProgress).
+export type ScanProgress = { stage: "walking" | "matching" | "saving"; done: number; total: number; message: string }
+
 export type HubOverview = {
     name: string
     version: string
@@ -804,7 +809,7 @@ export type HubOverview = {
     devices: HubDevice[]
     accounts: HubAccount[]
     activity: HubEvent[] | null
-    library: { folders: string[] | null; files: number; anime: number; size: number; unmatched: number; scanning: boolean }
+    library: { folders: string[] | null; files: number; anime: number; size: number; unmatched: number; scanning: boolean; progress?: ScanProgress | null }
     encoder: string // "" no ffmpeg
     downloads: number
 }

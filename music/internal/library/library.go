@@ -48,6 +48,9 @@ type Track struct {
 	// HasArt: a cover (in the file, or a cover.jpg by it) at
 	// /api/peer/music/art.
 	HasArt bool `json:"hasArt,omitempty"`
+	// Video: a music video (VideoExts), not a song. Its cover is a frame of
+	// it when there's no cover image by it.
+	Video bool `json:"video,omitempty"`
 }
 
 // entry is a song as kept: with what tells it changed.
@@ -75,10 +78,31 @@ var Exts = map[string]string{
 	".mka": "audio/x-matroska",
 }
 
+// VideoExts are the files taken as music videos: indexed with the songs,
+// marked Video.
+var VideoExts = map[string]string{
+	".mp4": "video/mp4", ".m4v": "video/mp4", ".mkv": "video/x-matroska", ".webm": "video/webm", ".mov": "video/quicktime",
+}
+
 // IsSong reports a file taken as a song, by its name.
 func IsSong(name string) bool {
 	_, ok := Exts[strings.ToLower(filepath.Ext(name))]
 	return ok
+}
+
+// IsVideo reports a file taken as a music video, by its name.
+func IsVideo(name string) bool {
+	_, ok := VideoExts[strings.ToLower(filepath.Ext(name))]
+	return ok
+}
+
+// ContentType is the type a song or video is served as ("" when unknown).
+func ContentType(name string) string {
+	ext := strings.ToLower(filepath.Ext(name))
+	if ct := Exts[ext]; ct != "" {
+		return ct
+	}
+	return VideoExts[ext]
 }
 
 // Library is the music side's songs.
@@ -96,6 +120,7 @@ type Library struct {
 
 	wake    chan struct{}
 	probe   string // ffprobe, if there is one
+	ffmpeg  string // ffmpeg, if there is one (a video's frame as its cover)
 	probing sync.Mutex
 	// Changed runs after the songs changed (outside the lock).
 	Changed func()
@@ -130,6 +155,7 @@ type saved struct {
 func Open(dir string) (*Library, error) {
 	l := &Library{file: filepath.Join(dir, "library.json"), artDir: filepath.Join(dir, "art"), songs: map[string]*entry{}, wake: make(chan struct{}, 1), missing: map[string]bool{}}
 	l.probe, _ = exec.LookPath("ffprobe")
+	l.ffmpeg, _ = exec.LookPath("ffmpeg")
 	raw, err := os.ReadFile(l.file)
 	switch {
 	case errors.Is(err, os.ErrNotExist):
@@ -495,7 +521,7 @@ func (l *Library) Scan(ctx context.Context) {
 				}
 				return nil
 			}
-			if d.IsDir() || !d.Type().IsRegular() || !IsSong(name) {
+			if d.IsDir() || !d.Type().IsRegular() || !IsSong(name) && !IsVideo(name) {
 				return nil
 			}
 			info, err := d.Info()
@@ -503,7 +529,7 @@ func (l *Library) Scan(ctx context.Context) {
 				return nil
 			}
 			if e, ok := known[p]; ok && e.Size == info.Size() && e.ModTime == info.ModTime().UnixNano() {
-				e.HasArt = e.Embedded || cover(filepath.Dir(p))
+				e.HasArt = e.Embedded || e.Video || cover(filepath.Dir(p))
 				found[p] = &e
 				return nil
 			}
@@ -580,7 +606,9 @@ func read(p string, info fs.FileInfo, cover func(dir string) bool) *entry {
 		}
 		f.Close()
 	}
-	e.HasArt = e.Embedded || cover(filepath.Dir(p))
+	e.Video = IsVideo(p)
+	// A video always has a picture: a frame of it, when no cover image is by it.
+	e.HasArt = e.Embedded || e.Video || cover(filepath.Dir(p))
 	e.Guessed = e.Title == ""
 	guess(&e.Track)
 	return e
@@ -727,7 +755,25 @@ func (l *Library) readArt(path string) ([]byte, string, error) {
 		}
 		return data, sniffImage(data), nil
 	}
+	if IsVideo(path) && l.ffmpeg != "" {
+		if data, err := frame(l.ffmpeg, path); err == nil {
+			return data, "image/jpeg", nil
+		}
+	}
 	return nil, "", fs.ErrNotExist
+}
+
+// frame is a picture from a video (a few seconds in, 600 wide), as JPEG.
+func frame(ffmpeg, path string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	for _, at := range []string{"5", "0"} {
+		out, err := exec.CommandContext(ctx, ffmpeg, "-v", "error", "-ss", at, "-i", path, "-frames:v", "1", "-vf", "scale=600:-2", "-f", "image2", "-c:v", "mjpeg", "-q:v", "4", "pipe:1").Output()
+		if err == nil && len(out) > 0 {
+			return out, nil
+		}
+	}
+	return nil, fs.ErrNotExist
 }
 
 func sniffImage(b []byte) string {

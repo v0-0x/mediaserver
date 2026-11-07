@@ -184,3 +184,72 @@ func TestArtKept(t *testing.T) {
 		t.Fatal("a cover for a song without one, the second time")
 	}
 }
+
+// A music video is indexed with the songs, marked as one: its tags from
+// the file (ffprobe's when Go can't read them), and a frame of it as its
+// cover when no cover image is by it.
+func TestMusicVideo(t *testing.T) {
+	ffmpeg, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		t.Skip("no ffmpeg")
+	}
+	dir, music := t.TempDir(), t.TempDir()
+	video := filepath.Join(music, "Clip.mkv")
+	out, err := exec.Command(ffmpeg, "-v", "error", "-f", "lavfi", "-i", "testsrc=duration=2:size=160x120:rate=10", "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+		"-metadata", "title=A Clip", "-metadata", "artist=The Sines", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", video).CombinedOutput()
+	if err != nil {
+		t.Skipf("ffmpeg can't make a video: %v %s", err, out)
+	}
+	if err := os.WriteFile(filepath.Join(music, "song.mp3"), []byte("not much of a song"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l, _ := Open(dir)
+	_ = l.AddFolder(music)
+	l.Scan(context.Background())
+	tr := l.Tracks()
+	if len(tr) != 2 {
+		t.Fatalf("%d tracks, want the song and the video", len(tr))
+	}
+	var v *Track
+	for i := range tr {
+		if tr[i].Path == video {
+			v = &tr[i]
+		} else if tr[i].Video {
+			t.Fatalf("the song is a video: %+v", tr[i])
+		}
+	}
+	if v == nil || !v.Video || !v.HasArt {
+		t.Fatalf("the video: %+v", v)
+	}
+	if ContentType(video) != "video/x-matroska" || ContentType("x.mp3") != "audio/mpeg" || ContentType("x.txt") != "" {
+		t.Fatal("content types")
+	}
+	// Its tags come from ffprobe, with its length.
+	if l.CanProbe() {
+		deadline := time.Now().Add(20 * time.Second)
+		for {
+			for _, x := range l.Tracks() {
+				if x.Path == video && x.DurationMs > 0 {
+					if x.Title != "A Clip" || x.Artist != "The Sines" {
+						t.Fatalf("tags: %+v", x)
+					}
+					goto art
+				}
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("no length: %+v", l.Tracks())
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+art:
+	data, mime, err := l.Art(video)
+	if err != nil || mime != "image/jpeg" || len(data) < 100 {
+		t.Fatalf("a frame as the cover: %v %q %d bytes", err, mime, len(data))
+	}
+	// Kept: the second time, without ffmpeg.
+	l.ffmpeg = ""
+	if again, _, err := l.Art(video); err != nil || len(again) != len(data) {
+		t.Fatalf("the frame wasn't kept: %v", err)
+	}
+}

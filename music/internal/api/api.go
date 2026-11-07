@@ -366,7 +366,7 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.devs.playing(askerOf(r).dev.ID, p, time.Now())
-	if ct := library.Exts[strings.ToLower(filepath.Ext(p))]; ct != "" {
+	if ct := library.ContentType(p); ct != "" {
 		w.Header().Set("Content-Type", ct)
 	}
 	http.ServeContent(w, r, filepath.Base(p), st.ModTime(), f)

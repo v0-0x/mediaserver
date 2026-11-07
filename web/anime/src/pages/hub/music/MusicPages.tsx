@@ -1,4 +1,4 @@
-import { ChevronRight, Disc3, Folder, FolderPlus, KeyRound, Monitor, Music2, RefreshCw, Search, Server, Trash2, TriangleAlert, Upload, Wifi } from "lucide-react"
+import { ChevronRight, Clapperboard, Disc3, Folder, FolderPlus, KeyRound, Monitor, Music2, RefreshCw, Search, Server, Trash2, TriangleAlert, Upload, Wifi } from "lucide-react"
 import { useState } from "react"
 import { DirPicker } from "@/components/DirPicker"
 import { UploadDialog } from "@/components/UploadDialog"
@@ -298,7 +298,7 @@ export function MusicLibrary() {
                             </div>
                         }
                     >
-                        <p className="border-b border-line px-4 py-2.5 text-[12.5px] text-muted">Songs keep their own tags; a cover.jpg (or folder, front, album) next to them is their cover. Utako's uploads go into the first folder.</p>
+                        <p className="border-b border-line px-4 py-2.5 text-[12.5px] text-muted">Songs keep their own tags; a cover.jpg (or folder, front, album) next to them is their cover. Music videos (mp4, mkv, webm, mov) are indexed with them. Utako's uploads go into the first folder.</p>
                         {list.length === 0 ? (
                             <p className="px-4 py-8 text-center text-sm text-muted">No folder yet. Add the folder your music is in (on a Raspberry Pi, the USB drive's, like /media/pi/Music).</p>
                         ) : (
@@ -415,7 +415,10 @@ function SongRow({ t }: { t: UTrack }) {
         <li className="flex items-center gap-3 px-4 py-2" title={t.path}>
             <Cover path={t.path} has={t.hasArt} className="size-9" />
             <div className="min-w-0 flex-1">
-                <p className="truncate text-sm">{t.title}</p>
+                <p className="flex items-center gap-1.5 truncate text-sm">
+                    {t.video && <Clapperboard className="size-3.5 shrink-0 text-muted" aria-label="Music video" />}
+                    <span className="truncate">{t.title}</span>
+                </p>
                 <p className="truncate text-[12.5px] text-muted">{t.artist || "Unknown artist"}</p>
             </div>
             <p className="min-w-0 flex-1 truncate text-[13px] text-muted max-md:hidden">{t.album}</p>

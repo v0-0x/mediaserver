@@ -1609,6 +1609,7 @@ function PeerGrant({ label, help, checked, disabled, onChange }: { label: string
 function LibrarySection({ draft, set }: SectionProps) {
     const [, setSearchParams] = useSearchParams()
     const extra = draft.library.extraDirs ?? []
+    const folders = [draft.library.dir, ...extra].filter(Boolean)
     const off = !!draft.library.off
     return (
         <>
@@ -1650,6 +1651,15 @@ function LibrarySection({ draft, set }: SectionProps) {
                                     </button>
                                 </div>
                             </Stack>
+                            {folders.length > 1 && (
+                                <Stack label="Downloads go to" help="The folder new anime are downloaded into (streams and torrents). An anime that already has a folder keeps it.">
+                                    <Select
+                                        value={folders.includes(draft.library.downloadDir ?? "") ? draft.library.downloadDir! : ""}
+                                        onChange={v => set("library", { downloadDir: v })}
+                                        options={[{ value: "", label: `${folders[0]} (the first folder)` }, ...folders.slice(1).map(f => ({ value: f, label: f }))]}
+                                    />
+                                </Stack>
+                            )}
                         </Locked>
                     </Group>
                     <Group title="Scanning">
