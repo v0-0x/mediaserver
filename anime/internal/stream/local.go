@@ -33,6 +33,8 @@ type Local struct {
 	settings *config.Store
 	files    *library.Store
 	db       *db.DB
+	// Torrents are the torrents being played (TorrentPrefix paths).
+	Torrents Torrents
 	// MaxTranscodes: how many videos may be converted at once (0: any). A
 	// Aniko Hub's small computer converts one or two at most.
 	MaxTranscodes int
@@ -82,6 +84,27 @@ type Probe struct {
 
 var ErrNotInLibrary = errors.New("file is not part of the library")
 
+// TorrentPrefix starts the path of a torrent playing as it downloads
+// (package torrentstream): torrent:<its session's ID>. Played like a
+// library file, it's read from where the torrent serves it.
+const TorrentPrefix = "torrent:"
+
+// ErrTorrentGone: a torrent no longer being played (dropped, Aniko
+// restarted).
+var ErrTorrentGone = errors.New("this torrent isn't being played any more: play it again")
+
+// Torrents are the torrents being played (set by the app).
+type Torrents interface {
+	URL(id string) (string, error)
+	Size(id string) (int64, bool)
+	Serve(w http.ResponseWriter, r *http.Request, id string)
+}
+
+// IsTorrent reports a torrent's path.
+func IsTorrent(path string) bool { return strings.HasPrefix(path, TorrentPrefix) }
+
+func torrentID(path string) (string, bool) { return strings.CutPrefix(path, TorrentPrefix) }
+
 // ErrFileGone is (wrapped in) the error for a library file that isn't on
 // the disk: moved or deleted, or on a drive that isn't connected (its files
 // are kept until it is, see library.Scanner).
@@ -89,6 +112,15 @@ var ErrFileGone = errors.New("the video file isn't there")
 
 // resolve makes sure only indexed library files can be read.
 func (l *Local) resolve(path string) (string, error) {
+	if id, ok := torrentID(path); ok {
+		if l.Torrents == nil {
+			return "", ErrNotInLibrary
+		}
+		if _, ok := l.Torrents.Size(id); !ok {
+			return "", ErrTorrentGone
+		}
+		return l.Torrents.URL(id)
+	}
 	path = filepath.Clean(path)
 	f, err := l.files.Get(path)
 	if err != nil || f == nil {
@@ -120,22 +152,37 @@ func goneError(path string) error {
 }
 
 func (l *Local) Probe(ctx context.Context, path string) (*Probe, error) {
+	asked := path
 	path, err := l.resolve(path)
 	if err != nil {
 		return nil, err
 	}
 	cfg := l.settings.Get()
 	key := probeKey(path)
-	st, err := os.Stat(path)
-	if err != nil {
-		return nil, err
+	var size int64
+	torrent := false
+	if id, ok := torrentID(asked); ok {
+		// A torrent playing as it downloads: read from where it's served,
+		// its first pieces fetched for it.
+		size, _ = l.Torrents.Size(id)
+		torrent = true
+	} else {
+		st, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+		size = st.Size()
 	}
 	var p Probe
-	if l.db.GetCache(key, &p) && p.Size == st.Size() {
+	if l.db.GetCache(key, &p) && p.Size == size {
 		p.Method, p.Reason = decide(&p, cfg.Transcode.Mode, 0, nil)
 		return &p, nil
 	}
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	wait := 30 * time.Second
+	if torrent {
+		wait = 90 * time.Second // its pieces come from its peers
+	}
+	ctx, cancel := context.WithTimeout(ctx, wait)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, cfg.Transcode.FfprobePath, "-v", "error", "-print_format", "json", "-show_format", "-show_streams", path).Output()
 	if err != nil {
@@ -177,7 +224,10 @@ func (l *Local) Probe(ctx context.Context, path string) (*Probe, error) {
 	if err := json.Unmarshal(out, &raw); err != nil {
 		return nil, err
 	}
-	p = Probe{Path: path, Container: raw.Format.FormatName, Size: st.Size()}
+	p = Probe{Path: path, Container: raw.Format.FormatName, Size: size}
+	if torrent {
+		p.Path = asked
+	}
 	p.Duration, _ = strconv.ParseFloat(raw.Format.Duration, 64)
 	counts := map[string]int{}
 	for _, s := range raw.Streams {
@@ -200,7 +250,9 @@ func (l *Local) Probe(ctx context.Context, path string) (*Probe, error) {
 			p.Subtitles = append(p.Subtitles, ps)
 		}
 	}
-	p.ExternalSubs = externalSubs(path)
+	if !torrent {
+		p.ExternalSubs = externalSubs(path)
+	}
 	l.db.SetCache(key, p, 30*24*time.Hour)
 	p.Method, p.Reason = decide(&p, cfg.Transcode.Mode, 0, nil)
 	return &p, nil
@@ -655,6 +707,10 @@ func (l *Local) seekKeyframe(ctx context.Context, path string, t float64) (float
 
 // ServeFile streams the raw file with range support (direct play).
 func (l *Local) ServeFile(w http.ResponseWriter, r *http.Request, path string) {
+	if id, ok := torrentID(path); ok && l.Torrents != nil {
+		l.Torrents.Serve(w, r, id)
+		return
+	}
 	path, err := l.resolve(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)

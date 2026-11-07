@@ -31,6 +31,10 @@ type Server struct {
 	app *app.App
 	ui  fs.FS
 	mux *http.ServeMux
+	// torrentOwners: the torrents streamed for other Anikos (session ID to
+	// their ID): only that one reads its torrent (see torrentStreamRoutes).
+	torrentMu     sync.Mutex
+	torrentOwners map[string]string
 
 	mu   sync.Mutex
 	srv  *http.Server

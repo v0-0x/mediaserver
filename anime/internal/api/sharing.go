@@ -92,12 +92,21 @@ func shared(fn http.HandlerFunc) http.HandlerFunc {
 // shares, not any of its library's (an ignored one, say).
 func (s *Server) sharedFile(fn http.HandlerFunc) http.HandlerFunc {
 	return shared(func(w http.ResponseWriter, r *http.Request) {
-		if !s.app.Share.Shares(r.URL.Query().Get("path")) {
+		if !s.sharesWith(peerOf(r), r.URL.Query().Get("path")) {
 			writeJSON(w, http.StatusNotFound, map[string]any{"error": "that file isn't shared"})
 			return
 		}
 		fn(w, r)
 	})
+}
+
+// sharesWith reports a path an Aniko (the caller) may read here: a shared
+// file, or a torrent streamed here for it (torrentStreamRoutes).
+func (s *Server) sharesWith(c share.Caller, path string) bool {
+	if stream.IsTorrent(path) {
+		return s.ownsTorrent(c.ID, path)
+	}
+	return s.app.Share.Shares(path)
 }
 
 func (s *Server) peerRoutes() {
@@ -245,7 +254,7 @@ func (s *Server) peerRoutes() {
 		if err := decode(r, &req); err != nil {
 			return nil, err
 		}
-		if !s.app.Share.Shares(req.Path) {
+		if !s.sharesWith(peerOf(r), req.Path) {
 			return nil, notFound("that file isn't shared")
 		}
 		sess, err := s.app.HLS.Start(r.Context(), req)
@@ -580,6 +589,17 @@ func (s *Server) localSubtitle(w http.ResponseWriter, r *http.Request) {
 // in the in-app player. Progress and history are this Aniko's, with its
 // AniList account.
 func (s *Server) playShared(r *http.Request, body playLocalBody) (any, error) {
+	if host, onHost, ok := share.ParsePath(body.Path); ok && stream.IsTorrent(onHost) {
+		// A torrent streamed on the host for this Aniko (streamTorrentViaHost):
+		// nothing of it in a library; probed there, played as a shared file.
+		probe, err := s.app.Share.Probe(r.Context(), body.Path)
+		if err != nil {
+			return nil, notFound(strings.TrimSpace(s.app.Share.HostName(host) + ": " + err.Error()))
+		}
+		probe.Path = body.Path
+		title := s.episodeTitle(r.Context(), body.MediaID, body.Episode, "")
+		return s.builtinPlay(body, probe, title), nil
+	}
 	f, ok := s.app.Share.File(body.Path)
 	if !ok {
 		return nil, notFound("that library isn't shared with this Aniko any more")

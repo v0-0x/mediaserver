@@ -381,6 +381,9 @@ func (s *Server) playLocal(r *http.Request) (any, error) {
 	if share.IsRemote(body.Path) {
 		return s.playShared(r, body)
 	}
+	if stream.IsTorrent(body.Path) {
+		return s.playTorrent(r, body)
+	}
 	f, err := s.app.Files.Get(body.Path)
 	if err != nil {
 		return nil, notFound("file not in library")

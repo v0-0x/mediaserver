@@ -79,6 +79,11 @@ func ThumbTime(t float64) int {
 
 // ServeThumb sends the preview at t of a library file, as JPEG.
 func (l *Local) ServeThumb(w http.ResponseWriter, r *http.Request, path string, t float64) {
+	// A torrent's: none (each would fetch pieces from all over it).
+	if IsTorrent(path) {
+		http.Error(w, "no previews of a torrent", http.StatusNotFound)
+		return
+	}
 	path, err := l.resolve(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)

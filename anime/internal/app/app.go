@@ -37,7 +37,9 @@ import (
 	"github.com/v0-0x/mediaserver/anime/internal/share"
 	"github.com/v0-0x/mediaserver/anime/internal/stream"
 	"github.com/v0-0x/mediaserver/anime/internal/torrent"
+	"github.com/v0-0x/mediaserver/anime/internal/torrentstream"
 	"github.com/v0-0x/mediaserver/anime/internal/update"
+	"github.com/v0-0x/mediaserver/anime/internal/util"
 )
 
 type App struct {
@@ -58,13 +60,16 @@ type App struct {
 	Extensions *extensions.Manager
 	Stream     *stream.Service
 	Local      *stream.Local
-	HLS        *stream.HLS
-	Share      *share.Service
-	Manga      *manga.Service
-	Discord    *discord.Client
-	Images     *images.Cache
-	Logs       *LogBuffer
-	Update     *update.Checker
+	// TorrentStream plays torrents as they download, for the devices whose
+	// downloads come here (package torrentstream).
+	TorrentStream *torrentstream.Engine
+	HLS           *stream.HLS
+	Share         *share.Service
+	Manga         *manga.Service
+	Discord       *discord.Client
+	Images        *images.Cache
+	Logs          *LogBuffer
+	Update        *update.Checker
 	// Awake keeps the computer from sleeping while others play its files.
 	Awake *awake.Keeper
 	// Trash holds the files put away from Library tools › Clean up.
@@ -200,6 +205,14 @@ func New(dataDir string, opts ...Options) (*App, error) {
 		ctx: ctx, cancel: cancel, DataDir: dataDir, prefetch: newPrefetcher(),
 	}
 	a.HLS = stream.NewHLS(a.Local, hlsDir(dataDir))
+	// Torrents streamed for the devices whose downloads come here (a TV
+	// has no torrent client): package torrentstream, as in Aniko.
+	a.TorrentStream = torrentstream.New(torrentStreamDir(dataDir))
+	a.TorrentStream.Free = func(dir string) (uint64, error) {
+		_, free, err := util.DiskSpace(dir)
+		return free, err
+	}
+	a.Local.Torrents = a.TorrentStream
 	a.Notify = notify.New(settings, hub, d, platform)
 	a.Trash = library.NewTrash(d, files, func() []string { return a.Settings.Get().LibraryDirs() })
 	a.Awake = awake.New(func() bool { return a.Settings.Get().Sharing.KeepAwake })
@@ -223,6 +236,15 @@ func New(dataDir string, opts ...Options) (*App, error) {
 	a.wireManga()
 	a.wire()
 	return a, nil
+}
+
+// torrentStreamDir holds the pieces of the torrents being streamed, in
+// the cache folder.
+func torrentStreamDir(dataDir string) string {
+	if dir, err := os.UserCacheDir(); err == nil {
+		return filepath.Join(dir, "mediaserver", "torrent-stream")
+	}
+	return filepath.Join(dataDir, "torrent-stream")
 }
 
 // hlsDir holds the in-app player's HLS segments: on disk, in the cache
@@ -583,6 +605,7 @@ func (a *App) Shutdown() {
 	a.Share.Stop()
 	a.Awake.Close()
 	a.Update.Stop()
+	a.TorrentStream.Close()
 	a.HLS.Close()
 	a.Scanner.StopWatcher()
 	a.Discord.Clear()

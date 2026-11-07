@@ -157,30 +157,57 @@ func (s *Service) askDownloadHost(ctx context.Context, path string, body any) (r
 	if p == nil {
 		return nil, name, true, errNotShared
 	}
+	raw, err = s.askPeer(ctx, p, name, path, body)
+	return raw, name, true, err
+}
+
+// AskHost asks an Aniko this one uses (its ID) something at path (GET
+// without a body, else POST): its answer, and its name for messages.
+func (s *Service) AskHost(ctx context.Context, host, path string, body any) (raw json.RawMessage, name string, err error) {
+	p := s.host(host)
+	if p == nil {
+		return nil, "", errNotShared
+	}
+	name = s.nameOf(p)
+	raw, err = s.askPeer(ctx, p, name, path, body)
+	return raw, name, err
+}
+
+// HostName is the name of an Aniko this one knows (its ID), or "".
+func (s *Service) HostName(id string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if p := s.peers[id]; p != nil {
+		return p.name
+	}
+	return ""
+}
+
+func (s *Service) askPeer(ctx context.Context, p *peer, name, path string, body any) (raw json.RawMessage, err error) {
 	method := http.MethodGet
 	var rd io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
 		if err != nil {
-			return nil, name, true, err
+			return nil, err
 		}
 		method, rd = http.MethodPost, bytes.NewReader(b)
 	}
 	req, err := s.request(ctx, p, method, path, rd)
 	if err != nil {
-		return nil, name, true, err
+		return nil, err
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 	resp, err := s.do(s.api, req)
 	if err != nil {
-		return nil, name, true, fmt.Errorf("%s doesn't answer: %s", name, plainError(err))
+		return nil, fmt.Errorf("%s doesn't answer: %s", name, plainError(err))
 	}
 	defer resp.Body.Close()
 	raw, err = io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 	if err != nil {
-		return nil, name, true, err
+		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		var e struct {
@@ -192,10 +219,10 @@ func (s *Service) askDownloadHost(ctx context.Context, path string, body any) (r
 		if e.Error == "" {
 			e.Error = resp.Status
 		}
-		return nil, name, true, errors.New(name + ": " + e.Error)
+		return nil, errors.New(name + ": " + e.Error)
 	}
 	if len(raw) == 0 {
 		raw = json.RawMessage("null")
 	}
-	return raw, name, true, nil
+	return raw, nil
 }

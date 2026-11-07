@@ -27,6 +27,7 @@ import (
 func (s *Server) routes() {
 	m := s.mux
 	s.peerRoutes()
+	s.torrentStreamRoutes()
 	s.uploadRoutes()
 	s.hubRoutes()
 	s.sideRoutes()
