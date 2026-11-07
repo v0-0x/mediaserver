@@ -518,6 +518,8 @@ export type MarketEntry = {
     installedVersion?: string
     hasUpdate: boolean
     supported: boolean
+    // A plugin's permission scopes Aniko doesn't have: what it does with them won't work here.
+    unsupported?: string[]
 }
 
 export type UINode = { id: string; type: string; props: Record<string, any> }

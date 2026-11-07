@@ -85,6 +85,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /api/anime/{id}/watch-order", h(s.watchOrder))
 	m.HandleFunc("PUT /api/watch-order/{key}", h(s.putWatchOrder))
 	m.HandleFunc("DELETE /api/watch-order/{key}", h(s.deleteWatchOrder))
+	m.HandleFunc("POST /api/watch-order/{key}/report", h(s.reportWatchOrder))
 	m.HandleFunc("POST /api/anilist/search", h(s.search))
 	m.HandleFunc("GET /api/anilist/discover", h(s.discover))
 	m.HandleFunc("GET /api/anilist/schedule", h(s.schedule))

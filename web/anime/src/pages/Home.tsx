@@ -143,6 +143,12 @@ export default function HomePage() {
             <UpdateBanner />
             <SleepingHosts />
             <DevicePrompts />
+            {!!data?.incomplete && (
+                <p className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-line bg-white/[0.03] px-3 py-2 text-[13px] text-muted md:mx-8 xl:mx-10">
+                    <RefreshCw className="size-3.5 shrink-0 animate-spin" />
+                    {data.incomplete} {data.incomplete === 1 ? "anime in your library is" : "anime in your library are"} still being looked up on AniList: they show in a moment.
+                </p>
+            )}
             <Hero
                 items={continueItems}
                 loading={isLoading}

@@ -2,6 +2,7 @@ package update
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -277,8 +278,9 @@ func TestCheckWindowsPicksNewestRelease(t *testing.T) {
 	if !slices.Contains(gh.paths(), "/repos/o/r/releases?per_page=100") {
 		t.Fatalf("requests: %q", gh.paths())
 	}
-	// A portable copy (no uninstaller next to it) can't install it.
-	if st.CanApply || !strings.Contains(st.ApplyNote, "portable") {
+	// Not Aniko's layout (<root>\resources\aniko.exe): it can't tell whether
+	// it's installed or portable, so it doesn't update itself.
+	if st.CanApply || !strings.Contains(st.ApplyNote, "can't tell") {
 		t.Fatalf("canApply %v: %q", st.CanApply, st.ApplyNote)
 	}
 
@@ -771,5 +773,125 @@ func TestCheckLinuxStableRelease(t *testing.T) {
 	// Not the default branch: that's for betas.
 	if slices.Contains(gh.paths(), "/repos/o/r/commits/main") {
 		t.Fatalf("requests: %q", gh.paths())
+	}
+}
+
+// portableZip is a portable build's zip: Aniko.exe and resources\aniko.exe.
+func portableZip(t *testing.T) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for name, body := range map[string]string{"Aniko.exe": "MZ the new Aniko", "resources/aniko.exe": "MZ the new server", "LICENSE.txt": "MIT"} {
+		w, err := zw.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = w.Write([]byte(body))
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+// portableWindows: the portable build, unzipped anywhere (no uninstaller).
+func portableWindows(t *testing.T, c *Checker) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "Aniko portable")
+	if err := os.MkdirAll(filepath.Join(dir, "resources"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	c.GOOS, c.Version = "windows", "1.0.9"
+	c.Executable = func() (string, error) { return filepath.Join(dir, "resources", "aniko.exe"), nil }
+	return dir
+}
+
+// The portable build updates itself: the portable zip (not the installer)
+// is downloaded and unpacked, and a script that puts it in place and
+// starts Aniko runs once Aniko has shut down.
+func TestApplyWindowsPortable(t *testing.T) {
+	archive := portableZip(t)
+	sum := sha256.Sum256(archive)
+	releases := windowsReleases([]byte("installer"))
+	for _, r := range releases {
+		for _, a := range r["assets"].([]map[string]any) {
+			if a["id"] == 41 {
+				a["size"], a["digest"] = len(archive), "sha256:"+hex.EncodeToString(sum[:])
+			}
+		}
+	}
+	gh := newFakeGitHub(t)
+	gh.json("GET /repos/o/r/releases", releases)
+	gh.mux.HandleFunc("GET /repos/o/r/releases/assets/41", func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write(archive) })
+	c := newTestChecker(t, gh)
+	root := portableWindows(t, c)
+	var started []string
+	c.StartInstaller = func(path string, args ...string) error {
+		started = append([]string{path}, args...)
+		return nil
+	}
+	st := check(t, c)
+	if !st.Available || !st.CanApply {
+		t.Fatalf("available %v, canApply %v (%s), error %q", st.Available, st.CanApply, st.ApplyNote, st.Error)
+	}
+	if !strings.Contains(st.ApplyNote, "portable zip") {
+		t.Fatalf("apply note %q", st.ApplyNote)
+	}
+	if err := c.Apply(); err != nil {
+		t.Fatal(err)
+	}
+	var exit lifecycle.Exit
+	select {
+	case exit = <-c.Exits.C():
+	case <-time.After(10 * time.Second):
+		t.Fatalf("Aniko wasn't asked to quit: %+v", c.Status())
+	}
+	if exit.Code != lifecycle.CodeInstalling || exit.Restart || exit.Before == nil {
+		t.Fatalf("exit %+v", exit)
+	}
+	if st := waitState(t, c); st.State != StateInstalling {
+		t.Fatalf("state %q: %s", st.State, st.Message)
+	}
+	if started != nil {
+		t.Fatal("the script started before Aniko quit")
+	}
+	if err := exit.Before(); err != nil {
+		t.Fatal(err)
+	}
+	script := filepath.Join(c.CacheDir, "update.cmd")
+	if want := []string{"cmd.exe", "/c", script}; !slices.Equal(started, want) {
+		t.Fatalf("started %q, want %q", started, want)
+	}
+	// Unpacked beside it, and the script moves it over the old build.
+	if b, _ := os.ReadFile(filepath.Join(c.CacheDir, "new", "resources", "aniko.exe")); string(b) != "MZ the new server" {
+		t.Fatalf("unpacked server %q", b)
+	}
+	b, err := os.ReadFile(script)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`set "NEW=` + filepath.Join(c.CacheDir, "new") + `"`, `set "APP=` + root + `"`, "robocopy", `\Aniko.exe" --updated`} {
+		if !strings.Contains(string(b), want) {
+			t.Fatalf("the script lacks %q:\n%s", want, b)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(c.CacheDir, "Aniko-1.0.10-windows-x64-portable.zip")); err == nil {
+		t.Fatal("the zip wasn't removed once unpacked")
+	}
+}
+
+// A zip with a path outside the folder is refused.
+func TestUnzipPortableRefusesPathsOutside(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, _ := zw.Create("../evil.exe")
+	_, _ = w.Write([]byte("x"))
+	_ = zw.Close()
+	archive := filepath.Join(t.TempDir(), "bad.zip")
+	if err := os.WriteFile(archive, buf.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := unzipPortable(archive, filepath.Join(t.TempDir(), "new")); err == nil {
+		t.Fatal("a path outside the folder was accepted")
 	}
 }

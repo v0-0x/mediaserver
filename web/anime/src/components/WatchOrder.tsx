@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, CalendarClock, Check, Eye, EyeOff, ListOrdered, Pencil, RefreshCw, TriangleAlert, Undo2 } from "lucide-react"
+import { ArrowDown, ArrowUp, CalendarClock, Check, Eye, EyeOff, ListOrdered, Pencil, RefreshCw, TriangleAlert, Undo2, Flag } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Badge, Button, IconButton, Tabs } from "@/components/ui"
@@ -225,6 +225,18 @@ function Editor({ order, current, status, onDone }: { order: Order; current: num
             if (!next.delete(id)) next.add(id)
             return next
         })
+    // Aniko's order and this edit, as a file to send with a bug report.
+    const report = async () => {
+        setSaving(true)
+        try {
+            const r = await api.post<{ path: string }>(`/api/watch-order/${order.key}/report`, { animeId: current, order: ids, hidden: [...hidden] })
+            toast.success(`Saved: ${r.path}. Attach it to an issue on GitHub (Help › Report a problem).`, { duration: 12000 })
+        } catch (e) {
+            toast.error((e as Error).message)
+        } finally {
+            setSaving(false)
+        }
+    }
     const done = async (p: Promise<unknown>) => {
         setSaving(true)
         try {
@@ -286,7 +298,11 @@ function Editor({ order, current, status, onDone }: { order: Order; current: num
                         Back to Aniko's order
                     </Button>
                 )}
+                <Button size="sm" variant="ghost" icon={<Flag className="size-4" />} disabled={saving} onClick={report}>
+                    Report wrong order
+                </Button>
             </div>
+            <p className="text-xs text-muted">Report wrong order keeps a note of Aniko's order and your edit, as a file to send along with a bug report, so the order can be put right for everyone.</p>
         </>
     )
 }

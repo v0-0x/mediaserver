@@ -19,6 +19,7 @@ import {
     Star,
     Trash2,
     Tv,
+    TriangleAlert,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
@@ -500,6 +501,13 @@ function MarketCard({ e }: { e: MarketEntry }) {
                 {e.deprecatedTag && <Badge tone="amber">Deprecated</Badge>}
                 {e.official && <Badge tone="blue">Official</Badge>}
                 {!e.supported && <Badge tone="amber">Not supported</Badge>}
+                {e.unsupported && e.unsupported.length > 0 && (
+                    <span title={`This plugin asks for ${e.unsupported.join(", ")}: Aniko doesn't have ${e.unsupported.length === 1 ? "that" : "those"}, so what it does with ${e.unsupported.length === 1 ? "it" : "them"} won't work here.`}>
+                        <Badge tone="amber">
+                            <TriangleAlert className="size-3" /> Needs {e.unsupported.join(", ")}
+                        </Badge>
+                    </span>
+                )}
             </div>
             <div className="mt-auto flex items-center gap-2 pt-1">
                 {e.installed ? (

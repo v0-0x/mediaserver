@@ -2,6 +2,7 @@ package update
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bufio"
 	"compress/gzip"
 	"context"
@@ -303,6 +304,136 @@ func (c *Checker) applyWindows(ctx context.Context, g *github, target Version, i
 	}}
 	if c.Exits == nil || !c.Exits.Request(exit) {
 		return errors.New("Aniko is already shutting down")
+	}
+	return nil
+}
+
+// applyWindowsPortable updates the portable build (unzipped into root):
+// the new zip is downloaded and unpacked beside it, and a script started
+// once Aniko has shut down moves the new files over the old ones and
+// starts Aniko again. Nothing is installed; the data stays in %APPDATA%.
+func (c *Checker) applyWindowsPortable(ctx context.Context, g *github, target Version, zipAsset *asset, root string) error {
+	if zipAsset == nil {
+		return errors.New("the newest release has no portable zip")
+	}
+	dir := c.CacheDir
+	if err := removeAll(dir); err != nil {
+		return fmt.Errorf("couldn't remove the last update's files: %w", err)
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	path := filepath.Join(dir, filepath.Base(zipAsset.Name))
+	err := c.download(ctx, g, g.root()+"/releases/assets/"+strconv.FormatInt(zipAsset.ID, 10), "application/octet-stream", path, zipAsset.Size, func(done, total int64) {
+		c.progress(StateDownloading, percent(done, total), "Downloading Aniko "+display(target)+"…")
+	})
+	if err != nil {
+		return fmt.Errorf("couldn't download the portable zip: %w", err)
+	}
+	if err := verifyDigest(path, zipAsset.Digest); err != nil {
+		_ = os.Remove(path)
+		return err
+	}
+	c.progress(StateDownloading, -1, "Unpacking Aniko "+display(target)+"…")
+	fresh := filepath.Join(dir, "new")
+	if err := unzipPortable(path, fresh); err != nil {
+		return fmt.Errorf("couldn't unpack the portable zip: %w", err)
+	}
+	if !isFile(filepath.Join(fresh, "Aniko.exe")) {
+		return errors.New("the portable zip doesn't hold Aniko.exe")
+	}
+	_ = os.Remove(path)
+	script := filepath.Join(dir, "update.cmd")
+	if err := os.WriteFile(script, []byte(portableScript(fresh, root)), 0o700); err != nil {
+		return err
+	}
+	c.step(StateInstalling, -1, "Updating Aniko to "+display(target)+": Aniko closes now and opens again when it's done.")
+	// The script runs once Aniko has shut down (it waits for Aniko.exe to
+	// be gone anyway), outside Aniko's job object, so it outlives it.
+	exit := lifecycle.Exit{Code: lifecycle.CodeInstalling, Before: func() error {
+		if err := c.StartInstaller("cmd.exe", "/c", script); err != nil {
+			c.saveFailure("Aniko couldn't start the update script (" + err.Error() + "). Run it yourself: " + script)
+			return fmt.Errorf("starting the update script: %w", err)
+		}
+		return nil
+	}}
+	if c.Exits == nil || !c.Exits.Request(exit) {
+		return errors.New("Aniko is already shutting down")
+	}
+	return nil
+}
+
+// portableScript is the batch script that puts the new portable build
+// (fresh) in place of the old one (root) once Aniko.exe is gone, and
+// starts it. robocopy /MOVE leaves fresh empty; files the old build had
+// and the new one hasn't stay (nothing of the user's is in there).
+func portableScript(fresh, root string) string {
+	return "@echo off\r\n" +
+		"rem Aniko's portable update: waits for Aniko to close, puts the new files in place, starts it.\r\n" +
+		"set \"NEW=" + fresh + "\"\r\n" +
+		"set \"APP=" + root + "\"\r\n" +
+		"set /a tries=0\r\n" +
+		":wait\r\n" +
+		"tasklist /FI \"IMAGENAME eq Aniko.exe\" 2>NUL | find /I \"Aniko.exe\" >NUL\r\n" +
+		"if not errorlevel 1 (\r\n" +
+		"  set /a tries+=1\r\n" +
+		"  if %tries% GEQ 60 goto start\r\n" +
+		"  timeout /t 1 /nobreak >NUL\r\n" +
+		"  goto wait\r\n" +
+		")\r\n" +
+		"robocopy \"%NEW%\" \"%APP%\" /E /MOVE /R:10 /W:1 /NFL /NDL /NJH /NJS /NP >NUL\r\n" +
+		":start\r\n" +
+		"start \"\" \"%APP%\\Aniko.exe\" --updated\r\n"
+}
+
+// unzipPortable unpacks the portable build's zip (Aniko.exe and its
+// folders at the top) into dir, which must not exist yet. No links; a
+// path that would land outside dir fails it.
+func unzipPortable(archive, dir string) error {
+	zr, err := zip.OpenReader(archive)
+	if err != nil {
+		return err
+	}
+	defer zr.Close()
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		return err
+	}
+	var written int64
+	const maxSize = 2 << 30 // far more than the app
+	for _, f := range zr.File {
+		rel, err := safePath(f.Name)
+		if err != nil {
+			return err
+		}
+		if rel == "" {
+			continue
+		}
+		target := filepath.Join(dir, rel)
+		mode := f.Mode()
+		switch {
+		case mode.IsDir():
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return err
+			}
+		case mode.IsRegular():
+			if written += int64(f.UncompressedSize64); written > maxSize {
+				return errors.New("the archive is too big")
+			}
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+				return err
+			}
+			r, err := f.Open()
+			if err != nil {
+				return err
+			}
+			err = writeFile(target, r, int64(f.UncompressedSize64), 0o644)
+			r.Close()
+			if err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unexpected entry in the archive: %q", f.Name)
+		}
 	}
 	return nil
 }

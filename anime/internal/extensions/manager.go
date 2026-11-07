@@ -642,6 +642,9 @@ type MarketEntry struct {
 	InstalledVersion string `json:"installedVersion,omitempty"`
 	HasUpdate        bool   `json:"hasUpdate"`
 	Supported        bool   `json:"supported"`
+	// Unsupported: a plugin's permission scopes Aniko doesn't have (its
+	// manifest asks for them): what it does with them won't work here.
+	Unsupported []string `json:"unsupported,omitempty"`
 }
 
 // Marketplace downloads the marketplace index (cached for an hour).
@@ -683,7 +686,73 @@ func (m *Manager) Marketplace(ctx context.Context, url string, refresh bool) ([]
 		}
 	}
 	m.mu.RUnlock()
+	m.markUnsupported(ctx, entries)
 	return entries, nil
+}
+
+// knownScopes are the plugin permission scopes Aniko has (plugin.go): a
+// plugin asking for others (Seanime's playback, system, os…) does things
+// that won't work here.
+var knownScopes = map[string]bool{"anilist": true, "anilist-token": true, "database": true, "storage": true}
+
+// fetchManifest downloads a plugin's manifest (tests serve their own).
+var fetchManifest = util.GetBytes
+
+// markUnsupported fills Unsupported for the marketplace's plugins, from
+// their manifests (fetched, a few at a time, and kept a day; not for
+// long: the list shouldn't wait on them).
+func (m *Manager) markUnsupported(ctx context.Context, entries []MarketEntry) {
+	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+	defer cancel()
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, 4)
+	for i := range entries {
+		e := &entries[i]
+		if e.Type != TypePlugin || e.ManifestURI == "" {
+			continue
+		}
+		key := "marketplace-scopes:" + e.ManifestURI
+		var scopes []string
+		if m.db.GetCache(key, &scopes) {
+			e.Unsupported = unsupportedScopes(scopes)
+			continue
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			select {
+			case slots <- struct{}{}:
+				defer func() { <-slots }()
+			case <-ctx.Done():
+				return
+			}
+			raw, err := fetchManifest(ctx, e.ManifestURI, nil)
+			if err != nil {
+				return
+			}
+			var man Manifest
+			if json.Unmarshal(raw, &man) != nil || man.Plugin == nil {
+				return
+			}
+			scopes := man.Plugin.Permissions.Scopes
+			if scopes == nil {
+				scopes = []string{}
+			}
+			m.db.SetCache(key, scopes, 24*time.Hour)
+			e.Unsupported = unsupportedScopes(scopes)
+		}()
+	}
+	wg.Wait()
+}
+
+func unsupportedScopes(scopes []string) []string {
+	var out []string
+	for _, s := range scopes {
+		if !knownScopes[s] {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------

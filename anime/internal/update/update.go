@@ -348,9 +348,13 @@ func (c *Checker) applyable() (bool, string) {
 		}
 		return true, "Aniko downloads the new version, builds it with makepkg and installs it with pacman, which asks for your password."
 	case "windows":
-		// <install dir>\resources\aniko.exe, next to <install dir>\Uninstall Aniko.exe.
-		if err != nil || !isFile(filepath.Join(filepath.Dir(filepath.Dir(exe)), "Uninstall Aniko.exe")) {
-			return false, "This is a portable copy of Aniko: to update it, download the new portable zip."
+		// <install dir>\resources\aniko.exe, next to <install dir>\Uninstall Aniko.exe
+		// when installed; unzipped anywhere, without it, when portable.
+		if err != nil || filepath.Base(filepath.Dir(exe)) != "resources" {
+			return false, "Aniko can't tell where it runs from: download the new version from its page."
+		}
+		if c.portable(exe) {
+			return true, "Aniko downloads the new portable zip, puts it in place once Aniko has closed, and opens Aniko again. Nothing is installed."
 		}
 		return true, "Aniko downloads the installer and runs it: Aniko closes, the new version installs and Aniko opens again."
 	case "darwin":
@@ -364,6 +368,18 @@ func (c *Checker) applyable() (bool, string) {
 		return true, "mediaserver downloads the new version, swaps it in and starts again (a few seconds)."
 	}
 	return false, "Aniko can't update itself on this system."
+}
+
+// portable says whether this Windows copy is the portable build (unzipped
+// anywhere, no uninstaller next to it) rather than the installed one.
+func (c *Checker) portable(exe string) bool {
+	return c.GOOS == "windows" && exe != "" && filepath.Base(filepath.Dir(exe)) == "resources" && !isFile(filepath.Join(portableRoot(exe), "Uninstall Aniko.exe"))
+}
+
+// portableRoot is the folder the portable build was unzipped into, from
+// its server: <root>\resources\aniko.exe.
+func portableRoot(exe string) string {
+	return filepath.Dir(filepath.Dir(exe))
 }
 
 func isFile(p string) bool {
@@ -634,6 +650,11 @@ func releaseAsset(goos, version string) string {
 	return "Aniko-Setup-" + version + "-windows-x64.exe"
 }
 
+// portableAsset names the portable Windows build's zip.
+func portableAsset(version string) string {
+	return "Aniko-" + version + "-windows-x64-portable.zip"
+}
+
 // releaseFile says what that file is, for messages.
 func releaseFile(goos string) string {
 	switch goos {
@@ -677,6 +698,9 @@ func (c *Checker) checkReleases(ctx context.Context, g *github) (result, error) 
 		res.note = "This copy is a beta, newer than the newest stable release (" + version + "). It stays until a newer stable release comes out."
 	}
 	file := releaseAsset(c.GOOS, version)
+	if exe, err := c.Executable(); err == nil && c.portable(exe) {
+		file = portableAsset(version)
+	}
 	for _, a := range best.Assets {
 		if a.Name == file {
 			res.asset = &asset{ID: a.ID, Name: a.Name, Size: a.Size, Digest: a.Digest}
@@ -816,7 +840,11 @@ func (c *Checker) Apply() error {
 		var err error
 		switch c.GOOS {
 		case "windows":
-			err = c.applyWindows(c.ctx, g, target, inst)
+			if exe, e := c.Executable(); e == nil && c.portable(exe) {
+				err = c.applyWindowsPortable(c.ctx, g, target, inst, portableRoot(exe))
+			} else {
+				err = c.applyWindows(c.ctx, g, target, inst)
+			}
 		case "darwin":
 			err = c.applyMac(c.ctx, g, target, inst)
 		case "android":

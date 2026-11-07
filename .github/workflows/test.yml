@@ -1,0 +1,50 @@
+# Tests on every push and pull request: the Go tests of all three sides and
+# the dashboards' type checks and builds, on Linux. The release workflow
+# tests again before building.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    name: Server (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: go test -count 1 -timeout 10m ./...
+
+  web:
+    name: Dashboards (TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: |
+            web/anime/package-lock.json
+            web/movies/package-lock.json
+      - name: Type check and build
+        run: |
+          for side in anime movies; do
+            (cd "web/$side" && npm ci --no-audit --no-fund && npx tsc --noEmit && npm run build) || exit 1
+          done

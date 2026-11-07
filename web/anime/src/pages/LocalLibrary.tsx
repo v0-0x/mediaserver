@@ -1,4 +1,4 @@
-import { Check, CheckCheck, ChevronDown, FolderOpen, FolderSearch, FolderSync, HardDrive, Info, LayoutGrid, List as ListIcon, Play, Search, Settings2, Share2, Upload } from "lucide-react"
+import { RefreshCw, Check, CheckCheck, ChevronDown, FolderOpen, FolderSearch, FolderSync, HardDrive, Info, LayoutGrid, List as ListIcon, Play, Search, Settings2, Share2, Upload } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "@/lib/toast"
@@ -244,6 +244,12 @@ export default function LocalLibraryPage() {
                         <p className="mt-1 text-muted">
                             {host ? `Shared by ${host.host.name} over your network${host.host.online ? "" : " (not answering right now)"}.` : "Only anime you have downloaded on this computer."}
                         </p>
+                        {!!coll?.incomplete && (
+                            <p className="mt-2 flex items-center gap-2 text-[13px] text-muted">
+                                <RefreshCw className="size-3.5 shrink-0 animate-spin" />
+                                {coll.incomplete} {coll.incomplete === 1 ? "anime is" : "anime are"} still being looked up on AniList: they show in a moment.
+                            </p>
+                        )}
                     </div>
                     {host && uploadButton}
                     {!host && off && uploadButton}
