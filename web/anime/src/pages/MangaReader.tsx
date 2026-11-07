@@ -63,12 +63,58 @@ const toggleFullscreen = () => (document.fullscreenElement ? document.exitFullsc
 // the first page of a chapter opens the previous one there.
 const END = Number.MAX_SAFE_INTEGER
 
+// The reader's page (/manga/read?id=&provider=&chapter=&page=): the reader
+// with the address as its state, and a manga's page to go back to.
 export default function MangaReaderPage() {
     const [params, setParams] = useSearchParams()
     const id = Number(params.get("id"))
     const provider = params.get("provider") ?? ""
     const chapterId = params.get("chapter") ?? ""
     const asked = /^\d+$/.test(params.get("page") ?? "") ? Number(params.get("page")) : undefined
+    const navigate = useNavigate()
+    return (
+        <MangaReader
+            id={id}
+            provider={provider}
+            chapterId={chapterId}
+            page={asked}
+            onChapter={c => setParams({ id: String(id), provider, chapter: c })}
+            onClose={() => navigate(`/manga/entry?id=${id}`)}
+        />
+    )
+}
+
+// What's remembered where reading stopped when it isn't kept on the
+// server (track off: the dashboard reading the server's own chapters).
+const localPosition = (id: number): MangaPosition | null => {
+    try {
+        return JSON.parse(localStorage.getItem(`aniko-manga-position-${id}`) || "null")
+    } catch {
+        return null
+    }
+}
+
+// The reader itself: a chapter of a manga, by its provider, from a page.
+// onChapter is asked to open another chapter (the previous or next one);
+// onClose to leave. With track off, nothing goes to AniList (the Reading
+// list, chapters read) and where reading stopped stays in this browser.
+export function MangaReader({
+    id,
+    provider,
+    chapterId,
+    page: asked,
+    onChapter,
+    onClose,
+    track = true,
+}: {
+    id: number
+    provider: string
+    chapterId: string
+    page?: number
+    onChapter: (chapterId: string) => void
+    onClose: () => void
+    track?: boolean
+}) {
     const { data: status } = useStatus()
     const qc = useQueryClient()
     // A mode picked here shows at once and becomes the default (Settings).
@@ -88,7 +134,6 @@ export default function MangaReaderPage() {
     const [ratios, setRatios] = useState<Record<string, number>>({})
     // Chapters found to come in strips.
     const [stripChapters, setStripChapters] = useState<string[]>([])
-    const navigate = useNavigate()
     const marked = useRef<string>("")
     // How big pages show: 1 fills the space below the buttons, less leaves
     // more room around them. Remembered by this browser.
@@ -106,11 +151,14 @@ export default function MangaReaderPage() {
     })
     // Where reading stopped last time, to start there again.
     const positionKey = ["manga", "position", id]
-    const { data: position, isPending: positionPending } = useQuery({
+    const { data: kept, isPending: keptPending } = useQuery({
         queryKey: positionKey,
         queryFn: () => api.get<MangaPosition | null>(`/api/manga/${id}/position`),
-        enabled: id > 0,
+        enabled: id > 0 && track,
     })
+    const [local, setLocal] = useState(() => (track ? null : localPosition(id)))
+    const position = track ? kept : local
+    const positionPending = track && keptPending
 
     // The page turned to in this chapter; before any turn, the one asked for
     // (?page=), else the one reading stopped at, else the first.
@@ -162,7 +210,7 @@ export default function MangaReaderPage() {
         if (!c) return
         setPos({ chapter: c.id, page: at })
         setStripPage(null)
-        setParams({ id: String(id), provider, chapter: c.id })
+        onChapter(c.id)
         document.getElementById("reader")?.scrollTo({ top: 0 })
     }
 
@@ -178,18 +226,18 @@ export default function MangaReaderPage() {
     // it where it is when it's there already, or rereading, or completed).
     const started = useRef(0)
     useEffect(() => {
-        if (!(id > 0) || started.current === id) return
+        if (!track || !(id > 0) || started.current === id) return
         started.current = id
         api.post<{ added: boolean }>(`/api/manga/${id}/reading`)
             .then(r => r?.added && toast.success("Added to Reading"))
             .catch(() => {})
-    }, [id])
+    }, [id, track])
 
     const canBack = at > 0 || idx > 0
     const canForward = at < spreads.length - 1 || idx < list.length - 1
 
     const markRead = () => {
-        if (!chapter || marked.current === chapter.id) return
+        if (!track || !chapter || marked.current === chapter.id) return
         marked.current = chapter.id
         api.post(`/api/manga/${id}/progress`, { chapter: chapter.chapter })
             .then(() => {
@@ -248,14 +296,24 @@ export default function MangaReaderPage() {
         const save = () => {
             pending.current = null
             lastSaved.current = key
-            qc.setQueryData<MangaPosition>(positionKey, { ...body, updatedAt: Math.floor(Date.now() / 1000) })
+            const at = { ...body, updatedAt: Math.floor(Date.now() / 1000) }
+            if (!track) {
+                setLocal(at)
+                try {
+                    localStorage.setItem(`aniko-manga-position-${id}`, JSON.stringify(at))
+                } catch {
+                    // Nothing kept: it starts at the first page next time.
+                }
+                return
+            }
+            qc.setQueryData<MangaPosition>(positionKey, at)
             api.put(`/api/manga/${id}/position`, body).catch(() => {})
         }
         pending.current = save
         const t = window.setTimeout(save, 600)
         return () => window.clearTimeout(t)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [positionPending, chapter, total, provider, chapterId, current, id])
+    }, [positionPending, chapter, total, provider, chapterId, current, id, track])
     useEffect(() => () => pending.current?.(), [])
 
     // Bound again on every render: turning depends on the current spreads.
@@ -280,7 +338,7 @@ export default function MangaReaderPage() {
                 const a = document.activeElement as HTMLElement | null
                 const onBar = !!root && !!a && root.contains(a) && a !== root && !!a.closest("button, [role=button], a")
                 if (e.key === "Escape") {
-                    navigate(`/manga/entry?id=${id}`)
+                    onClose()
                     e.preventDefault()
                     return
                 }
@@ -428,7 +486,7 @@ export default function MangaReaderPage() {
                 }}
             >
                 <Tooltip content="Back" side="bottom">
-                    <button onClick={() => navigate(`/manga/entry?id=${id}`)} className={bar} aria-label="Back">
+                    <button onClick={onClose} className={bar} aria-label="Back">
                         <ArrowLeft />
                     </button>
                 </Tooltip>

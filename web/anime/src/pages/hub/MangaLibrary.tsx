@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { BookOpen, Folder, FolderOpen, RotateCcw, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { BookOpen, BookOpenText, Folder, FolderOpen, RotateCcw, Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import { DirPicker } from "@/components/DirPicker"
+import { MangaReader } from "@/pages/MangaReader"
 import { Badge, Button, Dialog, IconButton, Spinner } from "@/components/ui"
 import { api } from "@/lib/api"
 import { useSaveSettings } from "@/lib/queries"
@@ -20,6 +22,27 @@ export default function MangaLibrary({ status }: { status: Status }) {
     const saveSettings = useSaveSettings()
     const [picking, setPicking] = useState(false)
     const [open, setOpen] = useState<MangaSeries | null>(null)
+    // A chapter being read here, over the dashboard (the series' dialog
+    // closes meanwhile and comes back after). Back closes the reader too.
+    const [reading, setReading] = useState<{ series: MangaSeries; file: string } | null>(null)
+    const read = (series: MangaSeries, file: string) => {
+        setOpen(null)
+        setReading({ series, file })
+        window.history.pushState({ mangaReader: true }, "")
+    }
+    const stopReading = () => {
+        if (window.history.state?.mangaReader) window.history.back()
+        else setReading(null)
+    }
+    useEffect(() => {
+        if (!reading) return
+        const onPop = () => {
+            setReading(null)
+            setOpen(reading.series)
+        }
+        window.addEventListener("popstate", onPop)
+        return () => window.removeEventListener("popstate", onPop)
+    }, [reading])
     const { data, isLoading, error } = useQuery({
         queryKey: ["manga-library"],
         queryFn: () => api.get<Library>("/api/manga-library"),
@@ -114,13 +137,16 @@ export default function MangaLibrary({ status }: { status: Status }) {
             </Panel>
 
             <DirPicker open={picking} onOpenChange={setPicking} start={data?.dir} onPick={setDir} />
-            {open && <SeriesDialog series={open} onClose={() => setOpen(null)} />}
+            {open && <SeriesDialog series={open} onClose={() => setOpen(null)} onRead={file => read(open, file)} />}
+            {reading &&
+                // On the page itself: over the dashboard's header.
+                createPortal(<MangaReader id={reading.series.anilistId} provider="local" chapterId={reading.file} onChapter={file => setReading({ ...reading, file })} onClose={stopReading} track={false} />, document.body)}
         </div>
     )
 }
 
 // A series: its details and chapters, each to delete, or all of it.
-function SeriesDialog({ series, onClose }: { series: MangaSeries; onClose: () => void }) {
+function SeriesDialog({ series, onClose, onRead }: { series: MangaSeries; onClose: () => void; onRead: (file: string) => void }) {
     const qc = useQueryClient()
     const [sure, setSure] = useState(false)
     const { data, isLoading } = useQuery({
@@ -197,6 +223,9 @@ function SeriesDialog({ series, onClose }: { series: MangaSeries; onClose: () =>
                                     {c.added > 0 && ` · ${ago(c.added * 1000)}`}
                                 </p>
                             </div>
+                            <Button size="sm" variant="ghost" icon={<BookOpenText className="size-4" />} onClick={() => onRead(c.file)}>
+                                Read
+                            </Button>
                             <IconButton size="sm" label={`Delete chapter ${c.chapter}`} disabled={remove.isPending && remove.variables === c.file} onClick={() => remove.mutate(c.file)}>
                                 <Trash2 className="size-4" />
                             </IconButton>
