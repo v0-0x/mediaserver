@@ -114,6 +114,10 @@ type Service struct {
 	// with its account's on a hub (hub.go). Nil: not kept in step.
 	OwnPrefs   PrefsSource
 	ApplyPrefs PrefsSink
+	// Blobs: what else this device keeps in step through a hub, by kind
+	// (anikohub.BlobKinds): its list and watch-order edits (hub.go). Set
+	// by the app; nil: not kept in step.
+	Blobs map[string]BlobHooks
 	// What the devices are watching (a hub's dashboard).
 	playingMu sync.Mutex
 	playing   map[string]Playing
@@ -782,6 +786,9 @@ type Hello struct {
 	// account's settings last changed on it (ms).
 	Role    string `json:"role,omitempty"`
 	PrefsAt int64  `json:"prefsAt,omitempty"`
+	// BlobsAt: when the guest's account's lists and watch-order edits last
+	// changed on the hub, by kind (ms; hub.go).
+	BlobsAt map[string]int64 `json:"blobsAt,omitempty"`
 	// Parental: the guest's parental controls, set here (parental.go).
 	Parental *parental.Rules `json:"parental,omitempty"`
 }
@@ -809,6 +816,7 @@ func (s *Service) Hello(c Caller) Hello {
 			if c.User > 0 {
 				h.PrefsAt = s.Hub.PrefsAt(c.User)
 			}
+			h.BlobsAt = s.Hub.BlobsAt(c.User)
 		}
 	}
 	return h
@@ -1095,6 +1103,10 @@ func (s *Service) ask(ctx context.Context, p *peer) {
 		if p.role == RoleHub {
 			s.syncPrefs(ctx, p, h.PrefsAt)
 		}
+	}
+	// The list and watch-order edits: on the account, or on none (user 0).
+	if h.Shares && p.role == RoleHub && h.User == s.user() {
+		s.syncBlobs(ctx, p, h.BlobsAt)
 	}
 	if back {
 		s.autoSync(p)

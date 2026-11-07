@@ -234,7 +234,7 @@ export type Settings = {
     // files. autoSync: sync watch history when a paired device comes back.
     // syncPrefs: the theme and player settings kept in step with the other
     // devices on the same AniList account, through an Aniko Hub.
-    sharing: { enabled: boolean; name: string; downloadTo?: string; keepAwake?: boolean; autoSync?: boolean; syncPrefs?: boolean }
+    sharing: { enabled: boolean; name: string; downloadTo?: string; keepAwake?: boolean; autoSync?: boolean; syncPrefs?: boolean; syncLists?: boolean }
     notify?: { newEpisodes: boolean; downloads: boolean }
     // Which releases Aniko updates to: stable ones, or betas too.
     updates?: { channel: "stable" | "beta" }

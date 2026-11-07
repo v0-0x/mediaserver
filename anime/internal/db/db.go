@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -228,6 +229,30 @@ func (d *DB) SetKV(key string, value any) error {
 	}
 	_, err = d.Write(`INSERT INTO kv(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, key, string(raw))
 	return err
+}
+
+// KVPrefix is every key starting with prefix, with its value.
+func (d *DB) KVPrefix(prefix string) (map[string]json.RawMessage, error) {
+	rows, err := d.Query(`SELECT key, value FROM kv WHERE key LIKE ? ESCAPE '\'`, likePrefix(prefix)+"%")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]json.RawMessage{}
+	for rows.Next() {
+		var k, v string
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, err
+		}
+		out[k] = json.RawMessage(v)
+	}
+	return out, rows.Err()
+}
+
+// likePrefix escapes a LIKE pattern's special characters in a prefix.
+func likePrefix(p string) string {
+	r := strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`)
+	return r.Replace(p)
 }
 
 func (d *DB) DeleteKV(key string) error {

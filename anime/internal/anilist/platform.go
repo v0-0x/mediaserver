@@ -22,9 +22,12 @@ import (
 // it keeps an equivalent list in the local database so the app works fully
 // without an account.
 type Platform struct {
-	client *Client
-	db     *db.DB
-	hub    *events.Hub
+	// LocalListChanged runs after the local list changed here (an entry
+	// saved, or removed: deleted), for the devices it's kept in step with.
+	LocalListChanged func(mediaID int, deleted bool)
+	client           *Client
+	db               *db.DB
+	hub              *events.Hub
 
 	// authMu serialises logins and logouts, so the token and viewer saved in
 	// the database always match the ones in memory.
@@ -750,8 +753,75 @@ func (p *Platform) UpdateEntry(ctx context.Context, u EntryUpdate) error {
 		u.MediaID, mt, orNull(u.Status), orNull(u.Progress), orNull(u.Score), orNull(u.Repeat), string(raw), time.Now().Unix())
 	if err == nil {
 		p.hub.Publish(events.CollectionUpdate, map[string]any{"mediaId": u.MediaID})
+		if p.LocalListChanged != nil {
+			p.LocalListChanged(u.MediaID, false)
+		}
 	}
 	return err
+}
+
+// LocalRow is an entry of the local list as kept (local_list: the list of a
+// device on no AniList account). UpdatedAt is in seconds.
+type LocalRow struct {
+	MediaID   int             `json:"mediaId"`
+	Type      string          `json:"type"`
+	Status    string          `json:"status"`
+	Progress  int             `json:"progress"`
+	Score     float64         `json:"score"`
+	Repeat    int             `json:"repeat"`
+	Media     json.RawMessage `json:"media"`
+	UpdatedAt int64           `json:"updatedAt"`
+}
+
+// LocalRows is the whole local list.
+func (p *Platform) LocalRows() ([]LocalRow, error) {
+	rows, err := p.db.Query(`SELECT media_id, type, status, progress, score, repeat, media, updated_at FROM local_list`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []LocalRow
+	for rows.Next() {
+		var r LocalRow
+		var media string
+		if err := rows.Scan(&r.MediaID, &r.Type, &r.Status, &r.Progress, &r.Score, &r.Repeat, &media, &r.UpdatedAt); err != nil {
+			return nil, err
+		}
+		r.Media = json.RawMessage(media)
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// PutLocalRow keeps an entry as it is (from another device, through a hub:
+// share.BlobHooks), with its own time, and tells the UI.
+func (p *Platform) PutLocalRow(r LocalRow) error {
+	if r.MediaID <= 0 || !json.Valid(r.Media) {
+		return errors.New("bad entry")
+	}
+	_, err := p.db.Write(`INSERT INTO local_list(media_id, type, status, progress, score, repeat, media, updated_at)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(media_id) DO UPDATE SET type = excluded.type, status = excluded.status, progress = excluded.progress,
+			score = excluded.score, repeat = excluded.repeat, media = excluded.media, updated_at = excluded.updated_at`,
+		r.MediaID, typeOr(r.Type), r.Status, r.Progress, r.Score, r.Repeat, string(r.Media), r.UpdatedAt)
+	if err == nil {
+		p.hub.Publish(events.CollectionUpdate, map[string]any{"mediaId": r.MediaID})
+	}
+	return err
+}
+
+// DeleteLocalRow removes an entry (as PutLocalRow), and reports whether
+// there was one.
+func (p *Platform) DeleteLocalRow(mediaID int) (bool, error) {
+	res, err := p.db.Write(`DELETE FROM local_list WHERE media_id = ?`, mediaID)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	if n > 0 {
+		p.hub.Publish(events.CollectionUpdate, map[string]any{"mediaId": mediaID})
+	}
+	return n > 0, nil
 }
 
 // orNull is v's value, or nil (SQL NULL) when v is nil.
@@ -803,6 +873,9 @@ func (p *Platform) DeleteEntry(ctx context.Context, mediaID int) error {
 			return err
 		}
 		p.hub.Publish(events.CollectionUpdate, map[string]any{"mediaId": mediaID})
+		if p.LocalListChanged != nil {
+			p.LocalListChanged(mediaID, true)
+		}
 		return nil
 	}
 	media, _ := p.MediaLite(ctx, mediaID)

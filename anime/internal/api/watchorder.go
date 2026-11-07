@@ -63,7 +63,11 @@ func (s *Server) putWatchOrder(r *http.Request) (any, error) {
 	if e.Hidden == nil {
 		e.Hidden = []int{}
 	}
-	return nil, s.app.DB.SetKV(watchorder.EditKey(key), e)
+	if err := s.app.DB.SetKV(watchorder.EditKey(key), e); err != nil {
+		return nil, err
+	}
+	s.app.WatchOrderEdited(key, false)
+	return nil, nil
 }
 
 // reportWatchOrder keeps a note of a wrong order: Aniko's story order for
@@ -145,5 +149,9 @@ func (s *Server) deleteWatchOrder(r *http.Request) (any, error) {
 	if err != nil || key <= 0 {
 		return nil, badRequest("bad franchise key")
 	}
-	return nil, s.app.DB.DeleteKV(watchorder.EditKey(key))
+	if err := s.app.DB.DeleteKV(watchorder.EditKey(key)); err != nil {
+		return nil, err
+	}
+	s.app.WatchOrderEdited(key, true)
+	return nil, nil
 }

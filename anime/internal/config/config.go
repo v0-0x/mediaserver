@@ -230,6 +230,10 @@ type SharingSettings struct {
 	// the same on every device on this AniList account: changed here, they
 	// change there.
 	SyncPrefs bool `json:"syncPrefs"`
+	// SyncLists: with an Aniko Hub, the local list (on no AniList account)
+	// and the watch-order edits are kept in step between the devices
+	// (share/hub.go, Blobs). Experimental.
+	SyncLists bool `json:"syncLists"`
 }
 
 type ServerSettings struct {
@@ -353,7 +357,7 @@ func Defaults() Settings {
 		},
 		Discord:    DiscordSettings{RichPresence: false},
 		Extensions: ExtensionSettings{MarketplaceURL: DefaultMarketplaceURL},
-		Sharing:    SharingSettings{KeepAwake: true, AutoSync: true, SyncPrefs: true},
+		Sharing:    SharingSettings{KeepAwake: true, AutoSync: true, SyncPrefs: true, SyncLists: true},
 		Notify:     NotifySettings{NewEpisodes: true, Downloads: true},
 		Updates:    UpdateSettings{Channel: "stable"},
 	}

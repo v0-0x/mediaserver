@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/v0-0x/mediaserver/anime/internal/anikohub"
+	"github.com/v0-0x/mediaserver/anime/internal/events"
 	"github.com/v0-0x/mediaserver/anime/internal/history"
 )
 
@@ -560,4 +561,135 @@ func (s *Service) SetDeviceAccount(device string, user int) error {
 	}
 	s.hub.Publish("hub-updated", nil)
 	return nil
+}
+
+// ------------------------------------------------------------------ blobs
+
+// BlobHooks are the device's side of one kind of blob (anikohub.Blob): its
+// own items, and taking a hub's merged ones (newer than its own); Apply
+// reports whether anything changed here.
+type BlobHooks struct {
+	Own   func() anikohub.Blob
+	Apply func(b anikohub.Blob) bool
+}
+
+// HubBlob answers a device asking for its account's blob of a kind.
+func (s *Service) HubBlob(c Caller, kind string) (anikohub.Blob, error) {
+	if s.Hub == nil {
+		return anikohub.Blob{}, errors.New("not a hub")
+	}
+	return s.Hub.Blob(max(c.User, 0), kind), nil
+}
+
+// TakeHubBlob merges a device's blob into its account's and sends the
+// result on to the account's other devices.
+func (s *Service) TakeHubBlob(c Caller, kind string, b anikohub.Blob) (anikohub.Blob, error) {
+	if s.Hub == nil {
+		return anikohub.Blob{}, errors.New("not a hub")
+	}
+	user := max(c.User, 0)
+	merged, changed, err := s.Hub.MergeBlob(user, kind, b)
+	if err != nil || !changed {
+		return merged, err
+	}
+	s.hubLog("lists", c.Name, user, "changed the %s", kindName(kind))
+	go s.relay(user, c.ID, "/api/peer/blobs/"+kind, merged)
+	return merged, nil
+}
+
+func kindName(kind string) string {
+	if kind == "lists" {
+		return "list"
+	}
+	return "watch order"
+}
+
+func (s *Service) blobHooks(kind string) (BlobHooks, bool) {
+	h, ok := s.Blobs[kind]
+	if !ok || h.Own == nil || h.Apply == nil || !s.settings.Get().Sharing.SyncLists {
+		return BlobHooks{}, false
+	}
+	return h, true
+}
+
+// TakeBlob (a device) takes its account's blob of a kind a hub sent, when
+// it keeps them in step.
+func (s *Service) TakeBlob(from, kind string, b anikohub.Blob) {
+	s.mu.Lock()
+	host := s.peers[from]
+	isHub := host != nil && host.role == RoleHub && host.shares
+	s.mu.Unlock()
+	h, ok := s.blobHooks(kind)
+	if !isHub || !ok {
+		return
+	}
+	if h.Apply(b) {
+		s.hub.Publish(events.CollectionUpdate, nil)
+	}
+}
+
+// syncBlobs (a device) brings its list and watch-order edits in step with
+// its account's on a hub, kind by kind: its own go up when newer, the
+// hub's come down when newer (both merge item by item).
+func (s *Service) syncBlobs(ctx context.Context, p *peer, hubAt map[string]int64) {
+	for _, kind := range anikohub.BlobKinds {
+		h, ok := s.blobHooks(kind)
+		if !ok {
+			continue
+		}
+		own := h.Own()
+		at := hubAt[kind]
+		switch {
+		case own.UpdatedAt > at && len(own.Items) > 0:
+			var merged anikohub.Blob
+			if err := s.postJSON(ctx, p, "/api/peer/hub/blobs/"+kind, own, &merged); err == nil && len(merged.Items) > 0 {
+				if h.Apply(merged) {
+					s.hub.Publish(events.CollectionUpdate, nil)
+				}
+			}
+		case at > own.UpdatedAt:
+			var hb anikohub.Blob
+			if err := s.getJSON(ctx, p, "/api/peer/hub/blobs/"+kind, &hb); err == nil && len(hb.Items) > 0 {
+				if h.Apply(hb) {
+					s.hub.Publish(events.CollectionUpdate, nil)
+				}
+			}
+		}
+	}
+}
+
+// BlobChanged (a device) sends a kind of blob, changed here, to the hubs it
+// uses on its account (or on none).
+func (s *Service) BlobChanged(kind string) {
+	h, ok := s.blobHooks(kind)
+	if !ok {
+		return
+	}
+	me := s.user()
+	s.mu.Lock()
+	var hubs []*peer
+	for _, p := range s.peers {
+		if p.role == RoleHub && p.shares && p.user == me && p.addr != nil && p.fails < maxFails {
+			hubs = append(hubs, p)
+		}
+	}
+	s.mu.Unlock()
+	if len(hubs) == 0 {
+		return
+	}
+	own := h.Own()
+	for _, p := range hubs {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+			defer cancel()
+			var merged anikohub.Blob
+			if err := s.postJSON(ctx, p, "/api/peer/hub/blobs/"+kind, own, &merged); err != nil {
+				log.Printf("sharing: %s to %s: %v", kindName(kind), s.nameOf(p), plainError(err))
+				return
+			}
+			if len(merged.Items) > 0 && h.Apply(merged) {
+				s.hub.Publish(events.CollectionUpdate, nil)
+			}
+		}()
+	}
 }

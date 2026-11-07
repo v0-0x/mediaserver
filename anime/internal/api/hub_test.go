@@ -7,7 +7,13 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"fmt"
+	"github.com/v0-0x/mediaserver/anime/internal/anilist"
 	"github.com/v0-0x/mediaserver/anime/internal/app"
+	"github.com/v0-0x/mediaserver/anime/internal/watchorder"
+	"net"
+	"net/http/httptest"
+	"time"
 )
 
 func newHubServer(t *testing.T) *Server {
@@ -82,5 +88,104 @@ func TestHubOwner(t *testing.T) {
 	}
 	if got := s.app.Settings.Get().Library.Dir; got != "/srv/anime" {
 		t.Fatalf("the owner's library folder wasn't kept: %q", got)
+	}
+}
+
+// hubSharingServer is a hub on the network, as sharingServer makes a device.
+func hubSharingServer(t *testing.T) (*Server, *httptest.Server) {
+	t.Helper()
+	s := newHubServer(t)
+	ln, err := net.Listen("tcp4", "0.0.0.0:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewUnstartedServer(s.middleware(s.mux))
+	_ = srv.Listener.Close()
+	srv.Listener = ln
+	srv.Start()
+	srv.URL = fmt.Sprintf("http://127.0.0.1:%d", ln.Addr().(*net.TCPAddr).Port)
+	t.Cleanup(srv.Close)
+	s.app.Share.Start()
+	cfg := s.app.Settings.Get()
+	cfg.Sharing.Enabled = true
+	cfg.Server.Port = srv.Listener.Addr().(*net.TCPAddr).Port
+	if _, err := s.app.Settings.Save(cfg); err != nil {
+		t.Fatal(err)
+	}
+	return s, srv
+}
+
+// Two devices on no AniList account share one list through the hub, and
+// their watch-order edits: an entry added on one shows on the other, a
+// removal removes it there, an edited order comes over.
+func TestListsFollowTheHub(t *testing.T) {
+	const local = "127.0.0.1:5000"
+	hub, hubSrv := hubSharingServer(t)
+	a, _ := sharingServer(t)
+	b, _ := sharingServer(t)
+	addr := strings.TrimPrefix(hubSrv.URL, "http://")
+	for _, d := range []*Server{a, b} {
+		if w := do(d, "POST", "/api/sharing/connect", local, `{"address":"`+addr+`"}`, nil); w.Code != http.StatusOK {
+			t.Fatalf("connect: %d %s", w.Code, w.Body)
+		}
+		eventually(t, "the hub to list the device", func() bool { _, ok := peerIn(hub, d); return ok })
+		if err := hub.app.Share.SetAllowed(d.app.Share.ID(), true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	asked := func(d *Server, ok func() bool) func() bool {
+		return func() bool { do(d, "GET", "/api/sharing?refresh=1", local, "", nil); return ok() }
+	}
+	for _, d := range []*Server{a, b} {
+		eventually(t, "the hub's library", asked(d, func() bool { return len(d.app.Share.Libraries()) == 1 }))
+	}
+	media := &anilist.Media{ID: 21, Type: "ANIME", Title: anilist.Title{Romaji: "One Piece"}}
+	a.app.DB.SetCache("media-lite:21", media, time.Hour)
+	st := "CURRENT"
+	if err := a.app.Platform.UpdateEntry(t.Context(), anilist.EntryUpdate{MediaID: 21, Status: &st}); err != nil {
+		t.Fatal(err)
+	}
+	has := func(d *Server, id int) func() bool {
+		return func() bool {
+			rows, _ := d.app.Platform.LocalRows()
+			for _, r := range rows {
+				if r.MediaID == id {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	eventually(t, "the entry to reach the hub", func() bool { return len(hub.app.HubStore.Blob(0, "lists").Items) == 1 })
+	eventually(t, "the entry to reach the other device", asked(b, has(b, 21)))
+	// Removed on one: gone on the other (and remembered as a removal).
+	if err := a.app.Platform.DeleteEntry(t.Context(), 21); err != nil {
+		t.Fatal(err)
+	}
+	eventually(t, "the removal to reach the other device", asked(b, func() bool { return !has(b, 21)() }))
+	// A watch-order edit on B comes to A.
+	if w := do(b, "PUT", "/api/watch-order/100", local, `{"order":[102,101],"hidden":[101]}`, nil); w.Code != http.StatusOK {
+		t.Fatalf("edit: %d %s", w.Code, w.Body)
+	}
+	eventually(t, "the edit to reach the other device", asked(a, func() bool {
+		var e watchorder.Edit
+		ok, _ := a.app.DB.GetKV(watchorder.EditKey(100), &e)
+		return ok && len(e.Order) == 2 && e.Order[0] == 102
+	}))
+	// Turned off on a device: nothing more comes to it.
+	cfg := a.app.Settings.Get()
+	cfg.Sharing.SyncLists = false
+	if _, err := a.app.Settings.Save(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if w := do(b, "PUT", "/api/watch-order/300", local, `{"order":[301],"hidden":[]}`, nil); w.Code != http.StatusOK {
+		t.Fatalf("edit: %d %s", w.Code, w.Body)
+	}
+	eventually(t, "the hub to have the second edit", func() bool { return len(hub.app.HubStore.Blob(0, "watch-order").Items) == 2 })
+	do(a, "GET", "/api/sharing?refresh=1", local, "", nil)
+	time.Sleep(300 * time.Millisecond)
+	var e watchorder.Edit
+	if ok, _ := a.app.DB.GetKV(watchorder.EditKey(300), &e); ok {
+		t.Fatal("an edit came to a device that turned it off")
 	}
 }

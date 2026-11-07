@@ -1278,6 +1278,18 @@ function SharingGroup({ draft, set }: SectionProps) {
                     <Switch checked={draft.sharing.syncPrefs ?? true} disabled={!trusted} onChange={v => set("sharing", { syncPrefs: v })} />
                 </Row>
             )}
+            {draft.sharing.enabled && peers.some(p => p.role === "hub") && (
+                <Row
+                    label={
+                        <span className="inline-flex items-center gap-2">
+                            Same list and watch order on all my devices <Badge tone="amber">Experimental</Badge>
+                        </span>
+                    }
+                    help="Through mediaserver: your watch-order edits, and the list of a device that isn't logged into AniList, are kept in step between your devices (the devices on no account share one list through the server). Changed on one, they change on the others; what you remove goes on all. If it goes wrong, turn it off here and the lists stay as they are on each device."
+                >
+                    <Switch checked={draft.sharing.syncLists ?? true} disabled={!trusted} onChange={v => set("sharing", { syncLists: v })} />
+                </Row>
+            )}
             {draft.sharing.enabled !== !!saved?.enabled && <p className="px-4 py-3 text-xs text-amber-200/80">Save to turn library sharing {draft.sharing.enabled ? "on" : "off"}.</p>}
             {saved?.enabled && sharing && (
                 <>

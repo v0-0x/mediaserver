@@ -50,6 +50,16 @@ var schema = []string{
 		data TEXT NOT NULL,
 		updated_at INTEGER NOT NULL
 	)`,
+	// Each account's lists and watch-order edits (Blob): every item with
+	// when it changed, merged from its devices. user 0: the devices on no
+	// account (one shared local list per hub).
+	`CREATE TABLE IF NOT EXISTS hub_blobs (
+		user INTEGER NOT NULL,
+		kind TEXT NOT NULL,
+		data TEXT NOT NULL,
+		updated_at INTEGER NOT NULL,
+		PRIMARY KEY (user, kind)
+	)`,
 	// The audit log (audit.go): everything that happened on the hub.
 	`CREATE TABLE IF NOT EXISTS hub_audit (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -387,4 +397,145 @@ func randomDigits(n int) string {
 		b[i] = '0' + b[i]%10
 	}
 	return string(b)
+}
+
+// ------------------------------------------------------------------ blobs
+
+// BlobKinds are what devices keep in step through a hub as Blobs, besides
+// their settings: the local list (the devices on no AniList account) and
+// their watch-order edits.
+var BlobKinds = []string{"lists", "watch-order"}
+
+// Blob is a set of items (a list's entries, a franchise's edited order) by
+// key, each with when it changed ("at", ms) and whether it was removed
+// ("deleted"): devices and the hub merge them item by item, the newer
+// wins, so two devices changing different items don't undo each other.
+// UpdatedAt is the newest item's time.
+type Blob struct {
+	Items     map[string]json.RawMessage `json:"items"`
+	UpdatedAt int64                      `json:"updatedAt"`
+}
+
+// blobItem is what every item carries.
+type blobItem struct {
+	At      int64 `json:"at"`
+	Deleted bool  `json:"deleted,omitempty"`
+}
+
+func itemOf(raw json.RawMessage) blobItem {
+	var it blobItem
+	_ = json.Unmarshal(raw, &it)
+	return it
+}
+
+// tombstoneFor is how long a removed item is remembered, so a device that
+// still has it removes it too.
+const tombstoneFor = 30 * 24 * time.Hour
+
+// Merge takes src's items that are newer than b's (or new), and drops
+// removals older than tombstoneFor. It reports whether b changed.
+func (b *Blob) Merge(src Blob) bool {
+	if b.Items == nil {
+		b.Items = map[string]json.RawMessage{}
+	}
+	changed := false
+	for k, raw := range src.Items {
+		it := itemOf(raw)
+		if it.At <= 0 {
+			continue
+		}
+		if cur, ok := b.Items[k]; !ok || newer(it, itemOf(cur)) {
+			b.Items[k] = raw
+			changed = true
+		}
+	}
+	old := time.Now().Add(-tombstoneFor).UnixMilli()
+	for k, raw := range b.Items {
+		if it := itemOf(raw); it.Deleted && it.At < old {
+			delete(b.Items, k)
+			changed = true
+		}
+	}
+	for _, raw := range b.Items {
+		if at := itemOf(raw).At; at > b.UpdatedAt {
+			b.UpdatedAt = at
+		}
+	}
+	return changed
+}
+
+// newer says whether item a replaces b: later, or a removal at the same
+// time (removed and added again within a second: the removal stands).
+func newer(a, b blobItem) bool {
+	return a.At > b.At || a.At == b.At && a.Deleted && !b.Deleted
+}
+
+func validKind(kind string) bool {
+	for _, k := range BlobKinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
+}
+
+// Blob is an account's blob of a kind (empty: none yet).
+func (s *Store) Blob(user int, kind string) Blob {
+	var data string
+	var b Blob
+	if err := s.db.QueryRow(`SELECT data, updated_at FROM hub_blobs WHERE user = ? AND kind = ?`, user, kind).Scan(&data, &b.UpdatedAt); err != nil {
+		return Blob{Items: map[string]json.RawMessage{}}
+	}
+	_ = json.Unmarshal([]byte(data), &b.Items)
+	if b.Items == nil {
+		b.Items = map[string]json.RawMessage{}
+	}
+	return b
+}
+
+// BlobsAt is when each kind of an account's blobs last changed (0: never).
+func (s *Store) BlobsAt(user int) map[string]int64 {
+	out := map[string]int64{}
+	for _, k := range BlobKinds {
+		var at int64
+		_ = s.db.QueryRow(`SELECT updated_at FROM hub_blobs WHERE user = ? AND kind = ?`, user, k).Scan(&at)
+		out[k] = at
+	}
+	return out
+}
+
+// MergeBlob merges a device's blob into the account's, and returns the
+// result and whether it changed.
+func (s *Store) MergeBlob(user int, kind string, b Blob) (Blob, bool, error) {
+	if user < 0 || !validKind(kind) {
+		return Blob{}, false, hubError("no such thing is kept")
+	}
+	raw, _ := json.Marshal(b.Items)
+	if len(raw) > 512<<10 {
+		return Blob{}, false, errTooLarge
+	}
+	// Not from the future: it would stay over every change after it.
+	ahead := time.Now().Add(maxAhead).UnixMilli()
+	for k, item := range b.Items {
+		if it := itemOf(item); it.At > ahead {
+			var m map[string]any
+			if json.Unmarshal(item, &m) == nil {
+				m["at"] = ahead
+				b.Items[k], _ = json.Marshal(m)
+			}
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cur := s.Blob(user, kind)
+	if !cur.Merge(b) {
+		return cur, false, nil
+	}
+	data, err := json.Marshal(cur.Items)
+	if err != nil {
+		return cur, false, err
+	}
+	_, err = s.db.Write(`INSERT INTO hub_blobs(user, kind, data, updated_at) VALUES(?, ?, ?, ?)
+		ON CONFLICT(user, kind) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`, user, kind, string(data), cur.UpdatedAt)
+	return cur, err == nil, err
 }

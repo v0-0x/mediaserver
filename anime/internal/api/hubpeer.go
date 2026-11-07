@@ -33,6 +33,18 @@ func (s *Server) hubPeerRoutes() {
 		}
 		return nil, s.app.Share.TakeHubPrefs(peerOf(r), p)
 	})))
+	// An account's list and watch-order edits (anikohub.Blob), merged
+	// item by item: asked for, or sent after a change on a device.
+	m.HandleFunc("GET /api/peer/hub/blobs/{kind}", hub(h(func(r *http.Request) (any, error) {
+		return s.app.Share.HubBlob(peerOf(r), r.PathValue("kind"))
+	})))
+	m.HandleFunc("POST /api/peer/hub/blobs/{kind}", hub(h(func(r *http.Request) (any, error) {
+		var b anikohub.Blob
+		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&b); err != nil {
+			return nil, badRequest(err.Error())
+		}
+		return s.app.Share.TakeHubBlob(peerOf(r), r.PathValue("kind"), b)
+	})))
 	m.HandleFunc("POST /api/peer/hub/account", hub(h(func(r *http.Request) (any, error) {
 		var g share.GivenAccount
 		if err := json.NewDecoder(io.LimitReader(r.Body, 64<<10)).Decode(&g); err != nil {

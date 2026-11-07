@@ -287,6 +287,7 @@ func (a *App) wire() {
 		a.Share.History = a.History
 		a.History.OnChange = a.Share.HistoryChanged
 		a.wirePrefs()
+		a.wireBlobs()
 	}
 	a.Share.OnWatchedElsewhere = func() {
 		ctx, cancel := context.WithTimeout(a.ctx, time.Minute)
