@@ -78,6 +78,9 @@ type HLSRequest struct {
 	Audio  int      `json:"audio"`
 	Method string   `json:"method"`
 	Caps   []string `json:"caps"`
+	// Sub: a subtitle track (an image one) drawn onto the video, which is
+	// then converted; none when left out.
+	Sub *int `json:"sub,omitempty"`
 	// Client is one player. Its sessions are its own: when it starts another
 	// one (after a seek, or to switch audio) the old one is stopped, and no
 	// other device can be cut off.
@@ -103,6 +106,12 @@ func (h *HLS) Start(ctx context.Context, req HLSRequest) (*HLSSession, error) {
 		return nil, err
 	}
 	pl := h.local.plan(p, req.Method, req.Audio, CapsOf(req.Caps), true)
+	if req.Sub != nil {
+		if !burnable(p, *req.Sub) {
+			return nil, errors.New("that subtitle track can't be drawn onto the video (not an image track)")
+		}
+		pl = pl.WithBurn(*req.Sub)
+	}
 	start, known := h.local.startFor(ctx, file, pl, req.Start)
 	if !known {
 		// Converted from there, not copied from an unknown frame (see

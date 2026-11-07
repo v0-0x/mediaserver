@@ -332,13 +332,33 @@ type plan struct {
 	// computer's: a player that showed no picture of the other (see
 	// WithSoftware).
 	software bool
+	// burn: the file's image subtitles (PGS, VobSub: track burn among its
+	// subtitle tracks) drawn onto the video, which is then converted (see
+	// WithBurn); -1 for none.
+	burn int
+}
+
+// WithBurn is the plan with the file's subtitle track n (an image one)
+// drawn onto the video: a player can't show those itself, so the video is
+// converted with them in it, whatever the player could play.
+// The audio is converted too: copied audio keeps its own timing from
+// before a seek and falls out of step with the drawn-on video.
+func (pl plan) WithBurn(n int) plan {
+	pl.burn, pl.videoCopy, pl.hevc, pl.audioCopy, pl.method = n, false, false, false, "transcode"
+	return pl
+}
+
+// burnable says whether subtitle track n of p can be burned in: an image
+// track (text ones the player shows itself).
+func burnable(p *Probe, n int) bool {
+	return n >= 0 && n < len(p.Subtitles) && p.Subtitles[n].Bitmap
 }
 
 // WithSoftware is the plan with the video converted in software (libx264),
 // whatever the player could play or the computer's encoder is: the last
 // thing a player that showed no picture tries (?encoder=software).
 func (pl plan) WithSoftware() plan {
-	pl.software, pl.videoCopy, pl.hevc, pl.method = true, false, false, "transcode"
+	pl.software, pl.videoCopy, pl.hevc, pl.audioCopy, pl.method = true, false, false, false, "transcode"
 	return pl
 }
 
@@ -355,7 +375,7 @@ func (l *Local) plan(p *Probe, method string, audio int, caps Caps, hls bool) pl
 			method = "remux"
 		}
 	}
-	pl := plan{method: method}
+	pl := plan{method: method, burn: -1}
 	// Video the player decodes is copied, also when transcoding (that's for
 	// the audio, e.g. TrueHD next to HEVC a Mac plays as is).
 	if len(p.Video) > 0 {
@@ -370,6 +390,13 @@ func (l *Local) plan(p *Probe, method string, audio int, caps Caps, hls bool) pl
 	}
 	if !pl.videoCopy || len(p.Audio) > 0 && !pl.audioCopy {
 		pl.method = "transcode"
+	}
+	// Converted video goes with converted audio: copied audio keeps its own
+	// timing from the keyframe before a seek (-ss), and the stream would
+	// start with seconds of sound from before where it was asked to, its
+	// times off by that much.
+	if !pl.videoCopy {
+		pl.audioCopy = false
 	}
 	return pl
 }
@@ -387,11 +414,44 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 		}
 		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
 	}
-	args = append(args, "-i", path, "-map", "0:v:0?")
+	args = append(args, "-i", path)
+	// The video: as it is, or with image subtitles drawn on it first (the
+	// subtitle track scaled to the picture's size, then laid over it; the
+	// encoder's own filters come after, so VAAPI's upload is last). Not
+	// scale2ref: it holds the video back to the subtitles' frames, and the
+	// stream would start and end with them.
+	var video []string
+	if pl.burn >= 0 {
+		sub := fmt.Sprintf("[0:s:%d]", pl.burn)
+		if v := p.Video[0]; v.Width > 0 && v.Height > 0 {
+			sub += fmt.Sprintf("scale=%d:%d[s];", v.Width, v.Height)
+		} else {
+			sub += "copy[s];"
+		}
+		video = []string{"-filter_complex", sub + "[0:v:0][s]overlay=eof_action=pass%s[out]", "-map", "[out]"}
+	} else {
+		video = []string{"-map", "0:v:0?"}
+	}
+	// vf is the encoder's filter chain, or "".
+	vf := func(chain string) {
+		if pl.burn >= 0 {
+			if chain != "" {
+				chain = "," + chain
+			}
+			video[1] = fmt.Sprintf(video[1], chain)
+			args = append(args, video...)
+		} else {
+			args = append(args, video...)
+			if chain != "" {
+				args = append(args, "-vf", chain)
+			}
+		}
+	}
 	if len(p.Audio) > 0 {
-		args = append(args, "-map", fmt.Sprintf("0:a:%d?", pl.audio))
+		video = append(video, "-map", fmt.Sprintf("0:a:%d?", pl.audio))
 	}
 	if pl.videoCopy {
+		vf("")
 		args = append(args, "-c:v", "copy")
 		if pl.hevc {
 			args = append(args, "-tag:v", "hvc1")
@@ -399,23 +459,30 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 	} else if pl.software {
 		if hw == "v4l2m2m" {
 			// A Raspberry Pi's CPU: as fast as it goes, at 720p.
-			args = append(args, "-vf", "scale='min(1280,iw)':-2,format=yuv420p", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23", "-profile:v", "high", "-g", "48")
+			vf("scale='min(1280,iw)':-2,format=yuv420p")
+			args = append(args, "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23", "-profile:v", "high", "-g", "48")
 		} else {
+			vf("")
 			args = append(args, "-c:v", "libx264", "-preset", cfg.Transcode.Preset, "-crf", "21", "-pix_fmt", "yuv420p", "-profile:v", "high")
 		}
 	} else {
 		switch hw {
 		case "vaapi":
-			args = append(args, "-vf", "format=nv12,hwupload", "-c:v", "h264_vaapi", "-qp", "23")
+			vf("format=nv12,hwupload")
+			args = append(args, "-c:v", "h264_vaapi", "-qp", "23")
 		case "nvenc":
+			vf("")
 			args = append(args, "-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23")
 		case "qsv":
+			vf("")
 			args = append(args, "-c:v", "h264_qsv", "-global_quality", "23")
 		case "v4l2m2m":
 			// A Raspberry Pi's encoder: 8-bit 4:2:0 up to 1080p, by bitrate.
-			args = append(args, "-vf", "scale='min(1920,iw)':-2,format=yuv420p", "-c:v", "h264_v4l2m2m",
+			vf("scale='min(1920,iw)':-2,format=yuv420p")
+			args = append(args, "-c:v", "h264_v4l2m2m",
 				"-b:v", "6M", "-maxrate", "8M", "-bufsize", "12M", "-g", "48")
 		default:
+			vf("")
 			args = append(args, "-c:v", "libx264", "-preset", cfg.Transcode.Preset, "-crf", "21", "-pix_fmt", "yuv420p", "-profile:v", "high")
 		}
 	}
@@ -441,6 +508,9 @@ func (pl plan) describe(cfg config.Settings, p *Probe) string {
 		default:
 			video = "video converted (" + f + " to h264, " + encoderName(cfg) + ")"
 		}
+	}
+	if pl.burn >= 0 {
+		video += ", subtitles drawn on it (track " + strconv.Itoa(pl.burn+1) + ")"
 	}
 	audio := "audio converted"
 	if pl.audioCopy {
@@ -477,7 +547,7 @@ func (pl plan) movflags(cfg config.Settings) string {
 // keyframe + seekMargin, and a keyframe followed that closely by another
 // one (a scene cut) is passed over for the next.
 func (l *Local) SeekPoint(ctx context.Context, path string, t float64, audio int, method string, caps Caps, hls bool) (float64, error) {
-	start, _, err := l.Seek(ctx, path, t, audio, method, caps, hls)
+	start, _, err := l.Seek(ctx, path, t, audio, method, caps, hls, -1)
 	return start, err
 }
 
@@ -486,7 +556,9 @@ func (l *Local) SeekPoint(ctx context.Context, path string, t float64, audio int
 // file couldn't be read in time), as a copy would then start at an unknown
 // frame (a grey picture until the next keyframe, its times off), where
 // converted video starts at t exactly. Otherwise the method asked for.
-func (l *Local) Seek(ctx context.Context, path string, t float64, audio int, method string, caps Caps, hls bool) (float64, string, error) {
+// With burn >= 0 (image subtitles drawn on), the video is converted and
+// starts at t exactly.
+func (l *Local) Seek(ctx context.Context, path string, t float64, audio int, method string, caps Caps, hls bool, burn int) (float64, string, error) {
 	path, err := l.resolve(path)
 	if err != nil {
 		return 0, "", err
@@ -494,6 +566,9 @@ func (l *Local) Seek(ctx context.Context, path string, t float64, audio int, met
 	p, err := l.Probe(ctx, path)
 	if err != nil {
 		return 0, "", err
+	}
+	if burn >= 0 && burnable(p, burn) {
+		return t, "transcode", nil
 	}
 	start, known := l.startFor(ctx, path, l.plan(p, method, audio, caps, hls), t)
 	if !known {
@@ -606,7 +681,9 @@ func (l *Local) ServeFile(w http.ResponseWriter, r *http.Request, path string) {
 
 // ServeTranscode pipes ffmpeg output as fragmented MP4 starting at `start`
 // (see SeekPoint), for players that decode caps.
-func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path string, start float64, audio int, method string, caps Caps) {
+// ServeTranscode converts the file from start for the player; burn >= 0 draws
+// that subtitle track (an image one) onto the video.
+func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path string, start float64, audio int, method string, caps Caps, burn int) {
 	path, err := l.resolve(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
@@ -621,6 +698,13 @@ func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path stri
 	pl := l.plan(p, method, audio, caps, false)
 	if r.URL.Query().Get("encoder") == "software" {
 		pl = pl.WithSoftware()
+	}
+	if burn >= 0 {
+		if !burnable(p, burn) {
+			http.Error(w, "that subtitle track can't be drawn onto the video (not an image track)", http.StatusBadRequest)
+			return
+		}
+		pl = pl.WithBurn(burn)
 	}
 	method = pl.method
 	if method == "transcode" {

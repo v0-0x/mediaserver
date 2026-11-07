@@ -85,7 +85,7 @@ func TestSeekPointAcrossFormats(t *testing.T) {
 				t.Fatalf("SeekPoint(%v) = %v, %v; want %v", tc.t, got, err, tc.want)
 			}
 			rec := httptest.NewRecorder()
-			l.ServeTranscode(rec, httptest.NewRequest(http.MethodGet, "/", nil), video, got, 0, "remux", nil)
+			l.ServeTranscode(rec, httptest.NewRequest(http.MethodGet, "/", nil), video, got, 0, "remux", nil, -1)
 			if d := probeDuration(t, rec.Body.Bytes()); d < 30-got-0.2 || d > 30-got+0.2 {
 				t.Errorf("stream from %v lasts %.2fs, want %.2f", got, d, 30-got)
 			}
@@ -115,7 +115,7 @@ func TestSeekPointIsTheKeyframe(t *testing.T) {
 	// The remux started there really begins with that keyframe.
 	rec := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/api/local/transcode", nil)
-	l.ServeTranscode(rec, r, video, 10, 0, "remux", nil)
+	l.ServeTranscode(rec, r, video, 10, 0, "remux", nil, -1)
 	if got := probeDuration(t, rec.Body.Bytes()); got < 19.8 || got > 20.2 {
 		t.Errorf("remux from 10 lasts %.2fs, want 20 (from the keyframe at 10)", got)
 	}
@@ -133,7 +133,7 @@ func TestSeekWithoutKeyframeConverts(t *testing.T) {
 	if _, err := l.Probe(ctx, video); err != nil { // kept: only the keyframes are asked for again
 		t.Fatal(err)
 	}
-	if start, method, err := l.Seek(ctx, video, 12, 0, "remux", nil, false); err != nil || start != 10 || method != "remux" {
+	if start, method, err := l.Seek(ctx, video, 12, 0, "remux", nil, false, -1); err != nil || start != 10 || method != "remux" {
 		t.Fatalf("Seek = %v %q %v; want 10 remux", start, method, err)
 	}
 	cfg := l.settings.Get()
@@ -141,11 +141,11 @@ func TestSeekWithoutKeyframeConverts(t *testing.T) {
 	if _, err := l.settings.Save(cfg); err != nil {
 		t.Fatal(err)
 	}
-	if start, method, err := l.Seek(ctx, video, 12, 0, "remux", nil, false); err != nil || start != 12 || method != "transcode" {
+	if start, method, err := l.Seek(ctx, video, 12, 0, "remux", nil, false, -1); err != nil || start != 12 || method != "transcode" {
 		t.Fatalf("Seek without the keyframe = %v %q %v; want 12 transcode", start, method, err)
 	}
 	// From the start: no keyframe needed.
-	if start, method, _ := l.Seek(ctx, video, 0, 0, "remux", nil, false); start != 0 || method != "remux" {
+	if start, method, _ := l.Seek(ctx, video, 0, 0, "remux", nil, false, -1); start != 0 || method != "remux" {
 		t.Errorf("Seek from 0 = %v %q", start, method)
 	}
 	h := NewHLS(l, t.TempDir())

@@ -74,7 +74,7 @@ func serve(t *testing.T, l *Local, w http.ResponseWriter, video string) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		l.ServeTranscode(w, r, video, 0, 0, "remux", nil)
+		l.ServeTranscode(w, r, video, 0, 0, "remux", nil, -1)
 	}()
 	select {
 	case <-done:

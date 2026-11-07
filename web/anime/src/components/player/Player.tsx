@@ -157,6 +157,13 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
 
     const [subs, setSubs] = useState<SubOption[]>([])
     const [subKey, setSubKey] = useState<string>("off")
+    // An image subtitle track picked (PGS, VobSub): the server draws it onto
+    // the video, converted (-1: none). Only for the server's own files.
+    const burn = useMemo(() => {
+        const sub = subs.find(s => s.key === subKey)
+        return sub?.bitmap && req.kind === "local" ? sub.index : -1
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [subKey, subs, req.kind])
     // Why it didn't play, with its buttons: a TV's remote goes to them.
     const errorBox = useRef<HTMLDivElement>(null)
     useEffect(() => {
@@ -423,6 +430,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
             return
         }
         let cancelled = false
+        const sub = burn >= 0 ? burn : undefined
         ;(async () => {
             try {
                 if (hlsMode) {
@@ -432,6 +440,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                         audio: audioIndex,
                         method,
                         caps,
+                        sub,
                         client: clientId,
                     })
                     if (!cancelled) setStream({ url: s.url, base: s.start, hls: true, id: s.id })
@@ -441,13 +450,13 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                     // keyframe there isn't known (a copy would start at an
                     // unknown frame), or the server didn't say.
                     const sp = await api
-                        .get<{ start: number; method?: string }>(`/api/local/seekpoint${qs({ path: req.path, t: offset.toFixed(3), audio: audioIndex, method, caps: c })}`)
+                        .get<{ start: number; method?: string }>(`/api/local/seekpoint${qs({ path: req.path, t: offset.toFixed(3), audio: audioIndex, method, caps: c, sub })}`)
                         // Not reached (the stream won't be either, and is
                         // tried again): as asked.
                         .catch(e => ({ start: offset, method: e instanceof ApiError && offset > 0 ? "transcode" : undefined }))
                     if (!cancelled)
                         setStream({
-                            url: `/api/local/transcode${qs({ path: req.path, start: sp.start.toFixed(3), audio: audioIndex, method: sp.method || method, caps: c, encoder: software ? "software" : undefined })}`,
+                            url: `/api/local/transcode${qs({ path: req.path, start: sp.start.toFixed(3), audio: audioIndex, method: sp.method || method, caps: c, sub, encoder: software ? "software" : undefined })}`,
                             base: sp.start,
                             hls: false,
                         })
@@ -460,7 +469,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
             cancelled = true
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [req, probe, method, offset, audioIndex, restart, caps, software])
+    }, [req, probe, method, offset, audioIndex, restart, caps, software, burn])
 
     // End the HLS session when the player closes.
     const sessionRef = useRef<string | undefined>(undefined)
@@ -690,7 +699,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
             return
         }
         if (sub.bitmap) {
-            toast.warning("Image-based subtitles (PGS/VobSub) can only be shown in mpv")
+            // Image subtitles: drawn onto the video by the server (burn).
             setCues([])
             return
         }
@@ -961,6 +970,16 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
         saveTrackPrefs({ audio: i, mode })
     }
     const changeSub = (key: string) => {
+        // To or from an image track: the stream is made again, with the
+        // subtitles drawn on (converted) or without, from where it is.
+        const next = subs.find(s => s.key === key)
+        const was = subs.find(s => s.key === subKey)
+        if (req.kind === "local" && (!!next?.bitmap || !!was?.bitmap)) {
+            const at = where()
+            startAt.current = 0
+            setOffset(at)
+            if (next?.bitmap) setMethod("transcode")
+        }
         setSubKey(key)
         saveTrackPrefs({ sub: key })
     }
@@ -1657,10 +1676,10 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                                 <DropdownLabel>Subtitles</DropdownLabel>
                                 <DropdownItem onSelect={() => changeSub("off")}>{subKey === "off" ? "● " : ""}Off</DropdownItem>
                                 {subs.map(s => (
-                                    <DropdownItem key={s.key} onSelect={() => changeSub(s.key)} disabled={s.bitmap}>
+                                    <DropdownItem key={s.key} onSelect={() => changeSub(s.key)} disabled={s.bitmap && req.kind !== "local"}>
                                         {subKey === s.key ? "● " : ""}
                                         {s.label}
-                                        {s.bitmap ? " (mpv only)" : ""}
+                                        {s.bitmap ? (req.kind === "local" ? " (drawn on by the server)" : " (mpv only)") : ""}
                                     </DropdownItem>
                                 ))}
                                 {subKey !== "off" && (
