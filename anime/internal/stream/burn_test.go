@@ -53,10 +53,10 @@ func TestBurnedSubtitlesArgs(t *testing.T) {
 		}
 		pl = pl.WithBurn(1)
 		a := join(pl.args(cfg, p, "/a/x.mkv", 7))
-		if pl.videoCopy || pl.method != "transcode" || pl.burn != 1 || !strings.Contains(a, "-filter_complex [0:s:1]scale=1920:1080[s];[0:v:0][s]") || !strings.Contains(a, tc.want) || strings.Contains(a, "-map 0:v:0?") || strings.Contains(a, "-vf ") || strings.Contains(a, "-c:v copy") {
+		if pl.videoCopy || pl.method != "transcode" || pl.burn != 1 || !strings.Contains(a, "[s];[0:v:0][s]") || !strings.Contains(a, tc.want) || strings.Contains(a, "-map 0:v:0?") || strings.Contains(a, "-vf ") || strings.Contains(a, "-c:v copy") {
 			t.Errorf("%s (software %v): %s", tc.hw, tc.software, a)
 		}
-		if !strings.Contains(a, "-ss 7.000 -i") || !strings.Contains(a, "-c:a aac") {
+		if !strings.Contains(a, "-ss 7.000 -i /a/x.mkv -ss 0.000 -i /a/x.mkv -filter_complex [1:s:1]scale=1920:1080,setpts=PTS-7.000/TB[s]") || !strings.Contains(a, "-c:a aac") {
 			t.Errorf("%s: converted video starts at t exactly: %s", tc.hw, a)
 		}
 	}
@@ -205,6 +205,20 @@ func TestBurnedSubtitlesStream(t *testing.T) {
 	if px := pixel("8"); len(px) == 0 || px[0] >= 200 {
 		t.Errorf("at 10s the subtitle is gone, got %v", px)
 	}
+
+	// From 6.5s: the keyframe before it is at 5s, after the line began
+	// (1s); the line is drawn all the same, and goes at 8s.
+	rec = httptest.NewRecorder()
+	l.ServeTranscode(rec, httptest.NewRequest(http.MethodGet, "/", nil), video, 6.5, 0, "remux", nil, 0)
+	if err := os.WriteFile(mp4, rec.Body.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if px := pixel("0.3"); len(px) == 0 || px[0] < 200 {
+		t.Errorf("at 6.8s (a line begun before the seek) the box should be white, got %v", px)
+	}
+	if px := pixel("2.5"); len(px) == 0 || px[0] >= 200 {
+		t.Errorf("at 9s the line is gone, got %v", px)
+	}
 }
 
 // Converted video goes with converted audio, whatever the audio: copied
@@ -222,5 +236,21 @@ func TestConvertedVideoConvertsAudio(t *testing.T) {
 	}
 	if sw := copied.WithSoftware(); sw.audioCopy {
 		t.Fatalf("software: %+v", sw)
+	}
+}
+
+// From a seek well into the file, the subtitles are read from a minute
+// before it, moved back by as much; from the start, as they are.
+func TestBurnedSubtitlesLookback(t *testing.T) {
+	p := &Probe{Video: []ProbeStream{{Codec: "h264", Width: 640, Height: 360}}, Subtitles: []ProbeStream{{Codec: "hdmv_pgs_subtitle", Bitmap: true}}}
+	cfg := testSettings(t).Get()
+	pl := (plan{burn: -1}).WithBurn(0)
+	a := strings.Join(pl.args(cfg, p, "/a/x.mkv", 600), " ")
+	if !strings.Contains(a, "-ss 600.000 -i /a/x.mkv -ss 540.000 -i /a/x.mkv -filter_complex [1:s:0]scale=640:360,setpts=PTS-60.000/TB[s];[0:v:0][s]") {
+		t.Errorf("from 600s: %s", a)
+	}
+	a = strings.Join(pl.args(cfg, p, "/a/x.mkv", 0), " ")
+	if strings.Count(a, "-i /a/x.mkv") != 1 || !strings.Contains(a, "-filter_complex [0:s:0]scale=640:360[s];") {
+		t.Errorf("from the start: %s", a)
 	}
 }

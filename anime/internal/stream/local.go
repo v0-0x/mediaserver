@@ -393,6 +393,10 @@ type plan struct {
 	burn int
 }
 
+// burnLookback: how far before a seek drawn subtitles are read from (see
+// args): lines are seconds long; a minute of the file is read again.
+const burnLookback = 60.0
+
 // WithBurn is the plan with the file's subtitle track n (an image one)
 // drawn onto the video: a player can't show those itself, so the video is
 // converted with them in it, whatever the player could play.
@@ -477,12 +481,26 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 	// stream would start and end with them.
 	var video []string
 	if pl.burn >= 0 {
+		// From a seek, the subtitles are read from up to burnLookback
+		// before it (a second input, its times moved back into place): a
+		// line shown since before the seek is drawn too. The video's own
+		// -ss lands on the keyframe before it, which can be after the
+		// line began.
 		sub := fmt.Sprintf("[0:s:%d]", pl.burn)
-		if v := p.Video[0]; v.Width > 0 && v.Height > 0 {
-			sub += fmt.Sprintf("scale=%d:%d[s];", v.Width, v.Height)
-		} else {
-			sub += "copy[s];"
+		if start > 0 {
+			from := max(0, start-burnLookback)
+			args = append(args, "-ss", strconv.FormatFloat(from, 'f', 3, 64), "-i", path)
+			sub = fmt.Sprintf("[1:s:%d]", pl.burn)
 		}
+		if v := p.Video[0]; v.Width > 0 && v.Height > 0 {
+			sub += fmt.Sprintf("scale=%d:%d", v.Width, v.Height)
+		} else {
+			sub += "copy"
+		}
+		if start > 0 {
+			sub += fmt.Sprintf(",setpts=PTS-%s/TB", strconv.FormatFloat(start-max(0, start-burnLookback), 'f', 3, 64))
+		}
+		sub += "[s];"
 		video = []string{"-filter_complex", sub + "[0:v:0][s]overlay=eof_action=pass%s[out]", "-map", "[out]"}
 	} else {
 		video = []string{"-map", "0:v:0?"}
