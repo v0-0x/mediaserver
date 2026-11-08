@@ -158,6 +158,9 @@ func TestListsFollowTheHub(t *testing.T) {
 	}
 	eventually(t, "the entry to reach the hub", func() bool { return len(hub.app.HubStore.Blob(0, "lists").Items) == 1 })
 	eventually(t, "the entry to reach the other device", asked(b, has(b, 21)))
+	if ls := b.app.Share.Status().ListsSynced; ls == nil || ls.At == 0 || ls.With == "" {
+		t.Fatalf("the other device doesn't say when it synced: %+v", ls)
+	}
 	// Removed on one: gone on the other (and remembered as a removal).
 	if err := a.app.Platform.DeleteEntry(t.Context(), 21); err != nil {
 		t.Fatal(err)

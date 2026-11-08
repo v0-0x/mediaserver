@@ -186,10 +186,15 @@ func (s *Server) tracks(w http.ResponseWriter, r *http.Request) {
 	if err != nil || limit <= 0 || limit > 500 {
 		limit = 100
 	}
+	// kind: "song" or "video" for those alone (Songs, Videos), else all.
+	kind := q.Get("kind")
 	all := s.lib.Tracks()
 	match := make([]library.Track, 0, min(len(all), limit))
 	total := 0
 	for _, t := range all {
+		if kind == "video" && !t.Video || kind == "song" && t.Video {
+			continue
+		}
 		if len(words) > 0 {
 			hay := strings.ToLower(t.Title + "\x00" + t.Artist + "\x00" + t.AlbumArtist + "\x00" + t.Album + "\x00" + t.Path)
 			ok := true

@@ -659,7 +659,7 @@ export type SharingPeer = {
     parental?: boolean // parental controls are set for it here
 }
 
-export type SharingStatus = { enabled: boolean; id: string; name: string; listening: boolean; peers: SharingPeer[]; addresses: string[] }
+export type SharingStatus = { enabled: boolean; id: string; name: string; listening: boolean; peers: SharingPeer[]; addresses: string[]; listsSynced?: { at: number; with: string } }
 
 export type SharedLibrary = { host: SharingPeer; files: LocalFile[] }
 

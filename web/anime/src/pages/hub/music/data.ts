@@ -86,10 +86,10 @@ export function useUFolders() {
     return useQuery({ queryKey: ["music", "folders"], queryFn: () => api.get<UFolder[]>(`${U}/folders`), refetchInterval: 15000 })
 }
 
-export function useUTracks(q: string, limit: number) {
+export function useUTracks(q: string, limit: number, kind: "" | "song" | "video" = "") {
     return useQuery({
-        queryKey: ["music", "tracks", q, limit],
-        queryFn: () => api.get<{ total: number; tracks: UTrack[] }>(`${U}/tracks?q=${encodeURIComponent(q)}&limit=${limit}`),
+        queryKey: ["music", "tracks", q, limit, kind],
+        queryFn: () => api.get<{ total: number; tracks: UTrack[] }>(`${U}/tracks?q=${encodeURIComponent(q)}&limit=${limit}${kind ? `&kind=${kind}` : ""}`),
         placeholderData: prev => prev,
         refetchInterval: 30000,
     })

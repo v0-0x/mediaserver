@@ -210,6 +210,9 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
     const [upNextOff, setUpNextOff] = useState(false)
 
     const startAt = useRef(0)
+    // Where the episode was opened to start (resume or ?start), checked once
+    // it plays: a note when it started elsewhere (see onPlaying).
+    const openedAt = useRef<{ at: number; checked: boolean } | null>(null)
     const lastReport = useRef(0)
     const ended = useRef(false)
     const skipped = useRef<Set<string>>(new Set())
@@ -329,6 +332,7 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                               ? res.resumeAt
                               : 0
                     if (m !== "direct") setOffset(startAt.current)
+                    openedAt.current = { at: startAt.current, checked: false }
                     if (startAt.current > 30 && !handed) setResumedFrom(startAt.current)
 
                     const subOpts: SubOption[] = [
@@ -1390,7 +1394,15 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                     report(true)
                 }}
                 onWaiting={() => setBuffering(true)}
-                onPlaying={() => {
+                onPlaying={e => {
+                    // Started more than 10s from where it was opened at (a
+                    // fallback, a lost resume): said in the log, with both.
+                    const o = openedAt.current
+                    if (o && !o.checked) {
+                        o.checked = true
+                        const now = absTime(e.currentTarget)
+                        if (Math.abs(now - o.at) > 10) note(`started at ${Math.round(now)}s, opened at ${Math.round(o.at)}s (${method}${stream?.hls ? " hls" : ""})`)
+                    }
                     setBuffering(false)
                     setStarted(true)
                 }}

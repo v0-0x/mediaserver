@@ -264,11 +264,11 @@ export function MusicLibrary() {
     const [picking, setPicking] = useState(false)
     const [uploading, setUploading] = useState(false)
     const [q, setQ] = useState("")
-    const [view, setView] = useState<"albums" | "songs">("albums")
+    const [view, setView] = useState<"albums" | "songs" | "videos">("albums")
     const [limit, setLimit] = useState(PAGE)
     const words = q.trim()
     const albums = useUAlbums(words, limit)
-    const tracks = useUTracks(words, limit)
+    const tracks = useUTracks(words, limit, view === "videos" ? "video" : view === "songs" ? "song" : "")
     const add = useUChange((path: string) => api.post(`${U}/folders`, { path }), "Reading the folder…")
     const remove = useUChange((path: string) => api.del(`${U}/folders?path=${encodeURIComponent(path)}`))
     const scan = useUChange(() => api.post(`${U}/scan`, {}), "Looking at the folders again…")
@@ -339,11 +339,11 @@ export function MusicLibrary() {
             </div>
 
             <Panel
-                title={`${view === "albums" ? "Albums" : "Songs"} · ${total.toLocaleString()}`}
+                title={`${view === "albums" ? "Albums" : view === "videos" ? "Music videos" : "Songs"} · ${total.toLocaleString()}`}
                 action={
                     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-                        <div role="tablist" aria-label="Albums or songs" className="flex shrink-0 rounded-lg bg-white/[0.05] p-0.5">
-                            {(["albums", "songs"] as const).map(v => (
+                        <div role="tablist" aria-label="Albums, songs or music videos" className="flex shrink-0 rounded-lg bg-white/[0.05] p-0.5">
+                            {(["albums", "songs", "videos"] as const).map(v => (
                                 <button
                                     key={v}
                                     role="tab"
@@ -354,14 +354,14 @@ export function MusicLibrary() {
                                     }}
                                     className={cn("focus-ring h-7 rounded-md px-3 text-[12.5px] font-medium", view === v ? "bg-white/[0.1] text-fg" : "text-muted hover:text-fg")}
                                 >
-                                    {v === "albums" ? "Albums" : "Songs"}
+                                    {v === "albums" ? "Albums" : v === "videos" ? "Videos" : "Songs"}
                                 </button>
                             ))}
                         </div>
                         <div className="min-w-0 flex-1 sm:w-56 sm:flex-none">
                             <Input
                                 icon={<Search className="size-4" />}
-                                placeholder={view === "albums" ? "Find an album or artist" : "Find a song, artist or album"}
+                                placeholder={view === "albums" ? "Find an album or artist" : view === "videos" ? "Find a video or artist" : "Find a song, artist or album"}
                                 value={q}
                                 onChange={e => {
                                     setQ(e.target.value)
@@ -376,8 +376,12 @@ export function MusicLibrary() {
                     <Loading />
                 ) : shown === 0 ? (
                     <div className="p-4">
-                        <EmptyState icon={<Disc3 />} title={q ? "Nothing found" : "No music yet"}>
-                            {q ? "Nothing has those words." : "Add a folder with music, or upload some: once read, it shows here."}
+                        <EmptyState icon={<Disc3 />} title={q ? "Nothing found" : view === "videos" ? "No music videos" : "No music yet"}>
+                            {q
+                                ? "Nothing has those words."
+                                : view === "videos"
+                                  ? "Music videos (mp4, mkv, webm, mov) in the music folders show here."
+                                  : "Add a folder with music, or upload some: once read, it shows here."}
                         </EmptyState>
                     </div>
                 ) : (

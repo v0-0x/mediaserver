@@ -119,8 +119,9 @@ type Service struct {
 	// by the app; nil: not kept in step.
 	Blobs map[string]BlobHooks
 	// The blobs waiting to be sent (BlobChanged), by kind.
-	blobMu     sync.Mutex
-	blobTimers map[string]*time.Timer
+	blobMu      sync.Mutex
+	blobTimers  map[string]*time.Timer
+	listsSynced ListsSynced
 	// What the devices are watching (a hub's dashboard).
 	playingMu sync.Mutex
 	playing   map[string]Playing
@@ -1833,6 +1834,15 @@ type Status struct {
 	Listening bool `json:"listening"`
 	// Addresses: where the others reach this Aniko (to add it by hand).
 	Addresses []string `json:"addresses"`
+	// ListsSynced: when the list and watch-order edits were last in step
+	// with a hub, and which (hub.go); nil: not yet since Aniko started.
+	ListsSynced *ListsSynced `json:"listsSynced,omitempty"`
+}
+
+// ListsSynced is when the lists were last in step with a hub (ms).
+type ListsSynced struct {
+	At   int64  `json:"at"`
+	With string `json:"with"`
 }
 
 func (s *Service) Status() Status {
@@ -1841,6 +1851,12 @@ func (s *Service) Status() Status {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	st := Status{Enabled: s.running != nil, ID: s.id.ID, Name: s.Name(), Listening: s.running != nil && s.running.disc != nil, Peers: []PeerView{}, Addresses: addresses(s.settings.Get().Server.Port)}
+	s.blobMu.Lock()
+	if s.listsSynced.At > 0 {
+		ls := s.listsSynced
+		st.ListsSynced = &ls
+	}
+	s.blobMu.Unlock()
 	for _, p := range s.peers {
 		// Those never heard from again, nor useful, aren't listed.
 		if !p.online(now) && !p.allowed && !p.shares && p.manual == "" {

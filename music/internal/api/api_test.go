@@ -445,6 +445,13 @@ func TestUtakoAndTheMusicSide(t *testing.T) {
 	if !strings.Contains(string(raw), `"total":1`) || !strings.Contains(string(raw), "Uploaded") {
 		t.Fatalf("search %s", raw)
 	}
+	// Songs alone, or music videos alone (the dashboard's Songs and Videos).
+	if _, raw = ts.dashboard("GET", "/api/tracks?q=new+uploaded&kind=song", nil); !strings.Contains(string(raw), `"total":1`) {
+		t.Fatalf("songs: %s", raw)
+	}
+	if _, raw = ts.dashboard("GET", "/api/tracks?q=new+uploaded&kind=video", nil); !strings.Contains(string(raw), `"total":0`) {
+		t.Fatalf("videos: %s", raw)
+	}
 
 	// Its details changed on the device: the song is sent again in its
 	// place, in two pieces, and the library reads the new details. Only a

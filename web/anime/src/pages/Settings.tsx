@@ -1290,6 +1290,13 @@ function SharingGroup({ draft, set }: SectionProps) {
                     <Switch checked={draft.sharing.syncLists ?? true} disabled={!trusted} onChange={v => set("sharing", { syncLists: v })} />
                 </Row>
             )}
+            {draft.sharing.enabled && peers.some(p => p.role === "hub") && (draft.sharing.syncLists ?? true) && (
+                <p className="px-4 pb-3 text-xs text-subtle">
+                    {sharing?.listsSynced
+                        ? `Lists last in step with ${sharing.listsSynced.with} at ${new Date(sharing.listsSynced.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`
+                        : "Lists not synced yet since Aniko started: they are when the server answers."}
+                </p>
+            )}
             {draft.sharing.enabled !== !!saved?.enabled && <p className="px-4 py-3 text-xs text-amber-200/80">Save to turn library sharing {draft.sharing.enabled ? "on" : "off"}.</p>}
             {saved?.enabled && sharing && (
                 <>

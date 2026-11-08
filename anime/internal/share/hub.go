@@ -626,35 +626,41 @@ func (s *Service) TakeBlob(from, kind string, b anikohub.Blob) {
 	if h.Apply(b) {
 		s.hub.Publish(events.CollectionUpdate, nil)
 	}
+	s.syncedLists(s.nameOf(host))
 }
 
 // syncBlobs (a device) brings its list and watch-order edits in step with
 // its account's on a hub, kind by kind: its own go up when newer, the
 // hub's come down when newer (both merge item by item).
 func (s *Service) syncBlobs(ctx context.Context, p *peer, hubAt map[string]int64) {
+	synced, failed := false, false
 	for _, kind := range anikohub.BlobKinds {
 		h, ok := s.blobHooks(kind)
 		if !ok {
 			continue
 		}
+		synced = true
 		own := h.Own()
 		at := hubAt[kind]
 		switch {
 		case own.UpdatedAt > at && len(own.Items) > 0:
 			var merged anikohub.Blob
-			if err := s.postJSON(ctx, p, "/api/peer/hub/blobs/"+kind, own, &merged); err == nil && len(merged.Items) > 0 {
-				if h.Apply(merged) {
-					s.hub.Publish(events.CollectionUpdate, nil)
-				}
+			err := s.postJSON(ctx, p, "/api/peer/hub/blobs/"+kind, own, &merged)
+			failed = failed || err != nil
+			if err == nil && len(merged.Items) > 0 && h.Apply(merged) {
+				s.hub.Publish(events.CollectionUpdate, nil)
 			}
 		case at > own.UpdatedAt:
 			var hb anikohub.Blob
-			if err := s.getJSON(ctx, p, "/api/peer/hub/blobs/"+kind, &hb); err == nil && len(hb.Items) > 0 {
-				if h.Apply(hb) {
-					s.hub.Publish(events.CollectionUpdate, nil)
-				}
+			err := s.getJSON(ctx, p, "/api/peer/hub/blobs/"+kind, &hb)
+			failed = failed || err != nil
+			if err == nil && len(hb.Items) > 0 && h.Apply(hb) {
+				s.hub.Publish(events.CollectionUpdate, nil)
 			}
 		}
+	}
+	if synced && !failed {
+		s.syncedLists(s.nameOf(p))
 	}
 }
 
@@ -714,9 +720,17 @@ func (s *Service) sendBlob(kind string) {
 				log.Printf("sharing: %s to %s: %v", kindName(kind), s.nameOf(p), plainError(err))
 				return
 			}
+			s.syncedLists(s.nameOf(p))
 			if len(merged.Items) > 0 && h.Apply(merged) {
 				s.hub.Publish(events.CollectionUpdate, nil)
 			}
 		}()
 	}
+}
+
+// syncedLists notes that the lists are in step with a hub (its name).
+func (s *Service) syncedLists(with string) {
+	s.blobMu.Lock()
+	s.listsSynced = ListsSynced{At: time.Now().UnixMilli(), With: with}
+	s.blobMu.Unlock()
 }
