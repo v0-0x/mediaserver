@@ -391,6 +391,9 @@ type plan struct {
 	// subtitle tracks) drawn onto the video, which is then converted (see
 	// WithBurn); -1 for none.
 	burn int
+	// noLookback: drawn subtitles from the video's own input only (see
+	// args), after a start with the lookback gave nothing (firstOutput).
+	noLookback bool
 }
 
 // burnLookback: how far before a seek drawn subtitles are read from (see
@@ -487,9 +490,11 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 		// -ss lands on the keyframe before it, which can be after the
 		// line began.
 		sub := fmt.Sprintf("[0:s:%d]", pl.burn)
-		if start > 0 {
+		lookback := start > 0 && !pl.noLookback
+		if lookback {
 			from := max(0, start-burnLookback)
-			args = append(args, "-ss", strconv.FormatFloat(from, 'f', 3, 64), "-i", path)
+			// Its subtitles alone are read (its video and sound aren't).
+			args = append(args, "-discard:v", "all", "-discard:a", "all", "-ss", strconv.FormatFloat(from, 'f', 3, 64), "-i", path)
 			sub = fmt.Sprintf("[1:s:%d]", pl.burn)
 		}
 		if v := p.Video[0]; v.Width > 0 && v.Height > 0 {
@@ -497,7 +502,7 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 		} else {
 			sub += "copy"
 		}
-		if start > 0 {
+		if lookback {
 			sub += fmt.Sprintf(",setpts=PTS-%s/TB", strconv.FormatFloat(start-max(0, start-burnLookback), 'f', 3, 64))
 		}
 		sub += "[s];"
@@ -792,11 +797,31 @@ func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path stri
 		}
 		defer release()
 	}
-	args := append(pl.args(cfg, p, path, start), "-movflags", pl.movflags(cfg), "-f", "mp4", "pipe:1")
 	// What each stream is, for the log: why a player shows no picture
 	// starts there.
 	log.Printf("stream: %s from %.0fs: %s", filepath.Base(path), start, pl.describe(cfg, p))
+	for {
+		retry := l.serveFfmpeg(w, r, cfg, method, append(pl.args(cfg, p, path, start), "-movflags", pl.movflags(cfg), "-f", "mp4", "pipe:1"),
+			pl.burn >= 0 && start > 0 && !pl.noLookback)
+		if !retry {
+			return
+		}
+		// Drawn subtitles read from before the seek gave nothing (an
+		// ffmpeg that stalls on two inputs of one file): as before, from
+		// the video's own input.
+		log.Printf("stream: %s: nothing from ffmpeg in %v with the subtitles read from before %.0fs: again without", filepath.Base(path), firstOutput, start)
+		pl.noLookback = true
+	}
+}
 
+// firstOutput: how long ffmpeg may take for its first bytes when it may
+// stall (watchFirst), before it's started again another way.
+var firstOutput = 20 * time.Second
+
+// serveFfmpeg runs ffmpeg with args and sends what it writes. With
+// watchFirst, when nothing comes in firstOutput, it's stopped before
+// anything was sent and retry is true.
+func (l *Local) serveFfmpeg(w http.ResponseWriter, r *http.Request, cfg config.Settings, method string, args []string, watchFirst bool) (retry bool) {
 	// ffmpeg is stopped when the request ends, or as soon as the player stops
 	// reading (see below).
 	ctx, cancel := context.WithCancel(r.Context())
@@ -805,7 +830,7 @@ func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path stri
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return false
 	}
 	// All of stderr must be read: a damaged file makes ffmpeg print an error
 	// per frame, and once the pipe is full it blocks and playback freezes.
@@ -815,20 +840,52 @@ func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path stri
 	cmd.WaitDelay = 5 * time.Second
 	if err := cmd.Start(); err != nil {
 		http.Error(w, "ffmpeg is not installed: "+err.Error(), http.StatusInternalServerError)
-		return
+		return false
+	}
+	// The first bytes, waited for at most firstOutput when watched.
+	first := make([]byte, 32<<10)
+	type read struct {
+		n   int
+		err error
+	}
+	got := make(chan read, 1)
+	go func() {
+		n, err := io.ReadAtLeast(stdout, first, 1)
+		got <- read{n, err}
+	}()
+	var firstRead read
+	if watchFirst {
+		select {
+		case firstRead = <-got:
+		case <-time.After(firstOutput):
+			cancel()
+			<-got
+			_ = cmd.Wait()
+			return r.Context().Err() == nil
+		}
+	} else {
+		firstRead = <-got
 	}
 	w.Header().Set("Content-Type", "video/mp4")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Kumo-Method", method)
-	if _, err := io.Copy(w, stdout); err != nil {
-		// The player went away (or the connection broke): stop ffmpeg now
-		// instead of leaving it blocked on a pipe nobody reads.
-		cancel()
+	if firstRead.n > 0 {
+		if _, err := w.Write(first[:firstRead.n]); err != nil {
+			cancel()
+		}
+	}
+	if firstRead.err == nil && ctx.Err() == nil {
+		if _, err := io.Copy(w, stdout); err != nil {
+			// The player went away (or the connection broke): stop ffmpeg now
+			// instead of leaving it blocked on a pipe nobody reads.
+			cancel()
+		}
 	}
 	_ = cmd.Wait()
 	if s := strings.TrimSpace(string(stderr.buf)); s != "" && ctx.Err() == nil {
 		log.Printf("ffmpeg: %s", s)
 	}
+	return false
 }
 
 // headWriter keeps the first max bytes written to it and discards the rest.
