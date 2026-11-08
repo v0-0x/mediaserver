@@ -358,6 +358,8 @@ export type Probe = {
     externalSubs: { name: string; path: string; language: string }[] | null
     method: "direct" | "remux" | "transcode"
     reason: string
+    // The computer the file is on can't draw its image subtitles (too old).
+    noBurn?: string
 }
 
 export type StreamSource = {

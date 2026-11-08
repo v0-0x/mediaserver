@@ -36,7 +36,7 @@ func seedTorrent(t *testing.T, dir string) string {
 	}
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir, cfg.Seed, cfg.NoDHT, cfg.DisableIPv6, cfg.ListenPort = filepath.Dir(dir), true, true, true, 0
-	cl, err := torrent.NewClient(cfg)
+	cl, err := torrentstream.NewClientRetrying(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +243,12 @@ func TestTorrentStreamThroughHost(t *testing.T) {
 	}
 	if _, ok := host.app.TorrentStream.Status(sid); ok {
 		t.Fatal("still streamed on the host after stop")
+	}
+	host.torrentMu.Lock()
+	owners := len(host.torrentOwners)
+	host.torrentMu.Unlock()
+	if owners != 0 {
+		t.Fatalf("the host still remembers %d streamed torrents", owners)
 	}
 	if w := do(guest, "GET", "/api/torrentstream/"+started.Torrent.ID, local, "", nil); w.Code != http.StatusNotFound {
 		t.Fatalf("status after stop: %d %s", w.Code, w.Body)

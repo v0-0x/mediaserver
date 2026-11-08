@@ -80,6 +80,9 @@ type Probe struct {
 	// Playback decision: direct | remux | transcode
 	Method string `json:"method"`
 	Reason string `json:"reason"`
+	// NoBurn: the computer the file is on can't draw its image subtitles
+	// onto the video (an older Aniko or mediaserver): what to say why.
+	NoBurn string `json:"noBurn,omitempty"`
 }
 
 var ErrNotInLibrary = errors.New("file is not part of the library")

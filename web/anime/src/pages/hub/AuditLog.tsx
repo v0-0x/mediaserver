@@ -24,8 +24,7 @@ import {
     ShieldAlert,
     Terminal,
     Trash2,
-    Wifi,
-} from "lucide-react"
+    Wifi, ListChecks } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Badge, Button, EmptyState, IconButton, Input, Tabs } from "@/components/ui"
 import { api } from "@/lib/api"
@@ -45,6 +44,7 @@ const ICONS: Record<string, React.ReactNode> = {
     finished: <CircleCheck />,
     account: <KeyRound />,
     prefs: <Palette />,
+    lists: <ListChecks />,
     import: <Import />,
     download: <Download />,
     downloaded: <Download />,

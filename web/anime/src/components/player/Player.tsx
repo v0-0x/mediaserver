@@ -161,9 +161,9 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
     // the video, converted (-1: none). Only for the server's own files.
     const burn = useMemo(() => {
         const sub = subs.find(s => s.key === subKey)
-        return sub?.bitmap && req.kind === "local" ? sub.index : -1
+        return sub?.bitmap && req.kind === "local" && !probe?.noBurn ? sub.index : -1
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [subKey, subs, req.kind])
+    }, [subKey, subs, req.kind, probe?.noBurn])
     // Why it didn't play, with its buttons: a TV's remote goes to them.
     const errorBox = useRef<HTMLDivElement>(null)
     useEffect(() => {
@@ -1676,10 +1676,10 @@ function Player({ req, onClose, mini, stage }: { req: PlayerRequest; onClose: ()
                                 <DropdownLabel>Subtitles</DropdownLabel>
                                 <DropdownItem onSelect={() => changeSub("off")}>{subKey === "off" ? "● " : ""}Off</DropdownItem>
                                 {subs.map(s => (
-                                    <DropdownItem key={s.key} onSelect={() => changeSub(s.key)} disabled={s.bitmap && req.kind !== "local"}>
+                                    <DropdownItem key={s.key} onSelect={() => changeSub(s.key)} disabled={s.bitmap && (req.kind !== "local" || !!probe?.noBurn)}>
                                         {subKey === s.key ? "● " : ""}
                                         {s.label}
-                                        {s.bitmap ? (req.kind === "local" ? " (drawn on by the server)" : " (mpv only)") : ""}
+                                        {s.bitmap ? (req.kind !== "local" ? " (mpv only)" : probe?.noBurn ? ` (${probe.noBurn})` : " (drawn on by the server)") : ""}
                                     </DropdownItem>
                                 ))}
                                 {subKey !== "off" && (

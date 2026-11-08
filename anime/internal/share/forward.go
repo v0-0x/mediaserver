@@ -295,3 +295,25 @@ func (s *Service) Note(ctx context.Context, path, text string) error {
 	defer resp.Body.Close()
 	return answerError(resp)
 }
+
+// BurnsSubtitles reports whether the host of a shared file draws image
+// subtitles onto the video (?sub=, since Aniko 2.0.63 and mediaserver
+// 1.0.22), and its name for a message. A version that can't be read
+// counts as able: a build from source.
+func (s *Service) BurnsSubtitles(path string) (bool, string) {
+	p, _, err := s.hostOf(path)
+	if err != nil {
+		return true, ""
+	}
+	s.mu.Lock()
+	v, role, name := p.version, p.role, p.name
+	s.mu.Unlock()
+	since := "2.0.63"
+	if role == RoleHub {
+		since = "1.0.22"
+	}
+	if c, ok := compareVersions(v, since); ok && c < 0 {
+		return false, name
+	}
+	return true, name
+}

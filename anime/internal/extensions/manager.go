@@ -168,6 +168,9 @@ type Manager struct {
 	db       *db.DB
 	settings *config.Store
 	hub      *events.Hub
+	// The plugin manifests being fetched for the marketplace (markUnsupported).
+	scopesMu       sync.Mutex
+	scopesFetching map[string]bool
 
 	mu     sync.RWMutex
 	exts   map[string]*Loaded
@@ -699,34 +702,69 @@ var knownScopes = map[string]bool{"anilist": true, "anilist-token": true, "datab
 var fetchManifest = util.GetBytes
 
 // markUnsupported fills Unsupported for the marketplace's plugins, from
-// their manifests (fetched, a few at a time, and kept a day; not for
-// long: the list shouldn't wait on them).
-func (m *Manager) markUnsupported(ctx context.Context, entries []MarketEntry) {
-	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
-	defer cancel()
-	var wg sync.WaitGroup
-	slots := make(chan struct{}, 4)
+// their manifests as kept (a day). Those not kept yet are fetched in the
+// background, a few at a time, once: the list doesn't wait on them, and
+// the page is told (extensions-updated) when they're in.
+func (m *Manager) markUnsupported(_ context.Context, entries []MarketEntry) {
+	var missing []string
 	for i := range entries {
 		e := &entries[i]
 		if e.Type != TypePlugin || e.ManifestURI == "" {
 			continue
 		}
-		key := "marketplace-scopes:" + e.ManifestURI
 		var scopes []string
-		if m.db.GetCache(key, &scopes) {
+		if m.db.GetCache("marketplace-scopes:"+e.ManifestURI, &scopes) {
 			e.Unsupported = unsupportedScopes(scopes)
 			continue
 		}
+		missing = append(missing, e.ManifestURI)
+	}
+	if len(missing) == 0 {
+		return
+	}
+	m.scopesMu.Lock()
+	if m.scopesFetching == nil {
+		m.scopesFetching = map[string]bool{}
+	}
+	var todo []string
+	for _, u := range missing {
+		if !m.scopesFetching[u] {
+			m.scopesFetching[u] = true
+			todo = append(todo, u)
+		}
+	}
+	m.scopesMu.Unlock()
+	if len(todo) == 0 {
+		return
+	}
+	go m.fetchScopes(todo)
+}
+
+// fetchScopes fetches plugin manifests (markUnsupported) and keeps their
+// scopes, then tells the page.
+func (m *Manager) fetchScopes(urls []string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, 4)
+	got := 0
+	var gotMu sync.Mutex
+	for _, u := range urls {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() {
+				m.scopesMu.Lock()
+				delete(m.scopesFetching, u)
+				m.scopesMu.Unlock()
+			}()
 			select {
 			case slots <- struct{}{}:
 				defer func() { <-slots }()
 			case <-ctx.Done():
 				return
 			}
-			raw, err := fetchManifest(ctx, e.ManifestURI, nil)
+			raw, err := fetchManifest(ctx, u, nil)
 			if err != nil {
 				return
 			}
@@ -738,11 +776,16 @@ func (m *Manager) markUnsupported(ctx context.Context, entries []MarketEntry) {
 			if scopes == nil {
 				scopes = []string{}
 			}
-			m.db.SetCache(key, scopes, 24*time.Hour)
-			e.Unsupported = unsupportedScopes(scopes)
+			m.db.SetCache("marketplace-scopes:"+u, scopes, 24*time.Hour)
+			gotMu.Lock()
+			got++
+			gotMu.Unlock()
 		}()
 	}
 	wg.Wait()
+	if got > 0 && m.hub != nil {
+		m.hub.Publish(events.ExtensionsUpdate, nil)
+	}
 }
 
 func unsupportedScopes(scopes []string) []string {

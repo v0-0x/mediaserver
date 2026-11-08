@@ -6,6 +6,7 @@ import (
 	"context"
 	"log/slog"
 	"path/filepath"
+	"strings"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
@@ -34,17 +35,36 @@ func newClient(dir string, logger *slog.Logger) (client, error) {
 	// that do), but doesn't stay to seed: a torrent stops with its play.
 	cfg.ListenPort = 0
 	cfg.Seed = false
-	cl, err := torrent.NewClient(cfg)
+	cl, err := NewClientRetrying(cfg)
 	if err != nil {
 		// A computer without IPv6 (turned off, as on some Raspberry Pis):
 		// IPv4 only.
 		cfg.DisableIPv6 = true
 		var err4 error
-		if cl, err4 = torrent.NewClient(cfg); err4 != nil {
+		if cl, err4 = NewClientRetrying(cfg); err4 != nil {
 			return nil, err
 		}
 	}
 	return &anaClient{cl}, nil
+}
+
+// NewClientRetrying starts a client on a free port, trying again when the
+// port picked can't be had for UDP as well: the client takes a free TCP
+// port and then the same UDP one, which Windows may keep for itself (its
+// excluded port ranges: "An attempt was made to access a socket in a way
+// forbidden by its access permissions").
+func NewClientRetrying(cfg *torrent.ClientConfig) (*torrent.Client, error) {
+	var err error
+	for range 5 {
+		var cl *torrent.Client
+		if cl, err = torrent.NewClient(cfg); err == nil {
+			return cl, nil
+		}
+		if cfg.ListenPort != 0 || !strings.Contains(err.Error(), "subsequent listen") {
+			return nil, err
+		}
+	}
+	return nil, err
 }
 
 func (c *anaClient) addMagnet(magnet string) (torrentHandle, error) {

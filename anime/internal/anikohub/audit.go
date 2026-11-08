@@ -73,7 +73,7 @@ var AuditGroups = map[string][]string{
 	"watching":  {"playing", "finished"},
 	"library":   {"delete", "again", "scan", "library", "folders"},
 	"downloads": {"download", "downloaded", "download-failed", "again"},
-	"devices":   {"account", "prefs", "import", "device"},
+	"devices":   {"account", "prefs", "lists", "import", "device"},
 	"dashboard": {"signin", "signin-failed", "signout", "password", "settings", "change", "update"},
 	"hub":       {"start", "stop", "update"},
 }

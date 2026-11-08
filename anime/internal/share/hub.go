@@ -660,7 +660,34 @@ func (s *Service) syncBlobs(ctx context.Context, p *peer, hubAt map[string]int64
 
 // BlobChanged (a device) sends a kind of blob, changed here, to the hubs it
 // uses on its account (or on none).
+//
+// Changes close together go as one: the blob is sent blobDelay after the
+// last of them (removing ten entries sends one blob, not ten).
 func (s *Service) BlobChanged(kind string) {
+	if _, ok := s.blobHooks(kind); !ok {
+		return
+	}
+	s.blobMu.Lock()
+	defer s.blobMu.Unlock()
+	if s.blobTimers == nil {
+		s.blobTimers = map[string]*time.Timer{}
+	}
+	if t := s.blobTimers[kind]; t != nil {
+		t.Reset(blobDelay)
+		return
+	}
+	s.blobTimers[kind] = time.AfterFunc(blobDelay, func() {
+		s.blobMu.Lock()
+		delete(s.blobTimers, kind)
+		s.blobMu.Unlock()
+		s.sendBlob(kind)
+	})
+}
+
+// blobDelay: how long BlobChanged waits for more changes before sending.
+var blobDelay = 2 * time.Second
+
+func (s *Service) sendBlob(kind string) {
 	h, ok := s.blobHooks(kind)
 	if !ok {
 		return

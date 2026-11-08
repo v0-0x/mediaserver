@@ -118,6 +118,9 @@ type Service struct {
 	// (anikohub.BlobKinds): its list and watch-order edits (hub.go). Set
 	// by the app; nil: not kept in step.
 	Blobs map[string]BlobHooks
+	// The blobs waiting to be sent (BlobChanged), by kind.
+	blobMu     sync.Mutex
+	blobTimers map[string]*time.Timer
 	// What the devices are watching (a hub's dashboard).
 	playingMu sync.Mutex
 	playing   map[string]Playing

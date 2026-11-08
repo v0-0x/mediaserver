@@ -85,6 +85,13 @@ func (s *Server) torrentStreamRoutes() {
 		if s.torrentOwners == nil {
 			s.torrentOwners = map[string]string{}
 		}
+		// Torrents no longer streamed (stopped, or dropped by the engine
+		// when no one read them) are forgotten.
+		for id := range s.torrentOwners {
+			if _, ok := s.app.TorrentStream.Status(id); !ok {
+				delete(s.torrentOwners, id)
+			}
+		}
 		s.torrentOwners[ts.ID] = peerOf(r).ID
 		s.torrentMu.Unlock()
 		return map[string]any{"path": stream.TorrentPrefix + ts.ID, "torrent": ts}, nil
@@ -104,6 +111,9 @@ func (s *Server) torrentStreamRoutes() {
 		id := r.PathValue("id")
 		if s.ownsTorrent(peerOf(r).ID, stream.TorrentPrefix+id) {
 			s.app.TorrentStream.Stop(id)
+			s.torrentMu.Lock()
+			delete(s.torrentOwners, id)
+			s.torrentMu.Unlock()
 		}
 		return nil, nil
 	}))

@@ -46,7 +46,7 @@ func seed(t *testing.T, name string, data []byte) string {
 	cfg.NoDHT = true
 	cfg.DisableIPv6 = true
 	cfg.ListenPort = 0
-	cl, err := torrent.NewClient(cfg)
+	cl, err := NewClientRetrying(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

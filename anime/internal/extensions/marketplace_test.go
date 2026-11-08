@@ -55,6 +55,8 @@ func TestMarketplaceMarksUnsupportedScopes(t *testing.T) {
 	old := fetchManifest
 	fetchManifest = plain
 	t.Cleanup(func() { fetchManifest = old })
+	// The first answer doesn't wait on the manifests; they come after.
+	first := false
 	for round := range 2 {
 		market, err := plain(context.Background(), srv.URL+"/market.json", nil)
 		if err != nil {
@@ -73,6 +75,24 @@ func TestMarketplaceMarksUnsupportedScopes(t *testing.T) {
 		got := map[string][]string{}
 		for _, e := range entries {
 			got[e.ID] = e.Unsupported
+		}
+		if round == 0 && !first {
+			first = true
+			if len(got["needy"]) != 0 {
+				t.Fatal("the first answer waited on the manifests")
+			}
+			deadline := time.Now().Add(5 * time.Second)
+			for !m.db.GetCache("marketplace-scopes:"+srv.URL+"/needy.json", new([]string)) || !m.db.GetCache("marketplace-scopes:"+srv.URL+"/fine.json", new([]string)) {
+				if time.Now().After(deadline) {
+					t.Fatal("the manifests never came")
+				}
+				time.Sleep(20 * time.Millisecond)
+			}
+			entries, _ = m.Marketplace(context.Background(), srv.URL+"/market.json", false)
+			got = map[string][]string{}
+			for _, e := range entries {
+				got[e.ID] = e.Unsupported
+			}
 		}
 		if u := got["needy"]; len(u) != 2 || u[0] != "playback" || u[1] != "system" {
 			t.Fatalf("round %d: needy's unsupported scopes %v, want [playback system]", round, u)

@@ -643,5 +643,8 @@ func (s *Server) playShared(r *http.Request, body playLocalBody) (any, error) {
 		return nil, badRequest(strings.TrimSpace(f.HostName + ": " + err.Error()))
 	}
 	probe.Path = body.Path
+	if ok, name := s.app.Share.BurnsSubtitles(body.Path); !ok {
+		probe.NoBurn = "needs " + name + " updated"
+	}
 	return s.builtinPlay(body, probe, title), nil
 }
