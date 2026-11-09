@@ -57,7 +57,7 @@ func TestBurnedSubtitlesArgs(t *testing.T) {
 		if pl.videoCopy || pl.method != "transcode" || pl.burn != 1 || !strings.Contains(a, "[s];[0:v:0][s]") || !strings.Contains(a, tc.want) || strings.Contains(a, "-map 0:v:0?") || strings.Contains(a, "-vf ") || strings.Contains(a, "-c:v copy") {
 			t.Errorf("%s (software %v): %s", tc.hw, tc.software, a)
 		}
-		if !strings.Contains(a, "-ss 7.000 -i /a/x.mkv -discard:v all -discard:a all -ss 0.000 -i /a/x.mkv -filter_complex [1:s:1]scale=1920:1080,setpts=PTS-7.000/TB[s]") || !strings.Contains(a, "-c:a aac") {
+		if !strings.Contains(a, "-i /a/x.mkv -ss 7.000 -filter_complex [0:s:1]scale=1920:1080[s]") || !strings.Contains(a, "-c:a aac") {
 			t.Errorf("%s: converted video starts at t exactly: %s", tc.hw, a)
 		}
 	}
@@ -153,6 +153,12 @@ func TestBurnedSubtitlesStream(t *testing.T) {
 		t.Skip("no ffmpeg")
 	}
 	l, plain := newFfmpegLocal(t, "libx264")
+	// A stalled ffmpeg fails the test instead of hanging the run.
+	req := func() *http.Request {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		t.Cleanup(cancel)
+		return httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+	}
 	dir := filepath.Dir(plain)
 	sup := filepath.Join(dir, "subs.sup")
 	if err := os.WriteFile(sup, pgsSup(320, 240, 60, 150, 200, 50), 0o644); err != nil {
@@ -175,12 +181,12 @@ func TestBurnedSubtitlesStream(t *testing.T) {
 	}
 	// A text track can't be drawn on.
 	rec := httptest.NewRecorder()
-	l.ServeTranscode(rec, httptest.NewRequest(http.MethodGet, "/", nil), plain, 0, 0, "remux", nil, 0)
+	l.ServeTranscode(rec, req(), plain, 0, 0, "remux", nil, 0)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("burning a file without image subtitles: %d", rec.Code)
 	}
 	rec = httptest.NewRecorder()
-	l.ServeTranscode(rec, httptest.NewRequest(http.MethodGet, "/", nil), video, 2, 0, "remux", nil, 0)
+	l.ServeTranscode(rec, req(), video, 2, 0, "remux", nil, 0)
 	if rec.Code != http.StatusOK || rec.Header().Get("X-Kumo-Method") != "transcode" {
 		t.Fatalf("stream: %d %s", rec.Code, rec.Body.String())
 	}
@@ -210,7 +216,7 @@ func TestBurnedSubtitlesStream(t *testing.T) {
 	// From 6.5s: the keyframe before it is at 5s, after the line began
 	// (1s); the line is drawn all the same, and goes at 8s.
 	rec = httptest.NewRecorder()
-	l.ServeTranscode(rec, httptest.NewRequest(http.MethodGet, "/", nil), video, 6.5, 0, "remux", nil, 0)
+	l.ServeTranscode(rec, req(), video, 6.5, 0, "remux", nil, 0)
 	if err := os.WriteFile(mp4, rec.Body.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -240,29 +246,37 @@ func TestConvertedVideoConvertsAudio(t *testing.T) {
 	}
 }
 
-// From a seek well into the file, the subtitles are read from a minute
-// before it, moved back by as much; from the start, as they are.
-func TestBurnedSubtitlesLookback(t *testing.T) {
+// From a seek well into the file, ffmpeg reads from burnPreroll before it
+// and drops that much (one input of the file: newer ffmpeg stalls on a
+// second); from the start, as it is.
+func TestBurnedSubtitlesPreroll(t *testing.T) {
 	p := &Probe{Video: []ProbeStream{{Codec: "h264", Width: 640, Height: 360}}, Subtitles: []ProbeStream{{Codec: "hdmv_pgs_subtitle", Bitmap: true}}}
 	cfg := testSettings(t).Get()
 	pl := (plan{burn: -1}).WithBurn(0)
 	a := strings.Join(pl.args(cfg, p, "/a/x.mkv", 600), " ")
-	if !strings.Contains(a, "-ss 600.000 -i /a/x.mkv -discard:v all -discard:a all -ss 540.000 -i /a/x.mkv -filter_complex [1:s:0]scale=640:360,setpts=PTS-60.000/TB[s];[0:v:0][s]") {
+	if strings.Count(a, "-i /a/x.mkv") != 1 || !strings.Contains(a, "-ss 590.000 -i /a/x.mkv -ss 10.000 -filter_complex [0:s:0]scale=640:360[s];[0:v:0][s]") {
 		t.Errorf("from 600s: %s", a)
 	}
+	a = strings.Join(pl.args(cfg, p, "/a/x.mkv", 4), " ")
+	if !strings.Contains(a, "-nostdin -i /a/x.mkv -ss 4.000 -filter_complex") {
+		t.Errorf("from 4s: %s", a)
+	}
 	a = strings.Join(pl.args(cfg, p, "/a/x.mkv", 0), " ")
-	if strings.Count(a, "-i /a/x.mkv") != 1 || !strings.Contains(a, "-filter_complex [0:s:0]scale=640:360[s];") {
+	if strings.Count(a, "-ss") != 0 || !strings.Contains(a, "-filter_complex [0:s:0]scale=640:360[s];") {
 		t.Errorf("from the start: %s", a)
+	}
+	pl.noPreroll = true
+	if a = strings.Join(pl.args(cfg, p, "/a/x.mkv", 600), " "); !strings.Contains(a, "-ss 600.000 -i /a/x.mkv -filter_complex") {
+		t.Errorf("without the preroll: %s", a)
 	}
 }
 
 // An ffmpeg that gives nothing with the subtitles read from before the seek
-// (a second input of the file: some ffmpeg versions stall on it) is
-// stopped, and the stream starts again without that input; the player gets
-// the stream all the same.
+// is stopped, and the stream starts again from the seek itself; the player
+// gets the stream all the same.
 func TestBurnedSubtitlesStallRetried(t *testing.T) {
 	ffmpeg := writeScript(t, `case "$*" in
-*-discard:v*) exec sleep 30 ;;
+*"-i "*" -ss "*) exec sleep 30 ;;
 esac
 printf 'video'
 `)

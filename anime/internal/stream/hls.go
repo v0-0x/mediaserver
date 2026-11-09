@@ -111,9 +111,9 @@ func (h *HLS) Start(ctx context.Context, req HLSRequest) (*HLSSession, error) {
 			return nil, errors.New("that subtitle track can't be drawn onto the video (not an image track)")
 		}
 		pl = pl.WithBurn(*req.Sub)
-		// Not the lookback (args): a stalled ffmpeg would leave the session
+		// Not the preroll (args): a stalled ffmpeg would leave the session
 		// waiting for its first segment, with no way to start it again.
-		pl.noLookback = true
+		pl.noPreroll = true
 	}
 	start, known := h.local.startFor(ctx, file, pl, req.Start)
 	if !known {

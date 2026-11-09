@@ -391,14 +391,17 @@ type plan struct {
 	// subtitle tracks) drawn onto the video, which is then converted (see
 	// WithBurn); -1 for none.
 	burn int
-	// noLookback: drawn subtitles from the video's own input only (see
-	// args), after a start with the lookback gave nothing (firstOutput).
-	noLookback bool
+	// noPreroll: drawn subtitles read from the seek itself, not from
+	// burnPreroll before it (see args), after a start with the preroll
+	// gave nothing (firstOutput).
+	noPreroll bool
 }
 
-// burnLookback: how far before a seek drawn subtitles are read from (see
-// args): lines are seconds long; a minute of the file is read again.
-const burnLookback = 60.0
+// burnPreroll: how far before a seek ffmpeg starts reading when it draws
+// subtitles (see args): a line shown since then is drawn too. That much
+// video is decoded again and dropped, so it's short; lines are seconds
+// long.
+const burnPreroll = 10.0
 
 // WithBurn is the plan with the file's subtitle track n (an image one)
 // drawn onto the video: a player can't show those itself, so the video is
@@ -470,13 +473,28 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 	if !pl.videoCopy && !pl.software && hw == "vaapi" {
 		args = append(args, "-vaapi_device", cfg.Transcode.VaapiNode)
 	}
+	// Drawn subtitles from a seek: the file is read from burnPreroll
+	// before it and what comes before the seek is dropped (-ss after -i),
+	// so a line shown since before the seek is drawn too. The video's own
+	// keyframe before the seek can be after the line began. One input:
+	// newer ffmpeg stalls on a second input of the same file for the
+	// subtitles alone.
+	preroll := 0.0
+	if pl.burn >= 0 && start > 0 && !pl.noPreroll {
+		preroll = min(start, burnPreroll)
+	}
 	if start > 0 {
 		if pl.videoCopy {
 			start += seekMargin // lands on the keyframe at start, see SeekPoint
 		}
-		args = append(args, "-ss", strconv.FormatFloat(start, 'f', 3, 64))
+		if from := start - preroll; from > 0 {
+			args = append(args, "-ss", strconv.FormatFloat(from, 'f', 3, 64))
+		}
 	}
 	args = append(args, "-i", path)
+	if preroll > 0 {
+		args = append(args, "-ss", strconv.FormatFloat(preroll, 'f', 3, 64))
+	}
 	// The video: as it is, or with image subtitles drawn on it first (the
 	// subtitle track scaled to the picture's size, then laid over it; the
 	// encoder's own filters come after, so VAAPI's upload is last). Not
@@ -484,26 +502,11 @@ func (pl plan) args(cfg config.Settings, p *Probe, path string, start float64) [
 	// stream would start and end with them.
 	var video []string
 	if pl.burn >= 0 {
-		// From a seek, the subtitles are read from up to burnLookback
-		// before it (a second input, its times moved back into place): a
-		// line shown since before the seek is drawn too. The video's own
-		// -ss lands on the keyframe before it, which can be after the
-		// line began.
 		sub := fmt.Sprintf("[0:s:%d]", pl.burn)
-		lookback := start > 0 && !pl.noLookback
-		if lookback {
-			from := max(0, start-burnLookback)
-			// Its subtitles alone are read (its video and sound aren't).
-			args = append(args, "-discard:v", "all", "-discard:a", "all", "-ss", strconv.FormatFloat(from, 'f', 3, 64), "-i", path)
-			sub = fmt.Sprintf("[1:s:%d]", pl.burn)
-		}
 		if v := p.Video[0]; v.Width > 0 && v.Height > 0 {
 			sub += fmt.Sprintf("scale=%d:%d", v.Width, v.Height)
 		} else {
 			sub += "copy"
-		}
-		if lookback {
-			sub += fmt.Sprintf(",setpts=PTS-%s/TB", strconv.FormatFloat(start-max(0, start-burnLookback), 'f', 3, 64))
 		}
 		sub += "[s];"
 		video = []string{"-filter_complex", sub + "[0:v:0][s]overlay=eof_action=pass%s[out]", "-map", "[out]"}
@@ -802,15 +805,14 @@ func (l *Local) ServeTranscode(w http.ResponseWriter, r *http.Request, path stri
 	log.Printf("stream: %s from %.0fs: %s", filepath.Base(path), start, pl.describe(cfg, p))
 	for {
 		retry := l.serveFfmpeg(w, r, cfg, method, append(pl.args(cfg, p, path, start), "-movflags", pl.movflags(cfg), "-f", "mp4", "pipe:1"),
-			pl.burn >= 0 && start > 0 && !pl.noLookback)
+			pl.burn >= 0 && start > 0 && !pl.noPreroll)
 		if !retry {
 			return
 		}
-		// Drawn subtitles read from before the seek gave nothing (an
-		// ffmpeg that stalls on two inputs of one file): as before, from
-		// the video's own input.
+		// Drawn subtitles read from before the seek gave nothing: again
+		// from the seek itself.
 		log.Printf("stream: %s: nothing from ffmpeg in %v with the subtitles read from before %.0fs: again without", filepath.Base(path), firstOutput, start)
-		pl.noLookback = true
+		pl.noPreroll = true
 	}
 }
 
