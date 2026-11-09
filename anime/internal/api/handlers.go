@@ -1080,6 +1080,22 @@ func (s *Server) mangaChapters(r *http.Request) (any, error) {
 		return nil, err
 	}
 	provider := r.URL.Query().Get("provider")
+	if host := serverOf(provider); host != "" {
+		// Downloaded onto another Aniko or server: its chapters there.
+		raw, _, err := s.app.Share.AskHost(r.Context(), host, "/api/peer/manga-library/"+strconv.Itoa(id), nil)
+		if err != nil {
+			return nil, notFound(err.Error())
+		}
+		var got struct {
+			Chapters []manga.LocalChapter `json:"chapters"`
+		}
+		_ = json.Unmarshal(raw, &got)
+		out := &manga.ChaptersResult{Provider: provider, Chapters: []extensions.MangaChapter{}}
+		for i, c := range got.Chapters {
+			out.Chapters = append(out.Chapters, extensions.MangaChapter{ID: c.File, Chapter: c.Number, Title: c.Title, Index: float64(i)})
+		}
+		return out, nil
+	}
 	if provider == LocalProvider {
 		// The downloaded chapters, read from the manga folder (the
 		// reader's next and previous chapter).

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "@/lib/toast"
 import { ListStatusButton, ProgressEditor, ScoreEditor } from "@/components/entry/ListEditor"
-import { ChapterDownload, DownloadDialog, DownloadsPanel, LocalChapters, useMangaDownloads, useMangaLocal } from "@/components/MangaDownloads"
+import { ChapterDownload, DownloadDialog, DownloadsPanel, LocalChapters, useMangaDownloads, useMangaLocal, useSharedManga } from "@/components/MangaDownloads"
 import { PluginSlot } from "@/components/plugins/PluginSlot"
 import { Badge, Button, Dialog, EmptyState, ErrorState, Input, Select, Skeleton } from "@/components/ui"
 import { api, qs } from "@/lib/api"
@@ -31,6 +31,8 @@ export default function MangaEntryPage() {
     // Downloaded chapters (read from here, also offline), and those on
     // their way.
     const { data: local } = useMangaLocal(id)
+    // And on the Anikos and servers this one uses.
+    const { data: onServers } = useSharedManga(id)
     const { data: downloads } = useMangaDownloads()
     const navigate = useNavigate()
     const qc = useQueryClient()
@@ -161,13 +163,13 @@ export default function MangaEntryPage() {
                     )}
                 </div>
                 <DownloadsPanel mediaId={id} />
-                {!effective && localChapters.length === 0 && (
+                {!effective && localChapters.length === 0 && !(onServers ?? []).length && (
                     <EmptyState title="No manga provider installed" action={<Link to="/extensions?tab=marketplace"><Button variant="primary">Open marketplace</Button></Link>}>
                         Install a manga provider extension to read chapters.
                     </EmptyState>
                 )}
                 {chLoading && effective && <Skeleton className="h-64" />}
-                {error && localChapters.length === 0 && <EmptyState title="Couldn't load chapters" action={<Button onClick={() => refetch()}>Retry</Button>}>{(error as Error).message}</EmptyState>}
+                {error && localChapters.length === 0 && !(onServers ?? []).length && <EmptyState title="Couldn't load chapters" action={<Button onClick={() => refetch()}>Retry</Button>}>{(error as Error).message}</EmptyState>}
                 {/* The provider lists nothing (offline, none installed): what's downloaded. */}
                 {chapters.length === 0 && !chLoading && localChapters.length > 0 && (
                     <>
@@ -175,6 +177,19 @@ export default function MangaEntryPage() {
                         <LocalChapters chapters={localChapters} progress={progress} read={c => readLocal(c)} onDelete={deleteLocal} />
                     </>
                 )}
+                {(onServers ?? []).map(o => (
+                    <details key={o.host.id} open={chapters.length === 0} className="group">
+                        <summary className="mb-2 cursor-pointer list-none text-sm text-muted hover:text-fg">
+                            {o.chapters!.length} {o.chapters!.length === 1 ? "chapter" : "chapters"} on {o.host.name}, read from there
+                            <span className="ml-1 text-subtle group-open:hidden">· show</span>
+                        </summary>
+                        <LocalChapters
+                            chapters={o.chapters!}
+                            progress={progress}
+                            read={c => navigate(`/manga/read${qs({ id, provider: `server:${o.host.id}`, chapter: c.file })}`)}
+                        />
+                    </details>
+                ))}
                 {chapters.length > 0 && (
                     <div className="card divide-y divide-line">
                         {[...chapters].reverse().map(c => {

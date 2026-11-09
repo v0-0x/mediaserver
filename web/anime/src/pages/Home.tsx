@@ -1,5 +1,5 @@
 import { ArrowDownUp, ArrowLeftRight, ChevronLeft, ChevronRight, Dices, Download, FolderOpen, FolderSearch, FolderSync, HardDrive, LibraryBig, ListFilter, LogIn, MoreVertical, Puzzle, RefreshCw, Settings2, Sparkles, X } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { EpisodeCard } from "@/components/EpisodeCard"
 import { LoginDialog } from "@/components/LoginDialog"
@@ -18,7 +18,7 @@ import { usePlay } from "@/lib/play"
 import { fetchLanguageMode, useCollection, useScan, useStatus } from "@/lib/queries"
 import { createStore, scanStore, useStore } from "@/lib/store"
 import type { CollectionItem, CollectionView, ContinueItem } from "@/lib/types"
-import { androidApp } from "@/lib/tv"
+import { androidApp, tv } from "@/lib/tv"
 import { banner, cn, cover, img as imgUrl, readLocal, title } from "@/lib/utils"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "@/lib/toast"
@@ -390,6 +390,49 @@ function ContinueRow({ items, onFocus }: { items: ContinueItem[]; onFocus: (i: n
     const navigate = useNavigate()
     const qc = useQueryClient()
     const ref = useRef<HTMLDivElement>(null)
+    // Arrows on a computer, when there's more that way (a TV moves with its
+    // remote; a touch screen swipes).
+    const [edges, setEdges] = useState({ left: false, right: false })
+    const check = () => {
+        const el = ref.current
+        if (!el) return
+        const left = el.scrollLeft > 2
+        const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2
+        setEdges(e => (e.left === left && e.right === right ? e : { left, right }))
+    }
+    useEffect(check)
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+        const ro = new ResizeObserver(check)
+        ro.observe(el)
+        el.addEventListener("scroll", check, { passive: true })
+        return () => {
+            ro.disconnect()
+            el.removeEventListener("scroll", check)
+        }
+    }, [])
+    // A card's width at a time (as many as fit), to a card's edge.
+    const scroll = (dir: -1 | 1) => {
+        const el = ref.current
+        if (!el) return
+        const card = el.firstElementChild as HTMLElement | null
+        const step = card ? card.offsetWidth + 20 : 420
+        el.scrollBy({ left: dir * Math.max(step, Math.floor(el.clientWidth / step) * step), behavior: "smooth" })
+    }
+    const arrow = (dir: -1 | 1) => (
+        <button
+            onClick={() => scroll(dir)}
+            data-tv-skip-nav
+            aria-label={dir < 0 ? "Back" : "More"}
+            className={cn(
+                "absolute top-[calc((min(82vw,400px)*9/16)/2)] z-10 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/10 bg-black/60 text-white/85 shadow-lg backdrop-blur transition-colors hover:bg-black/80 hover:text-white fade-in",
+                dir < 0 ? "left-1" : "right-1",
+            )}
+        >
+            {dir < 0 ? <ChevronLeft className="size-5" /> : <ChevronRight className="size-5" />}
+        </button>
+    )
     const play = async (it: ContinueItem) => {
         // From where the card says: the position shown, not one saved since
         // (the same episode watched further, or finished, on another device
@@ -428,6 +471,9 @@ function ContinueRow({ items, onFocus }: { items: ContinueItem[]; onFocus: (i: n
         })
     }
     return (
+        <div className="relative">
+            {!tv && edges.left && arrow(-1)}
+            {!tv && edges.right && arrow(1)}
         <div ref={ref} className="no-scrollbar -mx-2 flex snap-x scroll-px-2 gap-5 overflow-x-auto px-2 pb-2">
             {items.map((it, i) => (
                 <div key={it.media.id} className="w-[min(82vw,400px)] shrink-0 snap-start" onMouseEnter={() => onFocus(i)} onFocus={() => onFocus(i)} data-tv-autofocus={i === 0 || undefined}>
@@ -453,6 +499,7 @@ function ContinueRow({ items, onFocus }: { items: ContinueItem[]; onFocus: (i: n
                     />
                 </div>
             ))}
+        </div>
         </div>
     )
 }

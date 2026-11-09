@@ -292,46 +292,85 @@ export function LocalChapters({ chapters, progress, read, onDelete }: { chapters
     )
 }
 
-// The downloaded manga, as covers.
+// What the Anikos and servers this one uses have downloaded (GET
+// /api/manga-shared…): each with its series, or one's chapters.
+export type SharedManga = { host: { id: string; name: string; online: boolean }; series?: MangaSeries[]; chapters?: LocalMangaChapter[] }
+
+export function useSharedManga(id = 0) {
+    return useQuery({
+        queryKey: ["manga-library", "shared", id],
+        queryFn: () => api.get<SharedManga[]>(`/api/manga-shared${id > 0 ? `/series/${id}` : ""}`),
+        staleTime: 30_000,
+    })
+}
+
+function SeriesCard({ s, cover }: { s: MangaSeries; cover: string }) {
+    return (
+        <Link to={`/manga/entry?id=${s.anilistId}`} data-tv-card className="group flex flex-col gap-2 focus-ring rounded-lg">
+            <div data-tv-ring className="aspect-[2/3] overflow-hidden rounded-lg bg-surface-2">
+                {s.hasCover ? (
+                    <img src={cover} alt="" loading="lazy" className="size-full object-cover transition group-hover:scale-[1.03]" />
+                ) : (
+                    <div className="grid size-full place-items-center text-muted">
+                        <BookOpen className="size-8" />
+                    </div>
+                )}
+            </div>
+            <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{s.title}</p>
+                <p className="text-xs text-muted">
+                    {s.count} {s.count === 1 ? "chapter" : "chapters"}
+                    {s.latest && ` · up to ${s.latest}`}
+                </p>
+            </div>
+        </Link>
+    )
+}
+
+// The downloaded manga, as covers: on this device, then on each Aniko or
+// server this one uses (read from there).
 export function DownloadedGrid() {
     const { data, isLoading } = useQuery({
         queryKey: ["manga-library"],
         queryFn: () => api.get<{ dir: string; series: MangaSeries[] }>("/api/manga-library"),
     })
+    const { data: shared, isLoading: sharedLoading } = useSharedManga()
     if (isLoading) return null
     const series = data?.series ?? []
-    if (series.length === 0)
-        return (
-            <EmptyState icon={<Download className="size-6" />} title="No downloaded manga">
-                Download chapters from a manga's page (the Download button) to read them without the provider. They're kept in {data?.dir ?? "your manga folder"}.
-            </EmptyState>
-        )
+    const others = (shared ?? []).filter(o => (o.series?.length ?? 0) > 0)
+    const grid = "grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-5"
     return (
-        <>
-            <p className="mb-4 text-sm text-muted">In {data?.dir}</p>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-5">
-                {series.map(s => (
-                    <Link key={s.anilistId} to={`/manga/entry?id=${s.anilistId}`} data-tv-card className="group flex flex-col gap-2 focus-ring rounded-lg">
-                        <div data-tv-ring className="aspect-[2/3] overflow-hidden rounded-lg bg-surface-2">
-                            {s.hasCover ? (
-                                <img src={`/api/manga-library/${s.anilistId}/cover`} alt="" loading="lazy" className="size-full object-cover transition group-hover:scale-[1.03]" />
-                            ) : (
-                                <div className="grid size-full place-items-center text-muted">
-                                    <BookOpen className="size-8" />
-                                </div>
-                            )}
+        <div className="flex flex-col gap-8">
+            {series.length === 0 && others.length === 0 ? (
+                <EmptyState icon={<Download className="size-6" />} title={sharedLoading ? "Looking for downloaded manga…" : "No downloaded manga"}>
+                    Download chapters from a manga's page (the Download button) to read them without the provider. They're kept in {data?.dir ?? "your manga folder"}, or on your
+                    server when you pick it there.
+                </EmptyState>
+            ) : (
+                series.length > 0 && (
+                    <section>
+                        <p className="mb-4 text-sm text-muted">On this device · {data?.dir}</p>
+                        <div className={grid}>
+                            {series.map(s => (
+                                <SeriesCard key={s.anilistId} s={s} cover={`/api/manga-library/${s.anilistId}/cover`} />
+                            ))}
                         </div>
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{s.title}</p>
-                            <p className="text-xs text-muted">
-                                {s.count} {s.count === 1 ? "chapter" : "chapters"}
-                                {s.latest && ` · up to ${s.latest}`}
-                            </p>
-                        </div>
-                    </Link>
-                ))}
-            </div>
-        </>
+                    </section>
+                )
+            )}
+            {others.map(o => (
+                <section key={o.host.id}>
+                    <p className="mb-4 flex items-center gap-2 text-sm text-muted">
+                        <HardDrive className="size-4" /> On {o.host.name}
+                    </p>
+                    <div className={grid}>
+                        {o.series!.map(s => (
+                            <SeriesCard key={s.anilistId} s={s} cover={`/api/manga-shared/cover?host=${encodeURIComponent(o.host.id)}&id=${s.anilistId}`} />
+                        ))}
+                    </div>
+                </section>
+            ))}
+        </div>
     )
 }
 
