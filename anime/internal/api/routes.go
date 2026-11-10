@@ -658,10 +658,6 @@ func (g *loginGuard) passed(ip string) {
 	delete(g.tries, ip)
 }
 
-func startDetached(name string, args ...string) error {
-	return util.Detach(name, args...)
-}
-
 func (s *Server) listDirs(r *http.Request) (any, error) {
 	if !isTrusted(r) {
 		return nil, forbidden("browsing folders is only available on this computer")

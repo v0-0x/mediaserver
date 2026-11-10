@@ -2,7 +2,6 @@
 package util
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -81,33 +80,6 @@ func GetBytes(ctx context.Context, url string, headers map[string]string) ([]byt
 		return nil, fmt.Errorf("GET %s: %s", url, resp.Status)
 	}
 	return io.ReadAll(io.LimitReader(resp.Body, 64<<20))
-}
-
-// PostJSON sends a JSON body and decodes the JSON response.
-func PostJSON(ctx context.Context, url string, headers map[string]string, body, out any) error {
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("User-Agent", UserAgent)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-	resp, err := HTTP.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if out == nil {
-		return nil
-	}
-	return json.NewDecoder(resp.Body).Decode(out)
 }
 
 // ---------------------------------------------------------------------------

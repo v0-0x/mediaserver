@@ -272,16 +272,6 @@ func (m *Mpv) Set(prop string, value any) error {
 	return err
 }
 
-func (m *Mpv) GetFloat(prop string) float64 {
-	raw, err := m.Command("get_property", prop)
-	if err != nil {
-		return 0
-	}
-	var f float64
-	_ = json.Unmarshal(raw, &f)
-	return f
-}
-
 func (m *Mpv) Tracks() []Track {
 	raw, err := m.Command("get_property", "track-list")
 	if err != nil {

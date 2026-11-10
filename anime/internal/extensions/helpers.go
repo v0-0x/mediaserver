@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 var (
@@ -41,15 +40,6 @@ func ordinalStr(n int) string {
 		return fmt.Sprintf("%drd", n)
 	}
 	return fmt.Sprintf("%dth", n)
-}
-
-func containsStr(list []string, s string) bool {
-	for _, x := range list {
-		if strings.EqualFold(x, s) {
-			return true
-		}
-	}
-	return false
 }
 
 // jsPrelude contains globals that are easiest to express in JavaScript.

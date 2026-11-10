@@ -2,7 +2,6 @@ package anicli
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -51,14 +50,6 @@ func SaveMapping(d *db.DB, mediaID int, mode string, m *Mapping) error {
 	raw, _ := json.Marshal(m)
 	_, err := d.Write(`INSERT INTO stream_mappings(provider, media_id, mode, value) VALUES(?, ?, ?, ?)
 		ON CONFLICT(provider, media_id, mode) DO UPDATE SET value = excluded.value`, provider, mediaID, mode, string(raw))
-	return err
-}
-
-func DeleteMapping(d *db.DB, mediaID int, mode string) error {
-	_, err := d.Write(`DELETE FROM stream_mappings WHERE provider = ? AND media_id = ? AND mode = ?`, provider, mediaID, mode)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil
-	}
 	return err
 }
 

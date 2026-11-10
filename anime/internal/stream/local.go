@@ -964,9 +964,6 @@ func (l *Local) TranscodeSlot() (release func(), ok bool) {
 	return func() { once.Do(func() { l.transcoding.Add(-1) }) }, true
 }
 
-// Transcoding is how many videos are being converted now.
-func (l *Local) Transcoding() int { return int(l.transcoding.Load()) }
-
 // Encoder is what converts video that can't be played as it is: the
 // encoder ffmpeg is told to use, "" when ffmpeg isn't there.
 func (l *Local) Encoder() string {

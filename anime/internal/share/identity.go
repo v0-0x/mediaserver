@@ -197,9 +197,6 @@ var (
 	errReplay  = errors.New("a request sent again")
 )
 
-// IsPeerRequest reports a request from another Aniko (which Verify checks).
-func IsPeerRequest(r *http.Request) bool { return r.Header.Get(headerID) != "" }
-
 // mac proves a request, or the answer to it, between a guest and a host:
 // only those two can make it, and it changes with each of its parts.
 func (id *Identity) mac(peerPub []byte, guest, host string, parts ...string) (string, error) {

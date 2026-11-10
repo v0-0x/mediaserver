@@ -154,21 +154,6 @@ func PickTrack(tracks []Track, typ, lang, title string, index int) (int, bool) {
 	return 0, false
 }
 
-// PickByLanguages picks the first track matching a comma separated list of
-// language codes (e.g. "jpn,ja").
-func PickByLanguages(tracks []Track, typ, langs string) (int, bool) {
-	for _, l := range strings.Split(langs, ",") {
-		l = strings.TrimSpace(l)
-		if l == "" {
-			continue
-		}
-		if id, ok := PickTrack(tracks, typ, l, "", 0); ok {
-			return id, true
-		}
-	}
-	return 0, false
-}
-
 func isSigns(title string) bool {
 	t := strings.ToLower(title)
 	return strings.Contains(t, "sign") || strings.Contains(t, "song") || strings.Contains(t, "forced")
@@ -196,27 +181,6 @@ func langMatch(a, b string) bool {
 	ca, okA := langAliases[a]
 	cb, okB := langAliases[b]
 	return okA && okB && ca == cb
-}
-
-// PrefsFromSelection builds a TrackPrefs from the currently selected tracks.
-func PrefsFromSelection(mediaID int, tracks []Track, aid, sid int, subOff bool) TrackPrefs {
-	p := TrackPrefs{MediaID: mediaID, SubOff: subOff}
-	ai, si := 0, 0
-	for _, t := range tracks {
-		switch t.Type {
-		case "audio":
-			ai++
-			if t.ID == aid {
-				p.AudioLang, p.AudioTitle, p.AudioIndex = t.Lang, t.Title, ai
-			}
-		case "sub":
-			si++
-			if t.ID == sid && !subOff {
-				p.SubLang, p.SubTitle, p.SubIndex = t.Lang, t.Title, si
-			}
-		}
-	}
-	return p
 }
 
 // trackSel is an aid/sid value reported by mpv: a track id, or off.
