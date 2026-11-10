@@ -10,6 +10,8 @@
 # unpacked: ./install.sh (it installs the mediaserver next to it).
 #
 #   --beta         the newest beta too (and its updates follow the betas)
+#   --preview      the newest preview of the next version (mediaserver 2.0)
+#                  too, and its updates follow them
 #   --no-ffmpeg    don't install ffmpeg (needed to convert the videos a
 #                  device can't play as they are, and for downloads)
 #   --no-ani-cli   don't install ani-cli (for the episodes the Aniko apps
@@ -29,10 +31,11 @@ set -euo pipefail
 # runs nothing.
 main() {
 REPO=v0-0x/mediaserver
-beta=0 ffmpeg=1 anicli=1 uninstall=0 purge=0
+beta=0 preview=0 ffmpeg=1 anicli=1 uninstall=0 purge=0
 for arg in "$@"; do
   case $arg in
     --beta) beta=1 ;;
+    --preview) beta=1 preview=1 ;;
     --no-ffmpeg) ffmpeg=0 ;;
     --no-ani-cli) anicli=0 ;;
     --uninstall) uninstall=1 ;;
@@ -132,18 +135,21 @@ else
     "https://api.github.com/repos/$REPO/releases?per_page=100" -o "$tmp/releases.json" ||
     die "Couldn't read mediaserver's releases on GitHub (no internet?)."
   # <version> <1 if a beta> <address> <sha256:… or empty>
-  pick=$(python3 -I - "$tmp/releases.json" "$beta" "$arch" << 'PY'
+  pick=$(python3 -I - "$tmp/releases.json" "$beta" "$arch" "$preview" << 'PY'
 import json, re, sys
 releases = json.load(open(sys.argv[1]))
 beta, arch = sys.argv[2] == "1", sys.argv[3]
-servers = [r for r in releases if not r.get("draft") and re.fullmatch(r"server-v\d+(\.\d+)*", r["tag_name"])]
+# The previews of the next version are tagged apart (server-next-v…).
+tag = r"server-(next-)?v\d+(\.\d+)*" if sys.argv[4] == "1" else r"server-v\d+(\.\d+)*"
+servers = [r for r in releases if not r.get("draft") and re.fullmatch(tag, r["tag_name"])]
 stable = [r for r in servers if not r.get("prerelease")]
 # Betas too when asked, or when there's no stable release yet.
 pool = servers if beta or not stable else stable
 if not pool:
     sys.exit("no mediaserver release yet")
-best = max(pool, key=lambda r: tuple(int(n) for n in r["tag_name"][8:].split(".")))
-version = best["tag_name"][8:]
+ver = lambda r: r["tag_name"].rsplit("v", 1)[1]
+best = max(pool, key=lambda r: tuple(int(n) for n in ver(r).split(".")))
+version = ver(best)
 name = "mediaserver-%s-linux-%s.tar.gz" % (version, arch)
 asset = next((a for a in best.get("assets", []) if a["name"] == name), None)
 if asset is None:

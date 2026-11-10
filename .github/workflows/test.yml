@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -36,15 +38,17 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
       - uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: npm
           cache-dependency-path: |
-            web/anime/package-lock.json
+            aniko/web/package-lock.json
             web/movies/package-lock.json
       - name: Type check and build
         run: |
-          for side in anime movies; do
-            (cd "web/$side" && npm ci --no-audit --no-fund && npx tsc --noEmit && npm run build) || exit 1
+          for web in aniko/web web/movies; do
+            (cd "$web" && npm ci --no-audit --no-fund && npx tsc --noEmit && npm run build) || exit 1
           done
