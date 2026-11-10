@@ -1,4 +1,4 @@
 [submodule "aniko"]
 	path = aniko
 	url = https://github.com/v0-0x/Aniko.git
-	branch = 3.0
+	branch = claude/optimistic-carson-c63byb
