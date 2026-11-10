@@ -4,11 +4,9 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from "r
 import { Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router-dom"
 import { Toaster } from "sonner"
 import { NowPlaying, ScanIndicator } from "./components/NowPlaying"
-import { PlayerOverlay } from "./components/player/Player"
 import { TvMenu } from "./components/TvMenu"
 import { QuickSearch } from "./components/QuickSearch"
 import { HolidayBackdrop, HolidayGarland } from "./components/HolidayDecor"
-import { HolidayEffects } from "./components/HolidayEffects"
 import { useHolidayNotice } from "./components/HolidayBadge"
 import { WhatsNew } from "./components/WhatsNew"
 import { AnikoLogo, Sidebar } from "./components/Sidebar"
@@ -29,6 +27,10 @@ import HomePage from "./pages/Home"
 // Narrower than this: a phone's layout.
 const PHONE = "(max-width: 639px)"
 
+// The player (with hls.js) and a holiday's falling effects load when the
+// page is up, not before it: half of what the app starts with otherwise.
+const PlayerOverlay = lazy(() => import("./components/player/Player").then(m => ({ default: m.PlayerOverlay })))
+const HolidayEffects = lazy(() => import("./components/HolidayEffects").then(m => ({ default: m.HolidayEffects })))
 const EntryPage = lazy(() => import("./pages/Entry"))
 const DiscoverPage = lazy(() => import("./pages/Discover"))
 const SearchPage = lazy(() => import("./pages/Search"))
@@ -220,9 +222,15 @@ function AnikoApp() {
             <NowPlaying />
             <ScanIndicator />
             <QuickSearch />
-            <PlayerOverlay />
+            <Suspense>
+                <PlayerOverlay />
+            </Suspense>
             <WhatsNew />
-            <HolidayEffects effect={ui && look.effects ? look.holiday!.effect : null} reduceMotion={!!ui?.reducedMotion} />
+            {ui && look.effects && look.holiday?.effect && (
+                <Suspense>
+                    <HolidayEffects effect={look.holiday.effect} reduceMotion={!!ui.reducedMotion} />
+                </Suspense>
+            )}
             {tv && <TvMenu />}
             <Toaster
                 theme="dark"
@@ -247,7 +255,7 @@ function MiniPlayer() {
     }, [])
     return (
         <TooltipProvider>
-            {ok ? <PlayerOverlay mini /> : <p className="grid h-full place-items-center bg-black p-4 text-center text-sm text-muted">Nothing to play here.</p>}
+            {ok ? <Suspense><PlayerOverlay mini /></Suspense> : <p className="grid h-full place-items-center bg-black p-4 text-center text-sm text-muted">Nothing to play here.</p>}
             <Toaster
                 theme="dark"
                 position="top-center"
