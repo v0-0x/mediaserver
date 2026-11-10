@@ -16,16 +16,20 @@ GO_LDFLAGS ?= -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT)
 
 all: server
 
-# Each side's pages: Aniko's web UI (the dashboard) and Moviko's.
+# Each side's pages: Aniko's web UI (the dashboard; Aniko's code is the
+# aniko submodule: git submodule update --init) and Moviko's.
+ANIME_DIST = aniko/server/internal/webui/dist
+MOVIES_DIST = movies/internal/webui/dist
+
 web:
-	cd web/anime && $(NPM) ci --no-audit --no-fund && $(NPM) run build
+	cd aniko/web && $(NPM) ci --no-audit --no-fund && $(NPM) run build
 	cd web/movies && $(NPM) ci --no-audit --no-fund && $(NPM) run build
 
 embed: web
-	for side in anime movies; do \
-		rm -rf $$side/internal/webui/dist && mkdir -p $$side/internal/webui/dist && \
-		cp -r web/$$side/dist/. $$side/internal/webui/dist/ && touch $$side/internal/webui/dist/.keep; \
-	done
+	rm -rf $(ANIME_DIST) $(MOVIES_DIST)
+	mkdir -p $(ANIME_DIST) $(MOVIES_DIST)
+	cp -r aniko/web/dist/. $(ANIME_DIST)/ && touch $(ANIME_DIST)/.keep
+	cp -r web/movies/dist/. $(MOVIES_DIST)/ && touch $(MOVIES_DIST)/.keep
 
 server: embed
 	mkdir -p dist
@@ -38,4 +42,4 @@ run: server
 	./dist/mediaserver --data-dir ./dev-data
 
 clean:
-	rm -rf dist web/anime/dist web/movies/dist
+	rm -rf dist aniko/web/dist web/movies/dist

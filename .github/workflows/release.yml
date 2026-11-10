@@ -56,6 +56,9 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # Aniko's code (the anime side and the dashboard): the aniko
+          # submodule.
+          submodules: true
           # The token stays out of .git/config, where the build's
           # dependencies (npm scripts…) could read it: only the release
           # steps get it.
@@ -66,7 +69,12 @@ jobs:
         env:
           INPUT: ${{ inputs.channel }}
         run: |
-          if [ "$INPUT" = stable ] || git log -1 --format=%B | grep -qF '[stable]'; then
+          # The 3.0 branch: previews of mediaserver 2.0, always betas (see
+          # "Read the version").
+          if [ "$GITHUB_REF_NAME" = 3.0 ]; then
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+            echo "A preview of 2.0 (a beta)"
+          elif [ "$INPUT" = stable ] || git log -1 --format=%B | grep -qF '[stable]'; then
             echo "channel=stable" >> "$GITHUB_OUTPUT"
             echo "A stable release"
           else
@@ -77,10 +85,16 @@ jobs:
       - name: Read the version
         id: version
         run: |
-          version="1.0.$(git rev-list --count HEAD)"
+          # 2.0.<commits since 1.0.32, the last commit before 2.0>. On the
+          # 3.0 branch the tag is server-next-v<version>: a server on 1.0
+          # doesn't look at those, so it isn't offered a preview; one on a
+          # preview with Beta updates on is.
+          version="2.0.$(( $(git rev-list --count HEAD) - 32 ))"
+          next=""
+          if [ "$GITHUB_REF_NAME" = 3.0 ]; then next="next-"; fi
           {
             echo "version=$version"
-            echo "tag=server-v$version"
+            echo "tag=server-${next}v$version"
           } >> "$GITHUB_OUTPUT"
           echo "Building mediaserver $version"
 
@@ -96,25 +110,25 @@ jobs:
           node-version: lts/*
           cache: npm
           cache-dependency-path: |
-            web/anime/package-lock.json
+            aniko/web/package-lock.json
             web/movies/package-lock.json
 
       # Each side's pages: the dashboard (Aniko's web UI, which shows it on
       # a server) and Moviko's.
       - name: Build the pages
         run: |
-          for side in anime movies; do
-            (cd "web/$side" && npm ci --no-audit --no-fund && npm run build)
+          for web in aniko/web web/movies; do
+            (cd "$web" && npm ci --no-audit --no-fund && npm run build)
           done
 
       # Same as the Makefile's "embed" target.
       - name: Embed the pages into the program
         run: |
-          for side in anime movies; do
-            dist="$side/internal/webui/dist"
+          for pair in aniko/web:aniko/server/internal/webui/dist web/movies:movies/internal/webui/dist; do
+            dist="${pair##*:}"
             rm -rf "$dist"
             mkdir -p "$dist"
-            cp -R "web/$side/dist/." "$dist/"
+            cp -R "${pair%%:*}/dist/." "$dist/"
             touch "$dist/.keep"
           done
 
@@ -195,7 +209,7 @@ jobs:
       # Creates the release (and its tag, on this commit, when it doesn't
       # exist yet), or updates it.
       - name: Publish the GitHub Release
-        if: (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        if: (github.event_name == 'push' && (github.ref_name == github.event.repository.default_branch || github.ref_name == '3.0')) || (github.event_name == 'workflow_dispatch' && inputs.publish)
         env:
           CHANNEL: ${{ steps.channel.outputs.channel }}
           GH_TOKEN: ${{ github.token }}
@@ -248,15 +262,18 @@ jobs:
       # version (numbers compared as numbers), and delete the older ones with
       # their tags: betas never push out the stable releases.
       - name: Delete old releases
-        if: (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        if: (github.event_name == 'push' && (github.ref_name == github.event.repository.default_branch || github.ref_name == '3.0')) || (github.event_name == 'workflow_dispatch' && inputs.publish)
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          # The previews are counted apart (their own tags).
+          next=""
+          if [ "$GITHUB_REF_NAME" = 3.0 ]; then next="next-"; fi
           list=$(gh release list --limit 1000 --json tagName,isPrerelease --jq '.[] | "\(.isPrerelease) \(.tagName)"')
           old=$(for pre in true false; do
             printf '%s\n' "$list" | awk -v pre="$pre" '$1 == pre { print $2 }' |
-              { grep -E '^server-v[0-9]+(\.[0-9]+)*$' || true; } | sort -V -r | tail -n +11
+              { grep -E "^server-${next}v[0-9]+(\.[0-9]+)*\$" || true; } | sort -V -r | tail -n +11
           done)
           if [ -z "$old" ]; then
             echo "No old releases to delete"
