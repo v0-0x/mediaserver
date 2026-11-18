@@ -16,6 +16,9 @@ import (
 
 type anaClient struct{ cl *torrent.Client }
 
+// testConfig, set by a test, changes the client's settings (nil otherwise).
+var testConfig func(*torrent.ClientConfig)
+
 func newClient(dir string, logger *slog.Logger) (client, error) {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.Slogger = logger
@@ -34,6 +37,9 @@ func newClient(dir string, logger *slog.Logger) (client, error) {
 	// that do), but doesn't stay to seed: a torrent stops with its play.
 	cfg.ListenPort = 0
 	cfg.Seed = false
+	if testConfig != nil {
+		testConfig(cfg)
+	}
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		// A computer without IPv6 (turned off, as on some Raspberry Pis):

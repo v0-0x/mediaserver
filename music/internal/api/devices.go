@@ -44,7 +44,8 @@ type devices struct {
 
 	mu    sync.Mutex
 	all   map[string]*Device
-	dirty bool // last seen times changed since the list was written
+	dirty bool      // last seen times changed since the list was written
+	told  time.Time // when a new device was last logged
 }
 
 func openDevices(dir string) (*devices, error) {
@@ -102,8 +103,12 @@ func (d *devices) seen(c *peer.Caller, ip string, now time.Time) Device {
 		d.makeRoom()
 		x = &Device{ID: c.ID, Key: encodeKey(c.Pub), FirstSeen: now.Unix()}
 		d.all[c.ID] = x
-		log.Printf("music: a new device, %q (%s): allow it in the dashboard's Music › Devices", c.Name, c.ID)
-		defer d.save()
+		// Anyone on the network can be a new device, over and over: said at
+		// most once a minute, and written down with the next flush.
+		if now.Sub(d.told) >= time.Minute {
+			d.told = now
+			log.Printf("music: a new device, %q (%s): allow it in the dashboard's Music › Devices", c.Name, c.ID)
+		}
 	}
 	if c.Name != "" && c.Name != x.Name {
 		x.Name = c.Name

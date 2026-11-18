@@ -102,9 +102,11 @@ func (s *Server) peerRoutes() {
 	// The watch history, for a Moviko it's paired with (it shares its library
 	// with it, or that one with it) on the same Letterboxd account: Continue
 	// watching goes on there where it stopped here.
+	// On mediaserver only a device allowed in the dashboard: that another
+	// one shares with it is only what that one says.
 	paired := func(fn http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			if !peerOf(r).Paired {
+			if c := peerOf(r); !c.Paired || s.app.Share.Server && !c.Allowed {
 				writeJSON(w, http.StatusForbidden, map[string]any{"error": "this Moviko isn't paired with yours"})
 				return
 			}

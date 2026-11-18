@@ -12,6 +12,10 @@ User=@USER@
 ExecStart=@BIN@ --data-dir @DATA@
 # The programs it uses (ffmpeg, ani-cli in ~/.local/bin).
 Environment=PATH=@PATH@
+# Its temporary files (ani-cli's helper scripts, which it runs) in its data
+# folder, which only it can open: not in /tmp, where anyone can make their
+# folder first, nor in /run, where Raspberry Pi OS runs no programs (noexec).
+Environment=XDG_RUNTIME_DIR=@DATA@/run
 # mediaserver updates itself in place (same process); a stop for any other
 # reason starts it again.
 Restart=always

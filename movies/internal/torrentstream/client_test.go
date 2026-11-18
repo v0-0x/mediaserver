@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -22,9 +23,20 @@ import (
 	"github.com/anacrolix/torrent/metainfo"
 )
 
+// alone keeps a client to this computer: no DHT, trackers or port opened on
+// the router, TCP on the loopback address only.
+func alone(cfg *torrent.ClientConfig) {
+	cfg.NoDHT = true
+	cfg.DisableTrackers = true
+	cfg.NoDefaultPortForwarding = true
+	cfg.DisableUTP = true
+	cfg.DisableIPv6 = true
+	cfg.ListenHost = func(string) string { return "127.0.0.1" }
+}
+
 // seed seeds a torrent of one file of data from another client on this
-// computer, and returns its magnet link (its address in it).
-func seed(t *testing.T, name string, data []byte) string {
+// computer, and returns its magnet link (its address in it) and its address.
+func seed(t *testing.T, name string, data []byte) (magnet, addr string) {
 	t.Helper()
 	dir := tempDir(t)
 	path := filepath.Join(dir, name)
@@ -43,9 +55,8 @@ func seed(t *testing.T, name string, data []byte) string {
 	cfg := torrent.NewDefaultClientConfig()
 	cfg.DataDir = dir
 	cfg.Seed = true
-	cfg.NoDHT = true
-	cfg.DisableIPv6 = true
 	cfg.ListenPort = 0
+	alone(cfg)
 	cl, err := torrent.NewClient(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +70,32 @@ func seed(t *testing.T, name string, data []byte) string {
 		t.Fatal(err)
 	}
 	h := mi.HashInfoBytes()
-	return mi.Magnet(&h, &info).String() + fmt.Sprintf("&x.pe=127.0.0.1:%d", cl.LocalPort())
+	addr = fmt.Sprintf("127.0.0.1:%d", cl.LocalPort())
+	return mi.Magnet(&h, &info).String() + "&x.pe=" + addr, addr
+}
+
+// keepPeer gives the engine's torrents their peer again every second until
+// stop is closed: the magnet link names it once, and a first connection
+// that fails isn't tried again.
+func keepPeer(e *Engine, addr string, stop <-chan struct{}) {
+	tick := time.NewTicker(time.Second)
+	defer tick.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-tick.C:
+		}
+		e.mu.Lock()
+		c, _ := e.client.(*anaClient)
+		e.mu.Unlock()
+		if c == nil {
+			continue
+		}
+		for _, tor := range c.cl.Torrents() {
+			tor.AddPeers([]torrent.PeerInfo{{Addr: torrent.StringAddr(addr), Source: torrent.PeerSourceDirect, Trusted: true}})
+		}
+	}
 }
 
 // A torrent plays as it downloads: by magnet link, from its peer, the file
@@ -69,14 +105,41 @@ func TestStreamFromAPeer(t *testing.T) {
 	if _, err := rand.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	magnet := seed(t, "Test.Movie.2020.1080p.mkv", data)
+	testConfig = alone
+	t.Cleanup(func() { testConfig = nil })
+	magnet, addr := seed(t, "Test.Movie.2020.1080p.mkv", data)
 	e := New(filepath.Join(tempDir(t), "cache"))
 	t.Cleanup(e.Close)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	streaming := make(chan struct{})
+	gotData := sync.OnceFunc(func() { close(streaming) })
+	t.Cleanup(gotData)
+	go keepPeer(e, addr, streaming)
+	// Each step has its own time: one that hangs is the one named.
+	const stepWait = 30 * time.Second
+	get := func(step, url, byteRange string) (*http.Response, []byte) {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(context.Background(), stepWait)
+		defer cancel()
+		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if byteRange != "" {
+			req.Header.Set("Range", byteRange)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("%s: %v", step, err)
+		}
+		defer resp.Body.Close()
+		got, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("%s: after %d bytes: %v", step, len(got), err)
+		}
+		return resp, got
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), stepWait)
 	defer cancel()
 	st, err := e.Open(ctx, magnet, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("open: %v", err)
 	}
 	if st.Name != "Test.Movie.2020.1080p.mkv" || st.Size != int64(len(data)) {
 		t.Fatalf("status %+v", st)
@@ -85,27 +148,16 @@ func TestStreamFromAPeer(t *testing.T) {
 	defer srv.Close()
 
 	// A seek: a range from the middle first.
-	req, _ := http.NewRequestWithContext(ctx, "GET", srv.URL, nil)
-	req.Header.Set("Range", "bytes=2000000-2099999")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
+	resp, got := get("range", srv.URL, "bytes=2000000-2099999")
 	if resp.StatusCode != http.StatusPartialContent || !bytes.Equal(got, data[2000000:2100000]) {
 		t.Fatalf("range: %d, %d bytes", resp.StatusCode, len(got))
 	}
+	gotData()
 	if ct := resp.Header.Get("Content-Type"); ct != "video/x-matroska" {
 		t.Fatalf("type %q", ct)
 	}
 	// All of it.
-	resp, err = http.Get(srv.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got, _ = io.ReadAll(resp.Body)
-	resp.Body.Close()
+	_, got = get("the whole file", srv.URL, "")
 	if !bytes.Equal(got, data) {
 		t.Fatalf("the whole file: %d of %d bytes, equal %v", len(got), len(data), bytes.Equal(got, data))
 	}
@@ -114,19 +166,15 @@ func TestStreamFromAPeer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp, err := http.Get(loop); err != nil || resp.StatusCode != http.StatusOK {
-		t.Fatalf("loopback: %v %v", resp, err)
-	} else {
-		got, _ = io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if !bytes.Equal(got, data) {
-			t.Fatal("loopback: not the file")
-		}
+	if resp, got = get("loopback", loop, ""); resp.StatusCode != http.StatusOK || !bytes.Equal(got, data) {
+		t.Fatalf("loopback: %d, not the file", resp.StatusCode)
 	}
 	if st, _ := e.Status(st.ID); st.Done != int64(len(data)) {
 		t.Fatalf("status after: %+v", st)
 	}
 	// The same torrent again: the same session.
+	ctx, cancel = context.WithTimeout(context.Background(), stepWait)
+	defer cancel()
 	again, err := e.Open(ctx, magnet, nil)
 	if err != nil || again.ID != st.ID {
 		t.Fatalf("again: %+v %v", again, err)

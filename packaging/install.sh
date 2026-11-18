@@ -164,9 +164,9 @@ PY
     say "Downloading mediaserver $version for $arch…"
   fi
   curl -fL --progress-bar -o "$tmp/mediaserver.tar.gz" "$url" || die "The download failed."
-  if [[ $digest == sha256:* ]]; then
-    echo "${digest#sha256:}  $tmp/mediaserver.tar.gz" | sha256sum -c --quiet - || die "The download is damaged (its checksum doesn't match): try again."
-  fi
+  # GitHub gives every release file's checksum: without it, nothing is installed.
+  [[ $digest == sha256:* ]] || die "GitHub didn't give the download's checksum: try again later."
+  echo "${digest#sha256:}  $tmp/mediaserver.tar.gz" | sha256sum -c --quiet - || die "The download is damaged (its checksum doesn't match): try again."
   mkdir "$tmp/x"
   tar -xzf "$tmp/mediaserver.tar.gz" -C "$tmp/x"
   src=$(find "$tmp/x" -mindepth 1 -maxdepth 1 -type d | head -1)

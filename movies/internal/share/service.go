@@ -1465,7 +1465,20 @@ func (s *Service) getJSONWith(ctx context.Context, c *http.Client, p *peer, path
 		msg, _ := io.ReadAll(io.LimitReader(resp.Body, 300))
 		return fmt.Errorf("%s: %s", resp.Status, strings.TrimSpace(string(msg)))
 	}
-	return json.NewDecoder(io.LimitReader(resp.Body, 64<<20)).Decode(out)
+	return json.NewDecoder(io.LimitReader(resp.Body, s.answerLimit(p))).Decode(out)
+}
+
+// answerLimit is how long an answer from another Moviko is read: a library's
+// list of files can be large. mediaserver reads little from a device its
+// owner neither allowed nor added by address: any device on the network can
+// say it shares.
+func (s *Service) answerLimit(p *peer) int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.Server && !p.allowed && p.manual == "" {
+		return 2 << 20
+	}
+	return 64 << 20
 }
 
 func (s *Service) hello(ctx context.Context, p *peer) (*Hello, error) {

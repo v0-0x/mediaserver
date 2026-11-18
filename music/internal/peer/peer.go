@@ -327,6 +327,9 @@ func receivedBody(r *http.Request) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 
+// The most nonces kept at a time.
+const maxNonces = 16384
+
 // firstUse notes a request's nonce until its time is over (until): it's the
 // first time it's seen.
 func (id *Identity) firstUse(nonce string, until, now time.Time) bool {
@@ -343,7 +346,8 @@ func (id *Identity) firstUse(nonce string, until, now time.Time) bool {
 		}
 		id.pruned = now
 	}
-	if _, seen := id.nonces[nonce]; seen {
+	// Full (a flood of requests): refused rather than kept without end.
+	if _, seen := id.nonces[nonce]; seen || len(id.nonces) >= maxNonces {
 		return false
 	}
 	id.nonces[nonce] = until

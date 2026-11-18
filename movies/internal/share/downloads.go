@@ -46,6 +46,9 @@ func (s *Service) downloadsGranted(p *peer, takes bool) {
 	cfg := s.settings.Get()
 	name := s.nameOf(p)
 	switch {
+	case takes && s.Server:
+		// mediaserver downloads here: another device saying it takes its
+		// downloads (anyone on the network can) doesn't change that.
 	case takes && cfg.Sharing.DownloadTo != p.id:
 		cfg.Sharing.DownloadTo = p.id
 		if _, err := s.settings.Save(cfg); err != nil {
