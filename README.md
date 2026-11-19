@@ -5,7 +5,7 @@ computer that stays on. It is one program with a side for each app:
 
 | Side | For | Port | Code | From |
 |---|---|---|---|---|
-| **Anime** | the Nyakuro apps | 43211 (discovery 43212/udp) | `nyakuro/` (submodule) | Nyakuro's server, as a hub |
+| **Anime** | the Aniko apps | 43211 (discovery 43212/udp) | `aniko/` (submodule) | Aniko's server, as a hub |
 | **Movies & TV** | the Moviko apps (KumoBox until 2.0.9) | 43311 (discovery 43312/udp) | `movies/` | Moviko's server |
 | **Music** | the Utako apps | 43411 (discovery 43412/udp) | `music/` | written here, for Utako |
 
@@ -22,9 +22,9 @@ from Aniko Hub, setting up each side, updates, troubleshooting).
 ```
 cmd/mediaserver      the program: starts the sides, one log, data folders,
                      moves Aniko Hub's data, restarts after an update
-nyakuro/               Nyakuro's repository, a git submodule (after a clone:
+aniko/               Aniko's repository, a git submodule (after a clone:
                      git submodule update --init). Its server/hub starts
-                     the anime side (Nyakuro's server as a hub: no player,
+                     the anime side (Aniko's server as a hub: no player,
                      the dashboard, mediaserver's updater)
 movies/engine        starts the movies side (Moviko's app: no player,
                      sharing always on, updated with mediaserver)
@@ -34,25 +34,25 @@ music/engine         starts the music side (Utako's server: no player, a
 music/internal/...   its packages: peer (keys, signed requests, beacon),
                      library (scan, tags, ffprobe lengths, covers), api
                      (the devices' port; the dashboard's Handler), upload
-nyakuro/web            Nyakuro's web UI: on a server it shows the dashboard
+aniko/web            Aniko's web UI: on a server it shows the dashboard
 web/movies           Moviko's web UI: the movies side's pages
 packaging/           install.sh, the systemd service, the users' README
 ```
 
-- **Connecting.** The anime side answers the Nyakuro apps exactly as Aniko Hub
+- **Connecting.** The anime side answers the Aniko apps exactly as Aniko Hub
   did (same port, same identity and pairings once its data is moved), and
-  tells them it's Nyakuro `nyakuro/server/hub.ProtocolVersion`. The movies side is a
+  tells them it's Aniko `aniko/server/hub.ProtocolVersion`. The movies side is a
   Moviko to the Moviko apps (it says it runs on `mediaserver`, so they
   don't offer to share with it or to update it), version
   `movies/engine.ProtocolVersion`. The music side speaks the same peer
   protocol (`music/internal/peer`, checked against the vectors Utako's own
   copy is checked against) and answers what Utako asks: Utako's
   `docs/media-server.md`.
-- **One dashboard.** The anime side's web UI (`nyakuro/web`, `pages/hub`)
+- **One dashboard.** The anime side's web UI (`aniko/web`, `pages/hub`)
   is mediaserver's dashboard, with a slider: Anime, Movies, TV, Music. The
   Movies and TV pages (`pages/hub/media`) ask the movies side through the
   anime side, at `/api/movies/...`, and the Music pages (`pages/hub/music`)
-  the music side, at `/api/music/...` (`nyakuro/server/internal/api/sides.go`),
+  the music side, at `/api/music/...` (`aniko/server/internal/api/sides.go`),
   passed on in the program as from the side's own computer, for the
   signed-in owner only. The music side's dashboard API is only ever there,
   never on its own port.
@@ -99,7 +99,7 @@ change both together; `docs/media-server.md` in Utako's repository says
 what they say to each other, and Utako's opt-in `real_server` test runs it
 all against a running mediaserver.
 
-## Bringing in a newer Nyakuro or Moviko
+## Bringing in a newer Aniko or Moviko
 
 `movies/` is a copy of Moviko's `server/internal` (imports renamed to
 `github.com/v0-0x/mediaserver/movies/...`), and `web/movies` of its `web/`:
@@ -108,10 +108,10 @@ is (keeping `update_test.go`'s `TestVersionOf`, which reads the app's
 desktop/package.json), then `movies/engine.ProtocolVersion` is raised to its
 version.
 
-The anime side is Nyakuro's own code since mediaserver 2.0: the `nyakuro`
+The anime side is Aniko's own code since mediaserver 2.0: the `aniko`
 submodule, at the commit this repository names (go.mod replaces
-`github.com/v0-0x/Nyakuro/server` with `./nyakuro/server`). A newer Nyakuro comes
-in by moving the submodule to its commit (`git -C nyakuro fetch && git -C
-nyakuro checkout <commit>`, then commit `nyakuro` here): nothing is copied by
+`github.com/v0-0x/Aniko/server` with `./aniko/server`). A newer Aniko comes
+in by moving the submodule to its commit (`git -C aniko fetch && git -C
+aniko checkout <commit>`, then commit `aniko` here): nothing is copied by
 hand any more.
 Run `make test` after either.

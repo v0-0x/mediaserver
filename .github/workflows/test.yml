@@ -45,10 +45,10 @@ jobs:
           node-version: lts/*
           cache: npm
           cache-dependency-path: |
-            nyakuro/web/package-lock.json
+            aniko/web/package-lock.json
             web/movies/package-lock.json
       - name: Type check and build
         run: |
-          for web in nyakuro/web web/movies; do
+          for web in aniko/web web/movies; do
             (cd "$web" && npm ci --no-audit --no-fund && npx tsc --noEmit && npm run build) || exit 1
           done

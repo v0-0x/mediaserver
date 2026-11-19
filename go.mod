@@ -102,7 +102,7 @@ require (
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tidwall/btree v1.8.1 // indirect
-	github.com/v0-0x/Nyakuro/server v0.0.0
+	github.com/v0-0x/Aniko/server v0.0.0
 	github.com/wlynxg/anet v0.0.3 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -121,4 +121,4 @@ require (
 	zombiezen.com/go/sqlite v0.13.1 // indirect
 )
 
-replace github.com/v0-0x/Nyakuro/server => ./nyakuro/server
+replace github.com/v0-0x/Aniko/server => ./aniko/server

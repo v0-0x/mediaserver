@@ -1,4 +1,4 @@
-# Builds mediaserver (cmd/mediaserver: the anime side for the Nyakuro apps and
+# Builds mediaserver (cmd/mediaserver: the anime side for the Aniko apps and
 # the movies side for the Moviko apps, in one program) and publishes it as
 # the GitHub Release "mediaserver <version>", tagged server-v<version> on
 # the commit it built: one archive per processor,
@@ -56,7 +56,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          # Nyakuro's code (the anime side and the dashboard): the nyakuro
+          # Aniko's code (the anime side and the dashboard): the aniko
           # submodule.
           submodules: true
           # The token stays out of .git/config, where the build's
@@ -110,21 +110,21 @@ jobs:
           node-version: lts/*
           cache: npm
           cache-dependency-path: |
-            nyakuro/web/package-lock.json
+            aniko/web/package-lock.json
             web/movies/package-lock.json
 
-      # Each side's pages: the dashboard (Nyakuro's web UI, which shows it on
+      # Each side's pages: the dashboard (Aniko's web UI, which shows it on
       # a server) and Moviko's.
       - name: Build the pages
         run: |
-          for web in nyakuro/web web/movies; do
+          for web in aniko/web web/movies; do
             (cd "$web" && npm ci --no-audit --no-fund && npm run build)
           done
 
       # Same as the Makefile's "embed" target.
       - name: Embed the pages into the program
         run: |
-          for pair in nyakuro/web:nyakuro/server/internal/webui/dist web/movies:movies/internal/webui/dist; do
+          for pair in aniko/web:aniko/server/internal/webui/dist web/movies:movies/internal/webui/dist; do
             dist="${pair##*:}"
             rm -rf "$dist"
             mkdir -p "$dist"
@@ -196,7 +196,7 @@ jobs:
           mv "$share/mediaserver/anime" "$share/aniko-hub"
           rm -rf "$share/mediaserver"
           run_and_check --hub --data-dir "$share/aniko-hub"
-          [ -L "$share/aniko-hub" ] && [ -f "$share/mediaserver/anime/nyakuro.db" ] || { echo "::error::Aniko Hub's data wasn't moved"; ls -la "$share" "$share/mediaserver"; exit 1; }
+          [ -L "$share/aniko-hub" ] && [ -f "$share/mediaserver/anime/aniko.db" ] || { echo "::error::Aniko Hub's data wasn't moved"; ls -la "$share" "$share/mediaserver"; exit 1; }
 
       - name: Upload the archives (workflow artifact)
         uses: actions/upload-artifact@v7
@@ -222,7 +222,7 @@ jobs:
           beta=""
           [ "$CHANNEL" = beta ] && beta=" --beta"
           cat > "$notes" <<EOF
-          **mediaserver $VERSION**: the home server for the Nyakuro, Moviko and Utako apps, for a Raspberry Pi (Pi 4 or 5) or any Linux computer that stays on. Its anime side shares its library with the Nyakuro apps on your network and keeps each AniList account's progress, list and theme in step on all of them; its movies side shares movies and shows with the Moviko apps; its music side shares songs with the Utako apps and keeps the settings and logins one of them sends for the others. Each side has its own library, devices and logins. The dashboard, in a browser, shows what it's streaming to whom, the devices and the Pi's CPU, memory, temperature and disks.
+          **mediaserver $VERSION**: the home server for the Aniko, Moviko and Utako apps, for a Raspberry Pi (Pi 4 or 5) or any Linux computer that stays on. Its anime side shares its library with the Aniko apps on your network and keeps each AniList account's progress, list and theme in step on all of them; its movies side shares movies and shows with the Moviko apps; its music side shares songs with the Utako apps and keeps the settings and logins one of them sends for the others. Each side has its own library, devices and logins. The dashboard, in a browser, shows what it's streaming to whom, the devices and the Pi's CPU, memory, temperature and disks.
 
           **Install** (on the Pi, as your usual user, with Raspberry Pi OS 64-bit best):
 

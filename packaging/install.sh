@@ -14,13 +14,13 @@
 #                  too, and its updates follow them
 #   --no-ffmpeg    don't install ffmpeg (needed to convert the videos a
 #                  device can't play as they are, and for downloads)
-#   --no-ani-cli   don't install ani-cli (for the episodes the Nyakuro apps
+#   --no-ani-cli   don't install ani-cli (for the episodes the Aniko apps
 #                  download onto the server)
 #   --uninstall    remove the program and its service (its data stays)
 #   --purge        the same, and its data (accounts, history, settings)
 #
 # The program goes in ~/.local/bin/mediaserver (it replaces it itself when
-# it updates), its data in ~/.local/share/mediaserver (anime/ for the Nyakuro
+# it updates), its data in ~/.local/share/mediaserver (anime/ for the Aniko
 # apps' side, movies/ for the Moviko apps'), its service in
 # /etc/systemd/system/mediaserver.service. A computer that ran Aniko Hub
 # moves to mediaserver: its service is replaced, its data moves into
@@ -60,7 +60,7 @@ die() {
 if [ "$(id -u)" -eq 0 ]; then
   die "Run this as the user mediaserver is to run as (pi, say), not as root or with sudo: it asks for sudo when it needs it."
 fi
-[ "$(uname -s)" = Linux ] || die "mediaserver is for Linux (a Raspberry Pi, say). On Windows and macOS, install Nyakuro and Moviko themselves."
+[ "$(uname -s)" = Linux ] || die "mediaserver is for Linux (a Raspberry Pi, say). On Windows and macOS, install Aniko and Moviko themselves."
 command -v curl > /dev/null || die "This needs curl: sudo apt-get install -y curl"
 
 user=$(id -un)
@@ -73,7 +73,7 @@ if command -v systemctl > /dev/null && [ -d /run/systemd/system ]; then
   has_systemd=1
 fi
 
-# Aniko Hub's service and program (kumo-hub: its name before Nyakuro's
+# Aniko Hub's service and program (kumo-hub: its name before Aniko's
 # rename), which mediaserver replaces.
 remove_old_hub() {
   for name in aniko-hub kumo-hub; do
@@ -175,7 +175,7 @@ fi
 
 # ffmpeg converts the videos a device can't play as they are (on a Pi with
 # its video encoder, h264_v4l2m2m) and saves downloads; ani-cli finds the
-# episodes the Nyakuro apps download onto the server.
+# episodes the Aniko apps download onto the server.
 want=()
 if [ "$ffmpeg" = 1 ] && ! command -v ffmpeg > /dev/null; then want+=(ffmpeg); fi
 if [ ${#want[@]} -gt 0 ]; then
@@ -193,7 +193,7 @@ if [ "$anicli" = 1 ] && ! command -v ani-cli > /dev/null && [ ! -x "$HOME/.local
   if curl -fsSL -o "$tmp/ani-cli" https://raw.githubusercontent.com/pystardust/ani-cli/master/ani-cli && head -1 "$tmp/ani-cli" | grep -q '^#!'; then
     install -m 755 "$tmp/ani-cli" "$HOME/.local/bin/ani-cli"
   else
-    echo "ani-cli didn't download: the Nyakuro apps can't download episodes onto the server until it's installed." >&2
+    echo "ani-cli didn't download: the Aniko apps can't download episodes onto the server until it's installed." >&2
   fi
 fi
 
@@ -250,7 +250,7 @@ if [ "$has_systemd" = 1 ]; then
   echo "  Logs:        journalctl -u mediaserver -f"
 fi
 echo
-echo "On your computers, TVs and phones, turn on Settings › Other devices (Nyakuro) and Settings › Devices (Moviko): mediaserver shows up there."
+echo "On your computers, TVs and phones, turn on Settings › Other devices (Aniko) and Settings › Devices (Moviko): mediaserver shows up there."
 }
 
 main "$@"

@@ -1,12 +1,12 @@
 # mediaserver
 
-mediaserver is the home server for the Nyakuro, Moviko and Utako apps, for a
+mediaserver is the home server for the Aniko, Moviko and Utako apps, for a
 computer that stays on: a Raspberry Pi 4 or 5, or any Linux computer. One
 program, one service, one install and one updater, with a side for each app:
 
 | Side | For | Port |
 |---|---|---|
-| **Anime** | the Nyakuro apps | 43211 |
+| **Anime** | the Aniko apps | 43211 |
 | **Movies & TV** | the Moviko apps (called KumoBox until 2.0.9) | 43311 |
 | **Music** | the Utako apps | 43411 |
 
@@ -15,7 +15,7 @@ slider at its top switches between **Anime**, **Movies**, **TV** and
 **Music**.
 
 The sides are kept apart: each has its own library folders, its own
-devices (an Nyakuro app only ever sees the anime side, a Moviko app only the
+devices (an Aniko app only ever sees the anime side, a Moviko app only the
 movies side, a Utako app only the music side), its own logins (AniList for
 anime, Letterboxd for movies) and its own data
 (`~/.local/share/mediaserver/anime`, `…/movies` and `…/music`). What they
@@ -86,7 +86,7 @@ and the address (port 43211). Its data moves to
 `~/.local/share/mediaserver/anime` (a link is left where it was).
 
 It then still runs under Aniko Hub's service (`aniko-hub`). Run the install
-command above once to give it its own (`mediaserver`): it replaces Nyakuro
+command above once to give it its own (`mediaserver`): it replaces Aniko
 Hub's.
 
 ## Set it up
@@ -96,10 +96,10 @@ Hub's.
 2. Type the setup code and choose the dashboard's password. (On the Pi,
    `~/.local/bin/mediaserver --setup-code` shows the code again.)
 
-**Anime (the Nyakuro apps):**
+**Anime (the Aniko apps):**
 
 3. **Library › Add a folder**: the folder your anime are in.
-4. On each computer, TV or phone with Nyakuro, turn on **Settings › Other
+4. On each computer, TV or phone with Aniko, turn on **Settings › Other
    devices**. The device shows up on the dashboard under **Devices**: turn
    on **Share the library** for it.
 5. On one device logged in to AniList, in **Settings › Other devices**, on
@@ -142,9 +142,9 @@ folders (they keep their names):
 
 - **In a browser:** the dashboard's **Library › Upload**, under Anime,
   Movies, TV or Music.
-- **From the Nyakuro and Moviko apps:** **Local library › Upload**, or
+- **From the Aniko and Moviko apps:** **Local library › Upload**, or
   **Upload** by the server in **Settings › Other devices**. The server lets
-  that device download there first (the dashboard's **Devices** for Nyakuro,
+  that device download there first (the dashboard's **Devices** for Aniko,
   the movies side's **Settings › Other devices** for Moviko: **Let it
   download here**).
 - **From Utako:** **Settings › Media server › Upload a folder…** or
@@ -174,7 +174,7 @@ once. **Beta updates** there offers the betas too.
   there first, with the same address (name or IP).
 - **A device doesn't show up:** some routers keep devices from finding each
   other. In the device's settings, **Add by address** with the Pi's address
-  and port 43211 (Nyakuro) or 43311 (Moviko); in Utako, type the Pi's
+  and port 43211 (Aniko) or 43311 (Moviko); in Utako, type the Pi's
   address in **Settings › Media server › Address** (it adds port 43411
   itself).
 - **Episodes or movies don't show:** the folder must be readable by the user
