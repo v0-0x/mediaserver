@@ -11,7 +11,7 @@ export const RELEASES: Release[] = [
         changes: [
             {
                 title: "A new name",
-                text: "Moviko: movie, and ko, as in Aniko, its sibling, with the clapperboard it already had. Everything came along: your library, lists, diary, settings and logins, your other devices and the server. On Linux the app and its command are moviko now (kumobox still opens it).",
+                text: "Moviko: movie, and ko, as in Aniko (Nyakuro now), its sibling, with the clapperboard it already had. Everything came along: your library, lists, diary, settings and logins, your other devices and the server. On Linux the app and its command are moviko now (kumobox still opens it).",
             },
         ],
     },
@@ -36,7 +36,7 @@ export const RELEASES: Release[] = [
             },
             {
                 title: "mediaserver",
-                text: "Moviko's home server, for a Raspberry Pi or any Linux computer that stays on, shares movies and shows with your Moviko apps (and anime with your Aniko apps): it shows up in Settings › Other devices.",
+                text: "Moviko's home server, for a Raspberry Pi or any Linux computer that stays on, shares movies and shows with your Moviko apps (and anime with your Nyakuro apps): it shows up in Settings › Other devices.",
                 to: "/settings?tab=devices",
             },
         ],

@@ -1,4 +1,4 @@
-[submodule "aniko"]
-	path = aniko
-	url = https://github.com/v0-0x/Aniko.git
+[submodule "nyakuro"]
+	path = nyakuro
+	url = https://github.com/v0-0x/Nyakuro.git
 	branch = claude/optimistic-carson-c63byb
